@@ -71,6 +71,8 @@ class AliasHandler(AsyncMessage):
             log.info(f"Ersetze From: {real_address} → {alias_address}")
             del message["From"]
             message["From"] = formataddr((display_name, alias_address))
+            # Reply-To entfernen – würde sonst die echte Adresse verraten
+            del message["Reply-To"]
 
         # SMTP-Konfiguration laden (per Absenderadresse, Fallback auf globale Settings)
         try:
