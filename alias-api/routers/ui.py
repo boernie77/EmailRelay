@@ -158,11 +158,12 @@ async def login_submit(
     stored_hash = await get_setting(db, "ui_password_hash")
     if not stored_hash:
         # Erstes Login: Passwort direkt setzen
-        await save_setting(db, "ui_password_hash", bcrypt.hash(password))
+        hashed = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+        await save_setting(db, "ui_password_hash", hashed)
         await db.commit()
         request.session["logged_in"] = True
         return RedirectResponse("/", status_code=302)
-    if bcrypt.verify(password, stored_hash):
+    if _bcrypt.checkpw(password.encode(), stored_hash.encode()):
         request.session["logged_in"] = True
         return RedirectResponse("/", status_code=302)
     has_password = bool(stored_hash)
