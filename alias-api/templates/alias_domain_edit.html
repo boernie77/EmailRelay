@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %} – Alias-Domain bearbeiten{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="/alias-domains" class="text-sm text-blue-600 hover:underline">← Alias-Domains</a>
+  <span class="text-gray-400">/</span>
+  <h1 class="text-2xl font-bold">{{ cfg.label or cfg.alias_domain }} bearbeiten</h1>
+</div>
+
+<div class="bg-white rounded-xl shadow p-6">
+  <form method="post" action="/alias-domains/{{ cfg.id }}/edit" class="space-y-4">
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Bezeichnung <span class="text-gray-400 font-normal">(optional)</span></label>
+        <input type="text" name="label" value="{{ cfg.label }}" placeholder="z.B. Mein Mailserver"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Alias-Domain <span class="text-red-500">*</span></label>
+        <input type="text" name="alias_domain" value="{{ cfg.alias_domain }}" required
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+    </div>
+
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">SMTP-Verbindung</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">SMTP-Server</label>
+          <input type="text" name="smtp_host" value="{{ cfg.smtp_host }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+          <input type="number" name="smtp_port" value="{{ cfg.smtp_port }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
+          <input type="text" name="smtp_user" value="{{ cfg.smtp_user }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+          <input type="password" name="smtp_password" value="{{ cfg.smtp_password }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Verschlüsselung</label>
+          <select name="smtp_use_tls"
+                  class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="true" {% if cfg.smtp_use_tls %}selected{% endif %}>STARTTLS / TLS</option>
+            <option value="false" {% if not cfg.smtp_use_tls %}selected{% endif %}>Keine (nicht empfohlen)</option>
+          </select>
+        </div>
+      </div>
+      <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+        Hinweis bei Gmail: Ein App-Passwort verwenden (Google-Konto → Sicherheit → App-Passwörter).
+      </p>
+    </div>
+
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">VPS-Verbindung</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">VPS-Host / IP</label>
+          <input type="text" name="vps_host" value="{{ cfg.vps_host }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Port</label>
+          <input type="number" name="vps_port" value="{{ cfg.vps_port }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Benutzer</label>
+          <input type="text" name="vps_user" value="{{ cfg.vps_user }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">API-URL für VPS</label>
+          <input type="text" name="api_url_for_vps" value="{{ cfg.api_url_for_vps }}"
+                 placeholder="http://[IPv6]:8080"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Private-Key (PEM)</label>
+          <textarea name="vps_ssh_key" rows="6"
+                    class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400">{{ cfg.vps_ssh_key }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition text-sm">
+        Speichern
+      </button>
+      <a href="/alias-domains"
+         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-2 rounded-lg transition text-sm">
+        Abbrechen
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}
