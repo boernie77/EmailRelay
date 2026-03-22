@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmailRelay{% block title %}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-gray-900 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/" class="text-xl font-bold tracking-wide">📧 EmailRelay</a>
+      <div class="flex gap-6 text-sm font-medium">
+        <a href="/" class="hover:text-blue-300 transition">Dashboard</a>
+        <a href="/domains" class="hover:text-blue-300 transition">Domains</a>
+        <a href="/addresses" class="hover:text-blue-300 transition">Adressen</a>
+        <a href="/aliases" class="hover:text-blue-300 transition">Aliases</a>
+        <a href="/settings" class="hover:text-blue-300 transition">Einstellungen</a>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

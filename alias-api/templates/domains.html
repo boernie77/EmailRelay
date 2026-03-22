@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %} – Domains{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Domains</h1>
+
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">Domain hinzufügen</h2>
+  <form method="post" action="/domains" class="flex gap-3 items-end">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Domain (deine echte Domain)</label>
+      <input type="text" name="domain" placeholder="deine-domain.de" required
+             class="border rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Alias-Domain (optional, überschreibt globale Einstellung)</label>
+      <input type="text" name="alias_domain" placeholder="alias.deine-domain.de"
+             class="border rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+      Hinzufügen
+    </button>
+  </form>
+</div>
+
+<div class="bg-white rounded-xl shadow p-6">
+  <h2 class="text-lg font-semibold mb-4">Konfigurierte Domains</h2>
+  {% if domains %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-gray-500 border-b">
+        <th class="pb-2">Domain</th>
+        <th class="pb-2">Alias-Domain</th>
+        <th class="pb-2">Hinzugefügt</th>
+        <th class="pb-2">Status</th>
+        <th class="pb-2">Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in domains %}
+      <tr class="border-b last:border-0 hover:bg-gray-50">
+        <td class="py-2 font-medium">{{ d.domain }}</td>
+        <td class="py-2 text-gray-500">{{ d.alias_domain or '(global)' }}</td>
+        <td class="py-2 text-gray-400">{{ d.created_at.strftime('%d.%m.%Y') }}</td>
+        <td class="py-2">
+          {% if d.active %}
+          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
+          {% else %}
+          <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs">Inaktiv</span>
+          {% endif %}
+        </td>
+        <td class="py-2 flex gap-2">
+          <form method="post" action="/domains/{{ d.id }}/toggle">
+            <button class="text-xs text-blue-600 hover:underline">
+              {{ 'Deaktivieren' if d.active else 'Aktivieren' }}
+            </button>
+          </form>
+          <form method="post" action="/domains/{{ d.id }}/delete"
+                onsubmit="return confirm('Domain und alle zugehörigen Adressen löschen?')">
+            <button class="text-xs text-red-500 hover:underline">Löschen</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-gray-400">Noch keine Domains konfiguriert.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %} – Dashboard{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+
+<div class="grid grid-cols-3 gap-4 mb-8">
+  <div class="bg-white rounded-xl shadow p-6 text-center">
+    <div class="text-4xl font-bold text-blue-600">{{ alias_count }}</div>
+    <div class="text-gray-500 mt-1">Aktive Aliases</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-6 text-center">
+    <div class="text-4xl font-bold text-green-600">{{ domain_count }}</div>
+    <div class="text-gray-500 mt-1">Domains</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-6 text-center">
+    <div class="text-4xl font-bold text-purple-600">{{ address_count }}</div>
+    <div class="text-gray-500 mt-1">Geschützte Adressen</div>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl shadow p-6">
+  <h2 class="text-lg font-semibold mb-4">Zuletzt erstellte Aliases</h2>
+  {% if recent_aliases %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-gray-500 border-b">
+        <th class="pb-2">Alias</th>
+        <th class="pb-2">Echte Adresse</th>
+        <th class="pb-2">Erstellt</th>
+        <th class="pb-2">Zuletzt genutzt</th>
+        <th class="pb-2">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for alias in recent_aliases %}
+      <tr class="border-b last:border-0 hover:bg-gray-50">
+        <td class="py-2 font-mono text-blue-700">{{ alias.alias_address }}</td>
+        <td class="py-2 text-gray-600">{{ alias.real_address }}</td>
+        <td class="py-2 text-gray-400">{{ alias.created_at.strftime('%d.%m.%Y') }}</td>
+        <td class="py-2 text-gray-400">{{ alias.last_used.strftime('%d.%m.%Y') if alias.last_used else '–' }}</td>
+        <td class="py-2">
+          {% if alias.active %}
+          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
+          {% else %}
+          <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">Deaktiviert</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-gray-400">Noch keine Aliases vorhanden. <a href="/addresses" class="text-blue-600 hover:underline">Adressen konfigurieren →</a></p>
+  {% endif %}
+</div>
+{% endblock %}

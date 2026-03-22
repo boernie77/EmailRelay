@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %} – E-Mail-Adressen{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-2">E-Mail-Adressen</h1>
+<p class="text-gray-500 mb-6 text-sm">Nur Adressen in dieser Liste bekommen beim Senden automatisch einen Alias.</p>
+
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">Adresse hinzufügen</h2>
+  {% if domains %}
+  <form method="post" action="/addresses" class="flex gap-3 items-end">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail-Adresse</label>
+      <input type="email" name="address" placeholder="name@deine-domain.de" required
+             class="border rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Domain</label>
+      <select name="domain_id"
+              class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        {% for d in domains %}
+        <option value="{{ d.id }}">{{ d.domain }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+      Hinzufügen
+    </button>
+  </form>
+  {% else %}
+  <p class="text-gray-400">Bitte zuerst eine <a href="/domains" class="text-blue-600 hover:underline">Domain konfigurieren</a>.</p>
+  {% endif %}
+</div>
+
+<div class="bg-white rounded-xl shadow p-6">
+  <h2 class="text-lg font-semibold mb-4">Konfigurierte Adressen</h2>
+  {% if addresses %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-gray-500 border-b">
+        <th class="pb-2">Adresse</th>
+        <th class="pb-2">Domain</th>
+        <th class="pb-2">Hinzugefügt</th>
+        <th class="pb-2">Status</th>
+        <th class="pb-2">Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in addresses %}
+      <tr class="border-b last:border-0 hover:bg-gray-50">
+        <td class="py-2 font-mono">{{ a.address }}</td>
+        <td class="py-2 text-gray-500">{{ a.domain.domain if a.domain else '–' }}</td>
+        <td class="py-2 text-gray-400">{{ a.created_at.strftime('%d.%m.%Y') }}</td>
+        <td class="py-2">
+          {% if a.active %}
+          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
+          {% else %}
+          <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs">Inaktiv</span>
+          {% endif %}
+        </td>
+        <td class="py-2 flex gap-2">
+          <form method="post" action="/addresses/{{ a.id }}/toggle">
+            <button class="text-xs text-blue-600 hover:underline">
+              {{ 'Deaktivieren' if a.active else 'Aktivieren' }}
+            </button>
+          </form>
+          <form method="post" action="/addresses/{{ a.id }}/delete">
+            <button class="text-xs text-red-500 hover:underline">Löschen</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-gray-400">Noch keine Adressen konfiguriert.</p>
+  {% endif %}
+</div>
+{% endblock %}

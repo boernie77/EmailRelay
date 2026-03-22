@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-emailrelay}
+      POSTGRES_USER: ${POSTGRES_USER:-emailrelay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-emailrelay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  alias-api:
+    build: ./alias-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-emailrelay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-emailrelay}
+      API_SECRET: ${API_SECRET:?API_SECRET required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  smtp-proxy:
+    build: ./smtp-proxy
+    restart: unless-stopped
+    ports:
+      - "${SMTP_PROXY_PORT:-1587}:1587"
+    environment:
+      API_URL: http://alias-api:8080
+      API_SECRET: ${API_SECRET}
+    depends_on:
+      - alias-api
+
+volumes:
+  postgres_data:
