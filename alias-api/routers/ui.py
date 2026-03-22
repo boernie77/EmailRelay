@@ -181,6 +181,7 @@ async def logout(request: Request):
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
     alias_count = (await db.execute(select(Alias))).scalars().all()
     domain_count = (await db.execute(select(Domain))).scalars().all()
     address_count = (await db.execute(select(EmailAddress))).scalars().all()
