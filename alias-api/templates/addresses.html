@@ -9,24 +9,36 @@
   {% if domains %}
   <form method="post" action="/addresses" class="flex gap-3 items-end">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail-Adresse</label>
-      <input type="email" name="address" placeholder="name@deine-domain.de" required
-             class="border rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-400">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Domain</label>
-      <select name="domain_id"
-              class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        {% for d in domains %}
-        <option value="{{ d.id }}">{{ d.domain }}</option>
-        {% endfor %}
-      </select>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Lokaler Teil</label>
+      <div class="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-400">
+        <input type="text" id="local_part" placeholder="name" required
+               class="px-3 py-2 text-sm w-40 focus:outline-none"
+               oninput="updateAddress()">
+        <span class="px-2 text-gray-400 text-sm select-none">@</span>
+        <select id="domain_select" name="domain_id"
+                class="pr-3 py-2 text-sm focus:outline-none bg-transparent"
+                onchange="updateAddress()">
+          {% for d in domains %}
+          <option value="{{ d.id }}" data-domain="{{ d.domain }}">{{ d.domain }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <input type="hidden" name="address" id="full_address">
     </div>
     <button type="submit"
             class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
       Hinzufügen
     </button>
   </form>
+  <script>
+    function updateAddress() {
+      const local = document.getElementById('local_part').value.trim();
+      const select = document.getElementById('domain_select');
+      const domain = select.options[select.selectedIndex].dataset.domain;
+      document.getElementById('full_address').value = local + '@' + domain;
+    }
+    updateAddress();
+  </script>
   {% else %}
   <p class="text-gray-400">Bitte zuerst eine <a href="/domains" class="text-blue-600 hover:underline">Domain konfigurieren</a>.</p>
   {% endif %}
