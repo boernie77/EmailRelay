@@ -17,15 +17,17 @@ Thunderbird ──SMTP:1587──► smtp-proxy ──► echter SMTP-Server
                                 │
                           PostgreSQL (Alias-Mappings)
                                 │
-Internet ──SMTP:25──► Postfix (Hetzner VPS) ──► smtp-proxy (Eingehend)
+Internet ──SMTP:25──► Postfix (Hetzner VPS) ──► Heimserver weiterleitung
 ```
 
-## Infrastruktur
+## Infrastruktur (produktiv)
 
-- **Heimserver**: Portainer, DS-Lite (nur IPv6 public), Telekom Glasfaser
-- **VPS**: Hetzner CX33 (IPv4+IPv6) — empfängt eingehende Mails, leitet weiter
-- **Domains**: Bei Strato, MX-Records zeigen auf Hetzner-VPS
-- **Thunderbird**: Nutzt smtp-proxy als SMTP-Server
+- **Heimserver**: `systemv@192.168.2.204`, Portainer, DS-Lite (IPv6: `2003:ed:ef06:dd95:5054:ff:fe1e:d162`)
+- **VPS**: Hetzner CX33, IP `37.27.193.27`, Ubuntu — Postfix läuft, Port 25 offen
+- **Alias-Domain**: `alias.bernauer24.com` → MX zeigt auf `37.27.193.27`
+- **Docker-Stack**: liegt in `/tmp/EmailRelay` auf Heimserver (aus GitHub geklont)
+- **Portainer**: Stack `emailrelay` via Git-Repository (URL mit `.git` Suffix nötig!)
+- **Thunderbird**: noch nicht konfiguriert (nächster Schritt)
 
 ## Services (Docker Compose)
 
@@ -36,43 +38,44 @@ Internet ──SMTP:25──► Postfix (Hetzner VPS) ──► smtp-proxy (Eing
 | `postgres` | 5432 | Alias-Mappings, Domains, Konfiguration |
 | VPS: `postfix` | 25 | Eingehende Mails empfangen + weiterleiten |
 
-## UI-Masken (alias-api Web-Interface)
+## UI konfiguriert (Stand 2026-03-22)
 
-1. **VPS-Konfiguration**: Host, Port, Credentials für Hetzner-VPS-Verbindung
-2. **Domain-Verwaltung**: Eigene Domains hinzufügen/entfernen
-3. **E-Mail-Adressen**: Pro Domain festlegen, welche Adressen einen Alias bekommen (nicht automatisch alle)
-4. **Alias-Übersicht**: Alle aktiven Aliases, An/Aus, Löschung
+- Einstellungen: SMTP Strato, alias.bernauer24.com, VPS 37.27.193.27
+- Domain: `bernauer24.com` → `alias.bernauer24.com`
+- Adresse: `shop@bernauer24.com` aktiv
+
+## Deployment (Updates einspielen)
+
+```bash
+cd /tmp/EmailRelay && git pull && docker compose build --no-cache alias-api && docker compose up -d alias-api
+```
+
+## VPS — wichtige Dateien
+
+- Postfix config: `/etc/postfix/main.cf`
+- Forward-Script: `/usr/local/bin/emailrelay-forward.py`
+- API-Secret im Script: `REDACTED_SECRET`
 
 ## Tech Stack
 
 - **Backend**: Python 3.12, FastAPI, aiosmtpd, SQLAlchemy, asyncpg
-- **Frontend**: Jinja2 Templates + TailwindCSS (kein separates JS-Framework)
+- **Frontend**: Jinja2 Templates + TailwindCSS + Google Fonts (Dancing Script)
 - **Datenbank**: PostgreSQL 16
 - **VPS-Setup**: Postfix + Python-Script für Alias-Lookup via API
 - **Container**: Docker Compose, Portainer-kompatibel
 
-## Datenbankschema
+## Offene Todos
 
-```sql
-settings       -- VPS-Verbindung, globale Konfiguration
-domains        -- Eigene Domains
-email_addresses -- Adressen, die Aliases bekommen sollen
-aliases        -- alias_address <-> real_address Mapping
-```
-
-## Verteilbarkeit / Multi-User
-
-- Die Software ist so aufgebaut, dass sie von beliebigen Personen deployed werden kann
-- Alle Zugangsdaten (VPS, Domains, Mail-Adressen) werden ausschließlich über die UI konfiguriert
-- Keine hardgecodeten Werte — alles in der Datenbank
-- `.env`-Datei nur für DB-Passwort und API-Secret
+- [ ] Thunderbird konfigurieren (SMTP auf Port 1587, Heimserver-IP)
+- [ ] VPS-Auto-Setup via SSH implementieren (SSH-Key in UI → automatische Postfix-Konfiguration)
+- [ ] Auto-Push Hook funktioniert erst nach Claude-Neustart
 
 ## Entwicklungsregeln
 
-- Alle Änderungen werden automatisch nach GitHub (boernie77/EmailRelay) gepusht
-- CLAUDE.md wird bei größeren Änderungen aktualisiert
+- Auto-Push nach GitHub nach jedem Edit/Write (Hook in .claude/settings.json)
+- Bei Updates: `git pull` + `docker compose build --no-cache alias-api` auf Heimserver
 - Keine hardgecodierten Zugangsdaten im Code
-- Docker-Images müssen ohne Rebuild konfigurierbar sein (Konfiguration via DB/UI)
+- Screenshots/Bilder nie committen (in .gitignore)
 
 ## GitHub
 
