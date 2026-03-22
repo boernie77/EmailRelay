@@ -100,6 +100,15 @@
         <input type="text" name="vps_user" value="{{ cfg.vps_user or 'root' }}"
                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
       </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          API-URL für VPS
+          <span class="text-gray-400 font-normal">(wie der VPS die alias-api erreicht, z.B. http://[IPv6]:8080)</span>
+        </label>
+        <input type="text" name="api_url_for_vps" value="{{ cfg.api_url_for_vps }}"
+               placeholder="http://[2001:db8::1]:8080"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
       <div class="col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Private-Key (PEM)</label>
         <textarea name="vps_ssh_key" rows="6"
@@ -109,9 +118,20 @@
     </div>
   </div>
 
+  <div class="flex gap-3 items-center">
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition">
+      Speichern
+    </button>
+  </div>
+</form>
+
+<form method="post" action="/vps-setup" class="mt-4">
   <button type="submit"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition">
-    Speichern
+          class="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-6 py-2 rounded-lg transition"
+          onclick="return confirm('VPS Setup jetzt ausführen? Postfix wird installiert/konfiguriert.')">
+    VPS Setup ausführen
   </button>
+  <span class="text-sm text-gray-400 ml-3">Installiert Postfix und das Forward-Script auf dem VPS via SSH</span>
 </form>
 {% endblock %}
