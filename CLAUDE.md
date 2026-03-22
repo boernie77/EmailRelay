@@ -65,7 +65,7 @@ cd /tmp/EmailRelay && git pull && docker compose build --no-cache alias-api && d
 
 ## Offene Todos
 
-- [ ] Thunderbird konfigurieren (SMTP auf Port 1587, Heimserver-IP)
+- [x] Thunderbird konfiguriert (SMTP auf Port 1587, Heimserver-IP)
 - [ ] VPS-Auto-Setup via SSH implementieren (SSH-Key in UI → automatische Postfix-Konfiguration)
 - [ ] Auto-Push Hook funktioniert erst nach Claude-Neustart
 
