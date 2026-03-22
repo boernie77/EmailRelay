@@ -27,10 +27,10 @@ PROXY_PORT = int(os.getenv("PROXY_PORT", "1587"))
 RETRY_DELAY = 5  # Sekunden zwischen API-Verbindungsversuchen
 
 
-async def fetch_smtp_config() -> dict:
+async def fetch_smtp_config(sender_address: str) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            f"{API_URL}/api/settings/smtp",
+            f"{API_URL}/api/smtp-config/{sender_address}",
             headers={"x-api-secret": API_SECRET},
             timeout=10,
         )
