@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %} – Hilfe{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-2">Hilfe & Einrichtungsanleitung</h1>
+<p class="text-gray-500 mb-8 text-sm">Schritt-für-Schritt-Anleitung zur Einrichtung des E-Mail-Relay-Systems.</p>
+
+<!-- Was macht E-Mail Relay? -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-3">Was macht E-Mail Relay?</h2>
+  <p class="text-gray-700 text-sm leading-relaxed mb-3">
+    Wenn du eine E-Mail sendest, fängt das System deine Absenderadresse ab und ersetzt sie durch einen zufälligen Alias
+    (z.B. <code class="bg-gray-100 px-1 rounded">ab3x7kqprt@alias.deine-domain.de</code>).
+    Der Empfänger sieht nur diesen Alias, nicht deine echte Adresse.
+  </p>
+  <p class="text-gray-700 text-sm leading-relaxed">
+    Antwortet jemand auf diesen Alias, empfängt ein VPS-Server die Mail und leitet sie automatisch an deine echte Adresse weiter.
+    Du bleibst anonym, kannst aber trotzdem normal kommunizieren.
+  </p>
+</div>
+
+<!-- Voraussetzungen -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-4">Voraussetzungen</h2>
+  <div class="space-y-4">
+    <div class="flex gap-4 items-start">
+      <div class="bg-red-100 text-red-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">!</div>
+      <div>
+        <p class="font-semibold text-sm">Eigene Domain (Pflicht)</p>
+        <p class="text-gray-600 text-sm">Du benötigst eine eigene Domain (z.B. <code class="bg-gray-100 px-1 rounded">deine-domain.de</code>),
+        für die du einen MX-Record setzen kannst. Ohne eigene Domain kannst du keine Alias-Domain einrichten.</p>
+      </div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="bg-red-100 text-red-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">!</div>
+      <div>
+        <p class="font-semibold text-sm">VPS mit Port 25 (Pflicht für eingehende Mails)</p>
+        <p class="text-gray-600 text-sm">Heimanschlüsse blockieren Port 25 (SMTP). Für eingehende E-Mails brauchst du einen
+        VPS (virtuellen Server) bei einem Anbieter wie Hetzner, der Port 25 offen hat.
+        Der VPS empfängt die Mails und leitet sie per IPv6 an deinen Heimserver weiter.</p>
+      </div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="bg-blue-100 text-blue-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">i</div>
+      <div>
+        <p class="font-semibold text-sm">E-Mail-Konto mit SMTP-Zugang</p>
+        <p class="text-gray-600 text-sm">Zum Versenden benötigst du Zugangsdaten zu einem SMTP-Server.
+        Das kann ein Strato-, All-Inkl-, oder anderer Hoster sein — oder Gmail mit App-Passwort.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Einrichtungsschritte -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-4">Einrichtungsschritte</h2>
+  <ol class="space-y-5">
+    <li class="flex gap-4 items-start">
+      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">1</div>
+      <div>
+        <p class="font-semibold">Alias-Domain einrichten</p>
+        <p class="text-gray-600 text-sm mt-1">
+          Gehe zu <a href="/alias-domains" class="text-blue-600 underline">Alias-Domains</a> und füge eine neue Konfiguration hinzu.
+          Trage dort deine Subdomain ein (z.B. <code class="bg-gray-100 px-1 rounded">alias.deine-domain.de</code>), die SMTP-Zugangsdaten
+          und die VPS-Verbindungsdaten.<br>
+          Setze anschließend einen MX-Record für diese Subdomain, der auf die IP deines VPS zeigt.
+        </p>
+      </div>
+    </li>
+    <li class="flex gap-4 items-start">
+      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">2</div>
+      <div>
+        <p class="font-semibold">Absender-Domain hinzufügen</p>
+        <p class="text-gray-600 text-sm mt-1">
+          Gehe zu <a href="/domains" class="text-blue-600 underline">Domains</a> und füge die Domain hinzu,
+          von der du E-Mails sendest (z.B. <code class="bg-gray-100 px-1 rounded">deine-domain.de</code>).
+          Wähle dabei die passende Alias-Domain-Konfiguration aus Schritt 1.
+        </p>
+      </div>
+    </li>
+    <li class="flex gap-4 items-start">
+      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">3</div>
+      <div>
+        <p class="font-semibold">E-Mail-Adressen hinzufügen</p>
+        <p class="text-gray-600 text-sm mt-1">
+          Gehe zu <a href="/addresses" class="text-blue-600 underline">Adressen</a> und trage alle Absenderadressen ein,
+          für die Aliase erstellt werden sollen (z.B. <code class="bg-gray-100 px-1 rounded">ich@deine-domain.de</code>).
+        </p>
+      </div>
+    </li>
+    <li class="flex gap-4 items-start">
+      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">4</div>
+      <div>
+        <p class="font-semibold">Thunderbird konfigurieren</p>
+        <p class="text-gray-600 text-sm mt-1">
+          Füge in Thunderbird einen neuen Postausgangsserver hinzu (Details siehe unten).
+          Stelle alle E-Mail-Konten so ein, dass sie diesen einen Proxy-Server verwenden.
+        </p>
+      </div>
+    </li>
+    <li class="flex gap-4 items-start">
+      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">5</div>
+      <div>
+        <p class="font-semibold">VPS Setup ausführen</p>
+        <p class="text-gray-600 text-sm mt-1">
+          Gehe zurück zu <a href="/alias-domains" class="text-blue-600 underline">Alias-Domains</a> und klicke auf
+          "VPS Setup" für deine Konfiguration. Das Script installiert Postfix auf dem VPS und richtet die
+          Weiterleitung automatisch ein. Benötigt SSH-Zugang zum VPS.
+        </p>
+      </div>
+    </li>
+  </ol>
+</div>
+
+<!-- Thunderbird-Konfiguration -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-4">Thunderbird konfigurieren</h2>
+
+  <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 mb-4 text-sm">
+    <span class="font-semibold">Wichtig:</span> Richte <strong>einen einzigen</strong> Postausgangsserver (den Proxy) für
+    <strong>alle</strong> E-Mail-Konten ein — auch Gmail, Outlook, etc. Der Proxy erledigt den Rest automatisch.
+  </div>
+
+  <div class="space-y-3 text-sm">
+    <div class="grid grid-cols-3 gap-2 items-center">
+      <span class="font-medium text-gray-600">Server</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">IP-Adresse deines Heimservers</span>
+    </div>
+    <div class="grid grid-cols-3 gap-2 items-center">
+      <span class="font-medium text-gray-600">Port</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">1587</span>
+    </div>
+    <div class="grid grid-cols-3 gap-2 items-center">
+      <span class="font-medium text-gray-600">Verschlüsselung</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">Keine</span>
+    </div>
+    <div class="grid grid-cols-3 gap-2 items-center">
+      <span class="font-medium text-gray-600">Authentifizierung</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">Keine</span>
+    </div>
+  </div>
+
+  <p class="text-gray-600 text-sm mt-4">
+    Der SMTP-Proxy übernimmt die Authentifizierung gegenüber dem echten Mailserver automatisch,
+    basierend auf der Absenderadresse.
+  </p>
+</div>
+
+<!-- Gmail-Hinweis -->
+<div class="bg-amber-50 border border-amber-300 rounded-xl p-6 mb-6">
+  <h2 class="text-lg font-semibold text-amber-900 mb-2">Wichtig: Gmail und andere Anbieter</h2>
+  <p class="text-amber-800 text-sm mb-3">
+    Gmail, Outlook und viele andere Anbieter erzwingen beim Senden, dass die Absenderadresse mit deinem Konto übereinstimmt.
+    Das verhindert die Alias-Ersetzung, wenn du diese Anbieter direkt nutzt.
+  </p>
+  <p class="text-amber-800 text-sm font-semibold">
+    Lösung: Verwende für alle Konten — auch Gmail — den SMTP-Server der Alias-Domain-Konfiguration.
+    Der Proxy leitet die Mail dann über diesen Server weiter, nicht über Gmail's eigenen Server.
+    Die Absenderadresse kann dann frei gesetzt werden.
+  </p>
+</div>
+
+<!-- FAQ -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-4">FAQ</h2>
+  <div class="space-y-5">
+    <div>
+      <p class="font-semibold text-sm">Muss ich für jedes E-Mail-Konto einen anderen Port verwenden?</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Nein. Ein einziger Postausgangsserver (Port 1587) reicht für alle Konten.
+        Der Proxy erkennt anhand der Absenderadresse, welche SMTP-Verbindung er verwenden soll.
+      </p>
+    </div>
+    <div>
+      <p class="font-semibold text-sm">Was ist eine Alias-Domain?</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Eine Subdomain deiner eigenen Domain, deren MX-Record auf deinen VPS zeigt.
+        Alias-Adressen werden unter dieser Domain erstellt (z.B. <code class="bg-gray-100 px-1 rounded">xy3k9@alias.deine-domain.de</code>).
+        Eingehende E-Mails an diese Adressen werden vom VPS an deine echte Adresse weitergeleitet.
+      </p>
+    </div>
+    <div>
+      <p class="font-semibold text-sm">Warum brauche ich eine eigene Domain?</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Nur wer eine Domain besitzt, kann MX-Records setzen und so eingehende E-Mails an einen eigenen Server umleiten.
+        Ohne eigene Domain ist es nicht möglich, Alias-Adressen zu empfangen.
+      </p>
+    </div>
+    <div>
+      <p class="font-semibold text-sm">Was passiert, wenn ein Alias nicht existiert?</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Der VPS gibt eine Fehlermeldung zurück (Exit 67 / Adresse unbekannt) und die Mail wird nicht zugestellt.
+        Aliase werden automatisch beim ersten Senden erstellt.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
