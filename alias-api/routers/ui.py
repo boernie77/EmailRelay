@@ -150,12 +150,21 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 
 # ── Einstellungen ──────────────────────────────────────────────────────────────
 
+_SETTINGS_KEYS = [
+    "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls",
+    "alias_domain", "vps_host", "vps_port", "vps_user", "vps_ssh_key", "api_url_for_vps",
+]
+
+
+async def _load_cfg(db: AsyncSession) -> dict:
+    return {k: await get_setting(db, k) for k in _SETTINGS_KEYS}
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
-    keys = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls",
-            "alias_domain", "vps_host", "vps_port", "vps_user", "vps_ssh_key"]
-    cfg = {k: await get_setting(db, k) for k in keys}
-    return templates.TemplateResponse("settings.html", {"request": request, "cfg": cfg})
+    return templates.TemplateResponse("settings.html", {
+        "request": request, "cfg": await _load_cfg(db),
+    })
 
 
 @router.post("/settings")
@@ -172,6 +181,7 @@ async def settings_save(
     vps_port: str = Form("22"),
     vps_user: str = Form("root"),
     vps_ssh_key: str = Form(""),
+    api_url_for_vps: str = Form(""),
 ):
     pairs = {
         "smtp_host": smtp_host, "smtp_port": smtp_port,
@@ -179,11 +189,86 @@ async def settings_save(
         "smtp_use_tls": smtp_use_tls, "alias_domain": alias_domain,
         "vps_host": vps_host, "vps_port": vps_port,
         "vps_user": vps_user, "vps_ssh_key": vps_ssh_key,
+        "api_url_for_vps": api_url_for_vps,
     }
     for k, v in pairs.items():
         await save_setting(db, k, v)
     await db.commit()
     return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+@router.post("/vps-setup", response_class=HTMLResponse)
+async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
+    import paramiko
+
+    cfg = await _load_cfg(db)
+    vps_host = cfg.get("vps_host", "")
+    vps_port = int(cfg.get("vps_port") or "22")
+    vps_user = cfg.get("vps_user") or "root"
+    vps_ssh_key = cfg.get("vps_ssh_key", "")
+    alias_domain = cfg.get("alias_domain", "")
+    api_url_for_vps = cfg.get("api_url_for_vps", "")
+    api_secret = os.getenv("API_SECRET", "")
+
+    missing = [n for n, v in [
+        ("VPS-Host", vps_host), ("SSH-Key", vps_ssh_key),
+        ("Alias-Domain", alias_domain), ("API-URL für VPS", api_url_for_vps),
+    ] if not v]
+    if missing:
+        return templates.TemplateResponse("settings.html", {
+            "request": request, "cfg": cfg,
+            "setup_error": f"Fehlende Felder: {', '.join(missing)}",
+        })
+
+    script = (
+        _VPS_SETUP_SCRIPT
+        .replace("__ALIAS_DOMAIN__", alias_domain)
+        .replace("__API_URL__", api_url_for_vps)
+        .replace("__API_SECRET__", api_secret)
+    )
+
+    def _run_ssh() -> str:
+        key = None
+        last_err = None
+        for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+            try:
+                key = cls.from_private_key(io.StringIO(vps_ssh_key))
+                break
+            except Exception as e:
+                last_err = e
+        if key is None:
+            raise ValueError(f"SSH-Key konnte nicht geladen werden: {last_err}")
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(vps_host, port=vps_port, username=vps_user, pkey=key, timeout=15)
+        try:
+            sftp = client.open_sftp()
+            with sftp.open("/tmp/_emailrelay_setup.sh", "w") as f:
+                f.write(script)
+            sftp.close()
+            _, stdout, stderr = client.exec_command("bash /tmp/_emailrelay_setup.sh; rm -f /tmp/_emailrelay_setup.sh")
+            output = stdout.read().decode(errors="replace")
+            exit_code = stdout.channel.recv_exit_status()
+            err = stderr.read().decode(errors="replace")
+            if exit_code != 0:
+                raise RuntimeError(f"Exit {exit_code}:\n{err or output}")
+            return output
+        finally:
+            client.close()
+
+    setup_log = None
+    setup_error = None
+    try:
+        setup_log = await asyncio.get_event_loop().run_in_executor(None, _run_ssh)
+    except Exception as e:
+        setup_error = str(e)
+
+    return templates.TemplateResponse("settings.html", {
+        "request": request, "cfg": cfg,
+        "setup_log": setup_log,
+        "setup_error": setup_error,
+    })
 
 
 # ── Domains ────────────────────────────────────────────────────────────────────
