@@ -72,9 +72,9 @@ class AliasHandler(AsyncMessage):
             del message["From"]
             message["From"] = formataddr((display_name, alias_address))
 
-        # SMTP-Konfiguration laden
+        # SMTP-Konfiguration laden (per Absenderadresse, Fallback auf globale Settings)
         try:
-            cfg = await fetch_smtp_config()
+            cfg = await fetch_smtp_config(real_address)
         except Exception as e:
             log.error(f"SMTP-Konfiguration nicht ladbar: {e}")
             raise
