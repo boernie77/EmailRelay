@@ -69,41 +69,52 @@ from email import policy
 
 API_URL = "__API_URL__"
 API_SECRET = "__API_SECRET__"
-ALIAS_DOMAIN = "__ALIAS_DOMAIN__"
 
-def resolve_alias(alias_address):
-    resp = httpx.get(
-        f"{API_URL}/api/alias/incoming/{alias_address}",
-        headers={"x-api-secret": API_SECRET},
-        timeout=10,
-    )
+if len(sys.argv) < 2:
+    sys.exit(1)
+
+alias_address = sys.argv[1].lower()
+raw = sys.stdin.buffer.read()
+headers = {"x-api-secret": API_SECRET}
+
+try:
+    resp = httpx.get(f"{API_URL}/api/alias/incoming/{alias_address}",
+                     headers=headers, timeout=10)
     if resp.status_code == 404:
-        return None
-    resp.raise_for_status()
-    return resp.json()["real_address"]
-
-def main():
-    if len(sys.argv) < 2:
-        sys.exit(1)
-    alias_address = sys.argv[1].lower()
-    raw = sys.stdin.buffer.read()
-    try:
-        real_address = resolve_alias(alias_address)
-    except Exception as e:
-        print(f"API-Fehler: {e}", file=sys.stderr)
-        sys.exit(75)
-    if not real_address:
-        print(f"Alias {alias_address} nicht gefunden", file=sys.stderr)
         sys.exit(67)
-    msg = BytesParser(policy=policy.default).parsebytes(raw)
-    del msg["To"]
-    msg["To"] = real_address
-    with smtplib.SMTP("localhost", 25) as smtp:
-        smtp.sendmail(f"noreply@{ALIAS_DOMAIN}", [real_address], msg.as_bytes())
-    print(f"Weitergeleitet: {alias_address} -> {real_address}")
+    real_address = resp.json()["real_address"]
+except Exception as e:
+    print(f"API-Fehler: {e}", file=sys.stderr)
+    sys.exit(75)
 
-if __name__ == "__main__":
-    main()
+try:
+    cfg = httpx.get(f"{API_URL}/api/smtp-config/{real_address}",
+                    headers=headers, timeout=10).json()
+except Exception as e:
+    print(f"SMTP-Config-Fehler: {e}", file=sys.stderr)
+    sys.exit(75)
+
+msg = BytesParser(policy=policy.default).parsebytes(raw)
+
+original_from = msg.get("From", "")
+if original_from and not msg.get("Reply-To"):
+    del msg["Reply-To"]
+    msg["Reply-To"] = original_from
+del msg["From"]
+msg["From"] = cfg.get("smtp_user", real_address)
+del msg["To"]
+msg["To"] = real_address
+
+try:
+    use_tls = cfg.get("smtp_use_tls", "true") != "false"
+    with smtplib.SMTP(cfg["smtp_host"], int(cfg.get("smtp_port", 587))) as smtp:
+        if use_tls:
+            smtp.starttls()
+        smtp.login(cfg["smtp_user"], cfg["smtp_password"])
+        smtp.sendmail(cfg["smtp_user"], [real_address], msg.as_bytes())
+except Exception as e:
+    print(f"SMTP-Fehler: {e}", file=sys.stderr)
+    sys.exit(75)
 PYEOF
 
 chmod +x /usr/local/bin/emailrelay-forward.py
