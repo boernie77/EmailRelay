@@ -53,7 +53,7 @@ cd /tmp/EmailRelay && git pull && docker compose build --no-cache alias-api && d
 
 - Postfix config: `/etc/postfix/main.cf`
 - Forward-Script: `/usr/local/bin/emailrelay-forward.py`
-- API-Secret im Script: `REDACTED_SECRET`
+- API-Secret: in `.env` (niemals im Code oder CLAUDE.md speichern!)
 
 ## Tech Stack
 
