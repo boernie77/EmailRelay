@@ -211,6 +211,7 @@ async def _load_cfg(db: AsyncSession) -> dict:
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
     return templates.TemplateResponse("settings.html", {
         "request": request, "cfg": await _load_cfg(db),
     })
