@@ -202,6 +202,14 @@
       </p>
     </div>
     <div>
+      <p class="font-semibold text-sm">Warum sendet das Forward-Script direkt über SMTP und nicht über Postfix?</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Viele VPS-Anbieter (u.a. Hetzner) sperren ausgehendes Port 25 — auch für lokale Dienste.
+        Das Forward-Script umgeht das, indem es direkt per Python (smtplib) über Port 587 deines SMTP-Anbieters sendet,
+        statt die Mail über den lokalen Postfix weiterzuleiten. Dadurch ist kein Smarthost-Setup in Postfix nötig.
+      </p>
+    </div>
+    <div>
       <p class="font-semibold text-sm">Ändert sich die Tailscale-IP, wenn der Server neu startet?</p>
       <p class="text-gray-600 text-sm mt-1">
         Nein. Tailscale-IPs (100.x.x.x) sind permanent und ändern sich nie — egal wie oft der Server oder Router neu startet.
