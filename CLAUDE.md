@@ -40,9 +40,8 @@ Internet ──SMTP:25──► Postfix (Hetzner VPS) ──► Heimserver weite
 
 ## UI konfiguriert (Stand 2026-03-22)
 
-- Einstellungen: SMTP Strato, alias.bernauer24.com, VPS 37.27.193.27
-- Domain: `bernauer24.com` → `alias.bernauer24.com`
-- Adresse: `shop@bernauer24.com` aktiv
+- Einstellungen: SMTP, Alias-Domain und VPS-IP in der UI konfiguriert
+- Domain und Adressen: in der UI angelegt
 
 ## Deployment (Updates einspielen)
 
