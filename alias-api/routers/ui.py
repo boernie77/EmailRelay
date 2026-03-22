@@ -325,6 +325,7 @@ async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/domains", response_class=HTMLResponse)
 async def domains_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
     domains = (await db.execute(select(Domain).order_by(Domain.created_at.desc()))).scalars().all()
     return templates.TemplateResponse("domains.html", {"request": request, "domains": domains})
 
