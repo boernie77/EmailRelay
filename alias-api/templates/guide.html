@@ -36,7 +36,8 @@
         <p class="font-semibold text-sm">VPS mit Port 25 (Pflicht für eingehende Mails)</p>
         <p class="text-gray-600 text-sm">Heimanschlüsse blockieren Port 25 (SMTP). Für eingehende E-Mails brauchst du einen
         VPS (virtuellen Server) bei einem Anbieter wie Hetzner, der Port 25 offen hat.
-        Der VPS empfängt eingehende Mails und leitet sie an deinen Heimserver weiter.</p>
+        Der VPS empfängt eingehende Mails und leitet sie an deinen Heimserver weiter.
+        <br><strong>Wichtig:</strong> Viele VPS-Anbieter (z.B. Hetzner) blockieren auch <em>ausgehendes</em> Port 25 — das Forward-Script umgeht das, indem es direkt über Port 587 deines SMTP-Anbieters sendet, nicht über den lokalen Postfix.</p>
       </div>
     </div>
     <div class="flex gap-4 items-start">
