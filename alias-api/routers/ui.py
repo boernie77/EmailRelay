@@ -109,7 +109,7 @@ postmap /etc/postfix/virtual_mailbox_regex 2>/dev/null || true
 systemctl restart postfix 2>/dev/null || postfix reload || true
 echo ""
 echo "=== Setup abgeschlossen ==="
-"""
+'''
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
