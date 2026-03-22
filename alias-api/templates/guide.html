@@ -200,6 +200,105 @@
         Aliase werden automatisch beim ersten Senden erstellt.
       </p>
     </div>
+    <div>
+      <p class="font-semibold text-sm">Ändert sich die Tailscale-IP, wenn der Server neu startet?</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Nein. Tailscale-IPs (100.x.x.x) sind permanent und ändern sich nie — egal wie oft der Server oder Router neu startet.
+        Das ist ein wesentlicher Vorteil gegenüber IPv6-Adressen, die sich täglich ändern können.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Fehlerbehebung -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-4">Fehlerbehebung</h2>
+  <div class="space-y-6">
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Eingehende Mails kommen nicht an</p>
+      <ol class="text-gray-600 text-sm mt-2 space-y-1 list-decimal list-inside">
+        <li>Prüfe den Postfix-Status auf dem VPS: <code class="bg-gray-100 px-1 rounded">systemctl status postfix</code></li>
+        <li>Überprüfe die Mail-Logs: <code class="bg-gray-100 px-1 rounded">tail -50 /var/log/mail.log</code></li>
+        <li>Prüfe, ob der VPS die Heimserver-API erreicht: <code class="bg-gray-100 px-1 rounded">curl http://&lt;HEIMSERVER-IP&gt;:8080/api/settings/smtp</code> (mit Tailscale-IP)</li>
+        <li>Stelle sicher, dass Tailscale auf beiden Maschinen läuft: <code class="bg-gray-100 px-1 rounded">tailscale status</code></li>
+        <li>Prüfe, ob das Forward-Script ausführbar ist: <code class="bg-gray-100 px-1 rounded">ls -la /usr/local/bin/emailrelay-forward.py</code></li>
+      </ol>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Fehler: "API-Fehler: timed out" im Mail-Log</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Der VPS kann den Heimserver nicht erreichen. Ursachen:
+      </p>
+      <ul class="text-gray-600 text-sm mt-1 space-y-1 list-disc list-inside">
+        <li>DS-Lite-Anschluss: Router blockiert eingehende IPv6-Verbindungen (z.B. Speedport)</li>
+        <li>IPv6-Adresse hat sich geändert</li>
+        <li>Tailscale nicht installiert oder nicht verbunden</li>
+      </ul>
+      <p class="text-gray-600 text-sm mt-2">
+        <strong>Lösung:</strong> Tailscale auf Heimserver und VPS installieren, API-URL in der Alias-Domain-Konfiguration auf die Tailscale-IP (100.x.x.x) setzen.
+      </p>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Fehler: "550 Die verwendete From: Adresse gehört nicht zu Ihrem Paket" (Strato)</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Strato (und andere Anbieter) prüfen, ob die From-Adresse mit dem SMTP-Konto übereinstimmt.
+        Das Forward-Script setzt die From-Adresse auf die SMTP-Benutzeradresse und speichert die Original-Adresse im Reply-To-Header.
+        Wenn dieser Fehler auftritt: Prüfe, ob das Forward-Script auf dem VPS aktuell ist (VPS Setup erneut ausführen).
+      </p>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Fehler: "554 SMTP protocol violation: A header line must be terminated by CRLF"</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Das Forward-Script verwendet falsche Zeilenenden. Stelle sicher, dass das Script
+        <code class="bg-gray-100 px-1 rounded">msg.as_bytes(policy=policy.SMTP)</code> verwendet (nicht <code class="bg-gray-100 px-1 rounded">msg.as_bytes()</code>).
+        Führe das VPS Setup erneut aus, um das Script zu aktualisieren.
+      </p>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Ausgehende Mails werden nicht gesendet / Thunderbird zeigt Fehler</p>
+      <ol class="text-gray-600 text-sm mt-2 space-y-1 list-decimal list-inside">
+        <li>Prüfe, ob der smtp-proxy Container läuft: <code class="bg-gray-100 px-1 rounded">docker compose ps</code></li>
+        <li>Überprüfe die Logs: <code class="bg-gray-100 px-1 rounded">docker compose logs smtp-proxy</code></li>
+        <li>Stelle sicher, dass die Absenderadresse unter <a href="/addresses" class="text-blue-600 underline">Adressen</a> eingetragen ist</li>
+        <li>Prüfe die SMTP-Zugangsdaten in der Alias-Domain-Konfiguration</li>
+      </ol>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Echte E-Mail-Adresse erscheint beim Antworten</p>
+      <p class="text-gray-600 text-sm mt-1">
+        In Thunderbird darf kein Reply-To in den Kontoeinstellungen gesetzt sein — der smtp-proxy entfernt es automatisch.
+        Prüfe unter <em>Kontoeinstellungen → [Konto] → Identitäten</em>, ob dort ein Reply-To eingetragen ist, und lösche ihn.
+      </p>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-red-700">Postfix startet nicht nach dem VPS Setup</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Oft liegt es an Syntaxfehlern in der <code class="bg-gray-100 px-1 rounded">main.cf</code>. Prüfe mit:
+      </p>
+      <pre class="bg-gray-100 rounded p-2 text-xs mt-1 overflow-x-auto">postfix check
+journalctl -u postfix -n 50</pre>
+      <p class="text-gray-600 text-sm mt-1">
+        Häufige Ursache: Zeilen mit führenden Leerzeichen werden von Postfix als Fortsetzungszeilen behandelt.
+        Beheben mit: <code class="bg-gray-100 px-1 rounded">sed -i 's/^[[:space:]]*//' /etc/postfix/main.cf</code>
+      </p>
+    </div>
+
+    <div>
+      <p class="font-semibold text-sm text-amber-700">Tailscale: Automatischer Start nach Neustart</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Tailscale startet automatisch beim Systemstart, wenn der Dienst aktiviert ist:
+      </p>
+      <pre class="bg-gray-100 rounded p-2 text-xs mt-1 overflow-x-auto">systemctl enable tailscaled   # auf Heimserver und VPS ausführen
+systemctl is-enabled tailscaled  # Status prüfen</pre>
+    </div>
+
   </div>
 </div>
 {% endblock %}
