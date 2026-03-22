@@ -1,4 +1,7 @@
 """UI-Routen für das Web-Interface."""
+import asyncio
+import io
+import os
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -7,6 +10,105 @@ from sqlalchemy import select, delete
 
 from database import get_db
 from models import Setting, Domain, EmailAddress, Alias
+
+_VPS_SETUP_SCRIPT = r"""#!/bin/bash
+set -e
+ALIAS_DOMAIN='__ALIAS_DOMAIN__'
+API_URL='__API_URL__'
+API_SECRET='__API_SECRET__'
+
+echo "=== EmailRelay VPS Setup ==="
+echo "Domain: $ALIAS_DOMAIN"
+echo ""
+echo "Installiere Pakete..."
+export DEBIAN_FRONTEND=noninteractive
+echo "postfix postfix/main_mailer_type string Internet Site" | debconf-set-selections
+echo "postfix postfix/mailname string $(hostname -f)" | debconf-set-selections
+apt-get update -qq
+apt-get install -y -qq postfix python3 python3-pip
+pip3 install -q httpx 2>/dev/null || pip3 install --break-system-packages -q httpx
+
+echo "Konfiguriere Postfix..."
+cp /etc/postfix/main.cf /etc/postfix/main.cf.bak 2>/dev/null || true
+cat > /etc/postfix/main.cf << MAINCF
+smtpd_banner = \$myhostname ESMTP
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+myhostname = $(hostname -f)
+myorigin = \$myhostname
+inet_interfaces = all
+inet_protocols = all
+mydestination = localhost
+virtual_mailbox_domains = __ALIAS_DOMAIN__
+virtual_transport = emailrelay
+virtual_mailbox_maps = regexp:/etc/postfix/virtual_mailbox_regex
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
+message_size_limit = 52428800
+MAINCF
+
+printf '/@%s$/  OK\n' "$ALIAS_DOMAIN" > /etc/postfix/virtual_mailbox_regex
+
+if ! grep -q "^emailrelay" /etc/postfix/master.cf; then
+  printf '\n# EmailRelay forwarder\nemailrelay unix  -       n       n       -       -       pipe\n  flags=Rq user=nobody argv=/usr/local/bin/emailrelay-forward.py ${recipient}\n' >> /etc/postfix/master.cf
+fi
+
+echo "Installiere Forward-Script..."
+cat > /usr/local/bin/emailrelay-forward.py << 'PYEOF'
+#!/usr/bin/env python3
+"""Postfix pipe: Leitet eingehende Mails an echte Adressen weiter."""
+import sys
+import httpx
+import smtplib
+from email.parser import BytesParser
+from email import policy
+
+API_URL = "__API_URL__"
+API_SECRET = "__API_SECRET__"
+ALIAS_DOMAIN = "__ALIAS_DOMAIN__"
+
+def resolve_alias(alias_address):
+    resp = httpx.get(
+        f"{API_URL}/api/alias/incoming/{alias_address}",
+        headers={"x-api-secret": API_SECRET},
+        timeout=10,
+    )
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return resp.json()["real_address"]
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit(1)
+    alias_address = sys.argv[1].lower()
+    raw = sys.stdin.buffer.read()
+    try:
+        real_address = resolve_alias(alias_address)
+    except Exception as e:
+        print(f"API-Fehler: {e}", file=sys.stderr)
+        sys.exit(75)
+    if not real_address:
+        print(f"Alias {alias_address} nicht gefunden", file=sys.stderr)
+        sys.exit(67)
+    msg = BytesParser(policy=policy.default).parsebytes(raw)
+    del msg["To"]
+    msg["To"] = real_address
+    with smtplib.SMTP("localhost", 25) as smtp:
+        smtp.sendmail(f"noreply@{ALIAS_DOMAIN}", [real_address], msg.as_bytes())
+    print(f"Weitergeleitet: {alias_address} -> {real_address}")
+
+if __name__ == "__main__":
+    main()
+PYEOF
+
+chmod +x /usr/local/bin/emailrelay-forward.py
+postmap /etc/postfix/virtual_mailbox_regex 2>/dev/null || true
+systemctl restart postfix 2>/dev/null || postfix reload || true
+echo ""
+echo "=== Setup abgeschlossen ==="
+"""
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
