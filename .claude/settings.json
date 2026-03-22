@@ -7,7 +7,8 @@
           {
             "type": "command",
             "command": "cd /Users/christian/Projekte/Email-Relay && git add -A && git diff --cached --quiet || git commit -m \"Auto-update: $(date '+%Y-%m-%d %H:%M')\" && git push 2>/dev/null || true",
-            "statusMessage": "Pushing to GitHub..."
+            "statusMessage": "Pushing to GitHub...",
+            "timeout": 30
           }
         ]
       }
