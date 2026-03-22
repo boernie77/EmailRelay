@@ -2,7 +2,7 @@
 import asyncio
 import io
 import os
-from passlib.hash import bcrypt
+import bcrypt as _bcrypt
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
