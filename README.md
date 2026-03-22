@@ -33,6 +33,8 @@ E-Mail Relay funktioniert **nur mit eigenen Domains**. Du brauchst eine Domain (
 ### Externer VPS mit Port 25 (Pflicht)
 Um E-Mails empfangen zu können, wird ein Server mit **geöffnetem Port 25** benötigt. Die meisten Heimanschlüsse (Telekom, Vodafone, etc.) blockieren Port 25. Ein günstiger VPS (z.B. [Hetzner CX22](https://www.hetzner.com/), ~4 €/Monat) reicht vollständig aus. Wichtig: Nicht alle VPS-Anbieter öffnen Port 25 standardmäßig — bei Hetzner muss Port 25 explizit freigeschaltet werden.
 
+> **Ausgehendes Port 25 ist bei Hetzner (und vielen anderen Anbietern) gesperrt.** Das ist kein Problem: Das Forward-Script sendet direkt über Port 587 deines SMTP-Anbieters (z.B. Strato) und umgeht so die Sperre vollständig.
+
 ### Tailscale VPN (Pflicht bei DS-Lite / blockiertem IPv6)
 Viele Heimanschlüsse (besonders Telekom Glasfaser) nutzen DS-Lite — dabei fehlt eine native IPv4-Adresse, und viele Router (z.B. Speedport) blockieren eingehende IPv6-Verbindungen komplett. Ohne erreichbare IP kann der VPS die Alias-API auf deinem Heimserver nicht abfragen.
 
