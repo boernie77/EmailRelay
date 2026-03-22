@@ -408,6 +408,7 @@ async def address_toggle(addr_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/aliases", response_class=HTMLResponse)
 async def aliases_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
     aliases = (
         await db.execute(select(Alias).order_by(Alias.created_at.desc()))
     ).scalars().all()
