@@ -130,6 +130,53 @@ async def save_setting(db: AsyncSession, key: str, value: str):
         db.add(Setting(key=key, value=value))
 
 
+# ── Auth ───────────────────────────────────────────────────────────────────────
+
+def _redirect_if_not_logged_in(request: Request):
+    """Gibt RedirectResponse zurück wenn nicht eingeloggt, sonst None."""
+    if not request.session.get("logged_in"):
+        return RedirectResponse("/login", status_code=302)
+    return None
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if request.session.get("logged_in"):
+        return RedirectResponse("/", status_code=302)
+    has_password = bool(await get_setting(db, "ui_password_hash"))
+    return templates.TemplateResponse("login.html", {
+        "request": request, "has_password": has_password,
+    })
+
+
+@router.post("/login")
+async def login_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    password: str = Form(...),
+):
+    stored_hash = await get_setting(db, "ui_password_hash")
+    if not stored_hash:
+        # Erstes Login: Passwort direkt setzen
+        await save_setting(db, "ui_password_hash", bcrypt.hash(password))
+        await db.commit()
+        request.session["logged_in"] = True
+        return RedirectResponse("/", status_code=302)
+    if bcrypt.verify(password, stored_hash):
+        request.session["logged_in"] = True
+        return RedirectResponse("/", status_code=302)
+    has_password = bool(stored_hash)
+    return templates.TemplateResponse("login.html", {
+        "request": request, "error": "Falsches Passwort", "has_password": has_password,
+    })
+
+
+@router.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=302)
+
+
 # ── Dashboard ──────────────────────────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
