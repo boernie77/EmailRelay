@@ -12,7 +12,7 @@ from sqlalchemy import select, delete
 from database import get_db
 from models import Setting, Domain, EmailAddress, Alias, SmtpAccount
 
-_VPS_SETUP_SCRIPT = r"""#!/bin/bash
+_VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
 ALIAS_DOMAIN='__ALIAS_DOMAIN__'
 API_URL='__API_URL__'
