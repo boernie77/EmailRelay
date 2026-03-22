@@ -364,6 +364,7 @@ async def domain_toggle(domain_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/addresses", response_class=HTMLResponse)
 async def addresses_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
     addresses = (
         await db.execute(select(EmailAddress).order_by(EmailAddress.created_at.desc()))
     ).scalars().all()
