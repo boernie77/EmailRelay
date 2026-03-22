@@ -429,3 +429,57 @@ async def alias_delete(alias_id: int, db: AsyncSession = Depends(get_db)):
     await db.execute(delete(Alias).where(Alias.id == alias_id))
     await db.commit()
     return RedirectResponse("/aliases", status_code=303)
+
+
+# ── SMTP-Konten ─────────────────────────────────────────────────────────────────
+
+@router.get("/smtp-accounts", response_class=HTMLResponse)
+async def smtp_accounts_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
+    accounts = (await db.execute(select(SmtpAccount).order_by(SmtpAccount.created_at.desc()))).scalars().all()
+    return templates.TemplateResponse("smtp_accounts.html", {"request": request, "accounts": accounts})
+
+
+@router.post("/smtp-accounts")
+async def smtp_account_add(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    label: str = Form(""),
+    pattern: str = Form(...),
+    smtp_host: str = Form(...),
+    smtp_port: str = Form("587"),
+    smtp_user: str = Form(...),
+    smtp_password: str = Form(...),
+    smtp_use_tls: str = Form("true"),
+):
+    if r := _redirect_if_not_logged_in(request): return r
+    pattern = pattern.strip().lower()
+    existing = (await db.execute(select(SmtpAccount).where(SmtpAccount.pattern == pattern))).scalar_one_or_none()
+    if not existing:
+        db.add(SmtpAccount(
+            label=label.strip(),
+            pattern=pattern,
+            smtp_host=smtp_host.strip(),
+            smtp_port=int(smtp_port),
+            smtp_user=smtp_user.strip(),
+            smtp_password=smtp_password,
+            smtp_use_tls=smtp_use_tls != "false",
+        ))
+        await db.commit()
+    return RedirectResponse("/smtp-accounts", status_code=303)
+
+
+@router.post("/smtp-accounts/{account_id}/delete")
+async def smtp_account_delete(account_id: int, db: AsyncSession = Depends(get_db)):
+    await db.execute(delete(SmtpAccount).where(SmtpAccount.id == account_id))
+    await db.commit()
+    return RedirectResponse("/smtp-accounts", status_code=303)
+
+
+@router.post("/smtp-accounts/{account_id}/toggle")
+async def smtp_account_toggle(account_id: int, db: AsyncSession = Depends(get_db)):
+    a = (await db.execute(select(SmtpAccount).where(SmtpAccount.id == account_id))).scalar_one_or_none()
+    if a:
+        a.active = not a.active
+        await db.commit()
+    return RedirectResponse("/smtp-accounts", status_code=303)
