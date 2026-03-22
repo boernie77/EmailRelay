@@ -5,10 +5,11 @@ import string
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
 from database import get_db
-from models import Alias, EmailAddress, Setting, SmtpAccount
+from models import Alias, EmailAddress, Domain, Setting
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -38,12 +39,11 @@ async def get_or_create_alias(
     _=Depends(verify_secret),
 ):
     """Gibt den Alias für eine echte Adresse zurück. Erstellt ihn falls nötig."""
-    # Prüfen ob Adresse in der Liste ist
+    # Prüfen ob Adresse in der Liste ist, mit Relationship-Preload
     result = await db.execute(
-        select(EmailAddress).where(
-            EmailAddress.address == real_address,
-            EmailAddress.active == True,
-        )
+        select(EmailAddress)
+        .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
+        .where(EmailAddress.address == real_address, EmailAddress.active == True)
     )
     email_addr = result.scalar_one_or_none()
     if not email_addr:
@@ -64,8 +64,13 @@ async def get_or_create_alias(
         await db.commit()
         return {"alias_address": alias.alias_address, "real_address": real_address}
 
-    # Neuen Alias erstellen
-    alias_domain = await get_setting(db, "alias_domain")
+    # Alias-Domain ermitteln: erst aus Domain-Config, dann globaler Fallback
+    domain_obj = email_addr.domain
+    alias_domain = None
+    if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
+        alias_domain = domain_obj.alias_domain_config.alias_domain
+    if not alias_domain:
+        alias_domain = await get_setting(db, "alias_domain")  # Legacy-Fallback
     if not alias_domain:
         raise HTTPException(status_code=500, detail="Alias-Domain nicht konfiguriert")
 
@@ -125,31 +130,27 @@ async def get_smtp_config(
     db: AsyncSession = Depends(get_db),
     _=Depends(verify_secret),
 ):
-    """SMTP-Konfiguration für eine Absenderadresse. Prüft erst SmtpAccounts, dann globale Settings."""
+    """SMTP-Konfiguration für eine Absenderadresse. Prüft Domain-AliasDomainConfig, dann globale Settings."""
     sender_address = sender_address.lower().strip()
-    domain_pattern = "@" + sender_address.split("@")[1] if "@" in sender_address else ""
+    domain_str = sender_address.split("@")[1] if "@" in sender_address else ""
 
-    # Exakter Adress-Match
-    result = await db.execute(
-        select(SmtpAccount).where(SmtpAccount.pattern == sender_address, SmtpAccount.active == True)
-    )
-    account = result.scalar_one_or_none()
+    # Domain mit zugehöriger AliasDomainConfig laden
+    if domain_str:
+        domain_obj = (await db.execute(
+            select(Domain)
+            .options(selectinload(Domain.alias_domain_config))
+            .where(Domain.domain == domain_str, Domain.active == True)
+        )).scalar_one_or_none()
 
-    # Domain-Match (@gmail.com)
-    if not account and domain_pattern:
-        result = await db.execute(
-            select(SmtpAccount).where(SmtpAccount.pattern == domain_pattern, SmtpAccount.active == True)
-        )
-        account = result.scalar_one_or_none()
-
-    if account:
-        return {
-            "smtp_host": account.smtp_host,
-            "smtp_port": str(account.smtp_port),
-            "smtp_user": account.smtp_user,
-            "smtp_password": account.smtp_password,
-            "smtp_use_tls": "true" if account.smtp_use_tls else "false",
-        }
+        if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
+            cfg = domain_obj.alias_domain_config
+            return {
+                "smtp_host": cfg.smtp_host,
+                "smtp_port": str(cfg.smtp_port),
+                "smtp_user": cfg.smtp_user,
+                "smtp_password": cfg.smtp_password,
+                "smtp_use_tls": "true" if cfg.smtp_use_tls else "false",
+            }
 
     # Fallback: globale Settings
     keys = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls"]
