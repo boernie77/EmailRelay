@@ -22,12 +22,12 @@ Internet ──SMTP:25──► Postfix (Hetzner VPS) ──► Heimserver weite
 
 ## Infrastruktur (produktiv)
 
-- **Heimserver**: `systemv@192.168.2.204`, Portainer, DS-Lite (IPv6: `2003:ed:ef06:dd95:5054:ff:fe1e:d162`)
-- **VPS**: Hetzner CX33, IP `37.27.193.27`, Ubuntu — Postfix läuft, Port 25 offen
-- **Alias-Domain**: `alias.bernauer24.com` → MX zeigt auf `37.27.193.27`
+- **Heimserver**: Portainer, DS-Lite — IP/Zugangsdaten nur lokal in `.env`
+- **VPS**: Hetzner, Ubuntu — Postfix läuft, Port 25 offen — IP nur lokal in `.env`
+- **Alias-Domain**: konfiguriert in UI — MX zeigt auf VPS
 - **Docker-Stack**: liegt in `/tmp/EmailRelay` auf Heimserver (aus GitHub geklont)
 - **Portainer**: Stack `emailrelay` via Git-Repository (URL mit `.git` Suffix nötig!)
-- **Thunderbird**: noch nicht konfiguriert (nächster Schritt)
+- **Thunderbird**: konfiguriert (SMTP-Proxy Port 1587)
 
 ## Services (Docker Compose)
 
