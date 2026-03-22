@@ -36,7 +36,15 @@
         <p class="font-semibold text-sm">VPS mit Port 25 (Pflicht für eingehende Mails)</p>
         <p class="text-gray-600 text-sm">Heimanschlüsse blockieren Port 25 (SMTP). Für eingehende E-Mails brauchst du einen
         VPS (virtuellen Server) bei einem Anbieter wie Hetzner, der Port 25 offen hat.
-        Der VPS empfängt die Mails und leitet sie per IPv6 an deinen Heimserver weiter.</p>
+        Der VPS empfängt eingehende Mails und leitet sie an deinen Heimserver weiter.</p>
+      </div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="bg-amber-100 text-amber-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">!</div>
+      <div>
+        <p class="font-semibold text-sm">Tailscale VPN (Pflicht bei DS-Lite / kein eingehender IPv6)</p>
+        <p class="text-gray-600 text-sm">Viele Heimanschlüsse (besonders Telekom Glasfaser) nutzen DS-Lite — dabei hat der Router nur IPv6, aber viele Router (z.B. Speedport) blockieren eingehende IPv6-Verbindungen komplett. Ohne erreichbare IP kann der VPS die Alias-API auf deinem Heimserver nicht abfragen.
+        <br><strong>Lösung:</strong> Installiere <a href="https://tailscale.com" class="text-blue-600 underline" target="_blank">Tailscale</a> auf beiden Maschinen (Heimserver + VPS). Tailscale weist stabile private IPs (100.x.x.x) zu, die funktionieren — unabhängig von Router und IPv6-Konfiguration.</p>
       </div>
     </div>
     <div class="flex gap-4 items-start">
