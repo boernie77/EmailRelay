@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.sql import func
 
 from database import get_db
-from models import Alias, EmailAddress, Setting
+from models import Alias, EmailAddress, Setting, SmtpAccount
 
 router = APIRouter(prefix="/api", tags=["api"])
 
