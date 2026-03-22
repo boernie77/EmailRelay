@@ -8,9 +8,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 
 from database import get_db
-from models import Setting, Domain, EmailAddress, Alias, SmtpAccount
+from models import Setting, Domain, EmailAddress, Alias, AliasDomainConfig
 
 _VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
@@ -200,81 +201,236 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 
 # ── Einstellungen ──────────────────────────────────────────────────────────────
 
-_SETTINGS_KEYS = [
-    "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls",
-    "alias_domain", "vps_host", "vps_port", "vps_user", "vps_ssh_key", "api_url_for_vps",
-]
-
-
-async def _load_cfg(db: AsyncSession) -> dict:
-    return {k: await get_setting(db, k) for k in _SETTINGS_KEYS}
-
-
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     if r := _redirect_if_not_logged_in(request): return r
-    return templates.TemplateResponse("settings.html", {
-        "request": request, "cfg": await _load_cfg(db),
-    })
+    return templates.TemplateResponse("settings.html", {"request": request})
 
 
 @router.post("/settings")
 async def settings_save(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    old_password: str = Form(""),
+    new_password: str = Form(""),
+    new_password2: str = Form(""),
+):
+    if r := _redirect_if_not_logged_in(request): return r
+    error = None
+    success = None
+
+    if new_password:
+        stored_hash = await get_setting(db, "ui_password_hash")
+        if stored_hash and not _bcrypt.checkpw(old_password.encode(), stored_hash.encode()):
+            error = "Aktuelles Passwort ist falsch."
+        elif new_password != new_password2:
+            error = "Neues Passwort und Bestätigung stimmen nicht überein."
+        else:
+            hashed = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt()).decode()
+            await save_setting(db, "ui_password_hash", hashed)
+            await db.commit()
+            success = "Passwort wurde geändert."
+    else:
+        error = "Bitte neues Passwort eingeben."
+
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "error": error,
+        "success": success,
+    })
+
+
+# ── Alias-Domains ──────────────────────────────────────────────────────────────
+
+@router.get("/alias-domains", response_class=HTMLResponse)
+async def alias_domains_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
+    configs = (await db.execute(
+        select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
+    )).scalars().all()
+    return templates.TemplateResponse("alias_domains.html", {
+        "request": request, "configs": configs,
+    })
+
+
+@router.post("/alias-domains")
+async def alias_domain_add(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    label: str = Form(""),
+    alias_domain: str = Form(...),
     smtp_host: str = Form(""),
     smtp_port: str = Form("587"),
     smtp_user: str = Form(""),
     smtp_password: str = Form(""),
     smtp_use_tls: str = Form("true"),
-    alias_domain: str = Form(""),
     vps_host: str = Form(""),
     vps_port: str = Form("22"),
     vps_user: str = Form("root"),
     vps_ssh_key: str = Form(""),
     api_url_for_vps: str = Form(""),
 ):
-    pairs = {
-        "smtp_host": smtp_host, "smtp_port": smtp_port,
-        "smtp_user": smtp_user, "smtp_password": smtp_password,
-        "smtp_use_tls": smtp_use_tls, "alias_domain": alias_domain,
-        "vps_host": vps_host, "vps_port": vps_port,
-        "vps_user": vps_user, "vps_ssh_key": vps_ssh_key,
-        "api_url_for_vps": api_url_for_vps,
-    }
-    for k, v in pairs.items():
-        await save_setting(db, k, v)
+    if r := _redirect_if_not_logged_in(request): return r
+    alias_domain = alias_domain.strip().lower()
+    existing = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.alias_domain == alias_domain)
+    )).scalar_one_or_none()
+    if not existing:
+        db.add(AliasDomainConfig(
+            label=label.strip(),
+            alias_domain=alias_domain,
+            smtp_host=smtp_host.strip(),
+            smtp_port=int(smtp_port or 587),
+            smtp_user=smtp_user.strip(),
+            smtp_password=smtp_password,
+            smtp_use_tls=smtp_use_tls != "false",
+            vps_host=vps_host.strip(),
+            vps_port=int(vps_port or 22),
+            vps_user=vps_user.strip() or "root",
+            vps_ssh_key=vps_ssh_key,
+            api_url_for_vps=api_url_for_vps.strip(),
+        ))
+        await db.commit()
+    return RedirectResponse("/alias-domains", status_code=303)
+
+
+@router.get("/alias-domains/{config_id}/edit", response_class=HTMLResponse)
+async def alias_domain_edit_page(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
+    cfg = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
+    )).scalar_one_or_none()
+    if not cfg:
+        return RedirectResponse("/alias-domains", status_code=302)
+    return templates.TemplateResponse("alias_domain_edit.html", {
+        "request": request, "cfg": cfg,
+    })
+
+
+@router.post("/alias-domains/{config_id}/edit")
+async def alias_domain_edit_save(
+    config_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    label: str = Form(""),
+    alias_domain: str = Form(...),
+    smtp_host: str = Form(""),
+    smtp_port: str = Form("587"),
+    smtp_user: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_use_tls: str = Form("true"),
+    vps_host: str = Form(""),
+    vps_port: str = Form("22"),
+    vps_user: str = Form("root"),
+    vps_ssh_key: str = Form(""),
+    api_url_for_vps: str = Form(""),
+):
+    if r := _redirect_if_not_logged_in(request): return r
+    cfg = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
+    )).scalar_one_or_none()
+    if cfg:
+        cfg.label = label.strip()
+        cfg.alias_domain = alias_domain.strip().lower()
+        cfg.smtp_host = smtp_host.strip()
+        cfg.smtp_port = int(smtp_port or 587)
+        cfg.smtp_user = smtp_user.strip()
+        cfg.smtp_password = smtp_password
+        cfg.smtp_use_tls = smtp_use_tls != "false"
+        cfg.vps_host = vps_host.strip()
+        cfg.vps_port = int(vps_port or 22)
+        cfg.vps_user = vps_user.strip() or "root"
+        cfg.vps_ssh_key = vps_ssh_key
+        cfg.api_url_for_vps = api_url_for_vps.strip()
+        await db.commit()
+    return RedirectResponse("/alias-domains", status_code=303)
+
+
+@router.post("/alias-domains/{config_id}/delete")
+async def alias_domain_delete(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
+    await db.execute(delete(AliasDomainConfig).where(AliasDomainConfig.id == config_id))
     await db.commit()
-    return RedirectResponse("/settings?saved=1", status_code=303)
+    return RedirectResponse("/alias-domains", status_code=303)
 
 
-@router.post("/vps-setup", response_class=HTMLResponse)
-async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
+@router.post("/alias-domains/{config_id}/toggle")
+async def alias_domain_toggle(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
+    cfg = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
+    )).scalar_one_or_none()
+    if cfg:
+        cfg.active = not cfg.active
+        await db.commit()
+    return RedirectResponse("/alias-domains", status_code=303)
+
+
+@router.post("/alias-domains/{config_id}/test", response_class=HTMLResponse)
+async def alias_domain_test(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
+    cfg = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
+    )).scalar_one_or_none()
+    all_configs = (await db.execute(
+        select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
+    )).scalars().all()
+    test_error = None
+    test_success = None
+    if not cfg:
+        test_error = "Konfiguration nicht gefunden"
+    else:
+        try:
+            import aiosmtplib
+            smtp = aiosmtplib.SMTP(hostname=cfg.smtp_host, port=cfg.smtp_port, start_tls=cfg.smtp_use_tls)
+            await smtp.connect()
+            await smtp.login(cfg.smtp_user, cfg.smtp_password)
+            await smtp.quit()
+            test_success = f"Verbindung zu {cfg.smtp_host}:{cfg.smtp_port} erfolgreich"
+        except Exception as e:
+            test_error = f"Verbindung fehlgeschlagen: {e}"
+    return templates.TemplateResponse("alias_domains.html", {
+        "request": request,
+        "configs": all_configs,
+        "test_success": test_success,
+        "test_error": test_error,
+        "tested_id": config_id,
+    })
+
+
+@router.post("/alias-domains/{config_id}/vps-setup", response_class=HTMLResponse)
+async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if r := _redirect_if_not_logged_in(request): return r
     import paramiko
 
-    cfg = await _load_cfg(db)
-    vps_host = cfg.get("vps_host", "")
-    vps_port = int(cfg.get("vps_port") or "22")
-    vps_user = cfg.get("vps_user") or "root"
-    vps_ssh_key = cfg.get("vps_ssh_key", "")
-    alias_domain = cfg.get("alias_domain", "")
-    api_url_for_vps = cfg.get("api_url_for_vps", "")
-    api_secret = os.getenv("API_SECRET", "")
+    cfg = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
+    )).scalar_one_or_none()
+    all_configs = (await db.execute(
+        select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
+    )).scalars().all()
 
+    if not cfg:
+        return templates.TemplateResponse("alias_domains.html", {
+            "request": request, "configs": all_configs,
+            "setup_error": "Konfiguration nicht gefunden", "setup_id": config_id,
+        })
+
+    api_secret = os.getenv("API_SECRET", "")
     missing = [n for n, v in [
-        ("VPS-Host", vps_host), ("SSH-Key", vps_ssh_key),
-        ("Alias-Domain", alias_domain), ("API-URL für VPS", api_url_for_vps),
+        ("VPS-Host", cfg.vps_host), ("SSH-Key", cfg.vps_ssh_key),
+        ("Alias-Domain", cfg.alias_domain), ("API-URL für VPS", cfg.api_url_for_vps),
     ] if not v]
     if missing:
-        return templates.TemplateResponse("settings.html", {
-            "request": request, "cfg": cfg,
-            "setup_error": f"Fehlende Felder: {', '.join(missing)}",
+        return templates.TemplateResponse("alias_domains.html", {
+            "request": request, "configs": all_configs,
+            "setup_error": f"Fehlende Felder: {', '.join(missing)}", "setup_id": config_id,
         })
 
     script = (
         _VPS_SETUP_SCRIPT
-        .replace("__ALIAS_DOMAIN__", alias_domain)
-        .replace("__API_URL__", api_url_for_vps)
+        .replace("__ALIAS_DOMAIN__", cfg.alias_domain)
+        .replace("__API_URL__", cfg.api_url_for_vps)
         .replace("__API_SECRET__", api_secret)
     )
 
@@ -283,7 +439,7 @@ async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
         last_err = None
         for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
             try:
-                key = cls.from_private_key(io.StringIO(vps_ssh_key))
+                key = cls.from_private_key(io.StringIO(cfg.vps_ssh_key))
                 break
             except Exception as e:
                 last_err = e
@@ -292,7 +448,7 @@ async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(vps_host, port=vps_port, username=vps_user, pkey=key, timeout=15)
+        client.connect(cfg.vps_host, port=cfg.vps_port, username=cfg.vps_user, pkey=key, timeout=15)
         try:
             sftp = client.open_sftp()
             with sftp.open("/tmp/_emailrelay_setup.sh", "w") as f:
@@ -315,10 +471,12 @@ async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         setup_error = str(e)
 
-    return templates.TemplateResponse("settings.html", {
-        "request": request, "cfg": cfg,
+    return templates.TemplateResponse("alias_domains.html", {
+        "request": request,
+        "configs": all_configs,
         "setup_log": setup_log,
         "setup_error": setup_error,
+        "setup_id": config_id,
     })
 
 
@@ -327,20 +485,36 @@ async def vps_setup(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/domains", response_class=HTMLResponse)
 async def domains_page(request: Request, db: AsyncSession = Depends(get_db)):
     if r := _redirect_if_not_logged_in(request): return r
-    domains = (await db.execute(select(Domain).order_by(Domain.created_at.desc()))).scalars().all()
-    return templates.TemplateResponse("domains.html", {"request": request, "domains": domains})
+    domains = (await db.execute(
+        select(Domain)
+        .options(selectinload(Domain.alias_domain_config))
+        .order_by(Domain.created_at.desc())
+    )).scalars().all()
+    alias_configs = (await db.execute(
+        select(AliasDomainConfig)
+        .where(AliasDomainConfig.active == True)
+        .order_by(AliasDomainConfig.created_at.desc())
+    )).scalars().all()
+    return templates.TemplateResponse("domains.html", {
+        "request": request,
+        "domains": domains,
+        "alias_configs": alias_configs,
+    })
 
 
 @router.post("/domains")
 async def domain_add(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     domain: str = Form(...),
-    alias_domain: str = Form(""),
+    alias_domain_config_id: str = Form(""),
 ):
+    if r := _redirect_if_not_logged_in(request): return r
     domain = domain.strip().lower()
+    config_id = int(alias_domain_config_id) if alias_domain_config_id.strip() else None
     existing = (await db.execute(select(Domain).where(Domain.domain == domain))).scalar_one_or_none()
     if not existing:
-        db.add(Domain(domain=domain, alias_domain=alias_domain.strip().lower() or None))
+        db.add(Domain(domain=domain, alias_domain_config_id=config_id))
         await db.commit()
     return RedirectResponse("/domains", status_code=303)
 
@@ -432,55 +606,9 @@ async def alias_delete(alias_id: int, db: AsyncSession = Depends(get_db)):
     return RedirectResponse("/aliases", status_code=303)
 
 
-# ── SMTP-Konten ─────────────────────────────────────────────────────────────────
+# ── Hilfe ──────────────────────────────────────────────────────────────────────
 
-@router.get("/smtp-accounts", response_class=HTMLResponse)
-async def smtp_accounts_page(request: Request, db: AsyncSession = Depends(get_db)):
+@router.get("/guide", response_class=HTMLResponse)
+async def guide_page(request: Request):
     if r := _redirect_if_not_logged_in(request): return r
-    accounts = (await db.execute(select(SmtpAccount).order_by(SmtpAccount.created_at.desc()))).scalars().all()
-    return templates.TemplateResponse("smtp_accounts.html", {"request": request, "accounts": accounts})
-
-
-@router.post("/smtp-accounts")
-async def smtp_account_add(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    label: str = Form(""),
-    pattern: str = Form(...),
-    smtp_host: str = Form(...),
-    smtp_port: str = Form("587"),
-    smtp_user: str = Form(...),
-    smtp_password: str = Form(...),
-    smtp_use_tls: str = Form("true"),
-):
-    if r := _redirect_if_not_logged_in(request): return r
-    pattern = pattern.strip().lower()
-    existing = (await db.execute(select(SmtpAccount).where(SmtpAccount.pattern == pattern))).scalar_one_or_none()
-    if not existing:
-        db.add(SmtpAccount(
-            label=label.strip(),
-            pattern=pattern,
-            smtp_host=smtp_host.strip(),
-            smtp_port=int(smtp_port),
-            smtp_user=smtp_user.strip(),
-            smtp_password=smtp_password,
-            smtp_use_tls=smtp_use_tls != "false",
-        ))
-        await db.commit()
-    return RedirectResponse("/smtp-accounts", status_code=303)
-
-
-@router.post("/smtp-accounts/{account_id}/delete")
-async def smtp_account_delete(account_id: int, db: AsyncSession = Depends(get_db)):
-    await db.execute(delete(SmtpAccount).where(SmtpAccount.id == account_id))
-    await db.commit()
-    return RedirectResponse("/smtp-accounts", status_code=303)
-
-
-@router.post("/smtp-accounts/{account_id}/toggle")
-async def smtp_account_toggle(account_id: int, db: AsyncSession = Depends(get_db)):
-    a = (await db.execute(select(SmtpAccount).where(SmtpAccount.id == account_id))).scalar_one_or_none()
-    if a:
-        a.active = not a.active
-        await db.commit()
-    return RedirectResponse("/smtp-accounts", status_code=303)
+    return templates.TemplateResponse("guide.html", {"request": request})
