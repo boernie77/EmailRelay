@@ -111,9 +111,46 @@ async def get_smtp_settings(
     db: AsyncSession = Depends(get_db),
     _=Depends(verify_secret),
 ):
-    """SMTP-Einstellungen für den smtp-proxy."""
+    """SMTP-Einstellungen (global, Fallback). Veraltet – smtp-proxy nutzt /smtp-config/{address}."""
     keys = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls"]
     result = {}
     for key in keys:
         result[key] = await get_setting(db, key)
     return result
+
+
+@router.get("/smtp-config/{sender_address}")
+async def get_smtp_config(
+    sender_address: str,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_secret),
+):
+    """SMTP-Konfiguration für eine Absenderadresse. Prüft erst SmtpAccounts, dann globale Settings."""
+    sender_address = sender_address.lower().strip()
+    domain_pattern = "@" + sender_address.split("@")[1] if "@" in sender_address else ""
+
+    # Exakter Adress-Match
+    result = await db.execute(
+        select(SmtpAccount).where(SmtpAccount.pattern == sender_address, SmtpAccount.active == True)
+    )
+    account = result.scalar_one_or_none()
+
+    # Domain-Match (@gmail.com)
+    if not account and domain_pattern:
+        result = await db.execute(
+            select(SmtpAccount).where(SmtpAccount.pattern == domain_pattern, SmtpAccount.active == True)
+        )
+        account = result.scalar_one_or_none()
+
+    if account:
+        return {
+            "smtp_host": account.smtp_host,
+            "smtp_port": str(account.smtp_port),
+            "smtp_user": account.smtp_user,
+            "smtp_password": account.smtp_password,
+            "smtp_use_tls": "true" if account.smtp_use_tls else "false",
+        }
+
+    # Fallback: globale Settings
+    keys = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls"]
+    return {key: await get_setting(db, key) for key in keys}
