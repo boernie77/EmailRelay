@@ -45,6 +45,7 @@ mydestination = localhost
 virtual_mailbox_domains = __ALIAS_DOMAIN__
 virtual_transport = emailrelay
 virtual_mailbox_maps = regexp:/etc/postfix/virtual_mailbox_regex
+smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
 smtpd_tls_security_level = may
 smtp_tls_security_level = may
 message_size_limit = 52428800
