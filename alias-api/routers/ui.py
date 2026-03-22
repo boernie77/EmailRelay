@@ -111,7 +111,7 @@ try:
         if use_tls:
             smtp.starttls()
         smtp.login(cfg["smtp_user"], cfg["smtp_password"])
-        smtp.sendmail(cfg["smtp_user"], [real_address], msg.as_bytes())
+        smtp.sendmail(cfg["smtp_user"], [real_address], msg.as_bytes(policy=policy.SMTP))
 except Exception as e:
     print(f"SMTP-Fehler: {e}", file=sys.stderr)
     sys.exit(75)
