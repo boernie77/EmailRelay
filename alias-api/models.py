@@ -38,3 +38,17 @@ class Alias(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_used = Column(DateTime(timezone=True), nullable=True)
+
+
+class SmtpAccount(Base):
+    __tablename__ = "smtp_accounts"
+    id = Column(Integer, primary_key=True)
+    label = Column(String, default="")
+    pattern = Column(String, unique=True, nullable=False)  # z.B. "user@gmail.com" oder "@gmail.com"
+    smtp_host = Column(String, nullable=False)
+    smtp_port = Column(Integer, default=587)
+    smtp_user = Column(String, nullable=False)
+    smtp_password = Column(String, nullable=False)
+    smtp_use_tls = Column(Boolean, default=True)
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
