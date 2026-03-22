@@ -10,13 +10,35 @@ class Setting(Base):
     value = Column(Text, nullable=False)
 
 
+class AliasDomainConfig(Base):
+    __tablename__ = "alias_domain_configs"
+    id = Column(Integer, primary_key=True)
+    label = Column(String, default="")
+    alias_domain = Column(String, unique=True, nullable=False)
+    smtp_host = Column(String, default="")
+    smtp_port = Column(Integer, default=587)
+    smtp_user = Column(String, default="")
+    smtp_password = Column(String, default="")
+    smtp_use_tls = Column(Boolean, default=True)
+    vps_host = Column(String, default="")
+    vps_port = Column(Integer, default=22)
+    vps_user = Column(String, default="root")
+    vps_ssh_key = Column(Text, default="")
+    api_url_for_vps = Column(String, default="")
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    domains = relationship("Domain", back_populates="alias_domain_config")
+
+
 class Domain(Base):
     __tablename__ = "domains"
     id = Column(Integer, primary_key=True)
     domain = Column(String, unique=True, nullable=False)
-    alias_domain = Column(String, nullable=True)  # Domain für Alias-Adressen
+    alias_domain = Column(String, nullable=True)  # Legacy-Spalte, bleibt für Migration
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    alias_domain_config_id = Column(Integer, ForeignKey("alias_domain_configs.id", ondelete="SET NULL"), nullable=True)
+    alias_domain_config = relationship("AliasDomainConfig", back_populates="domains")
     email_addresses = relationship("EmailAddress", back_populates="domain", cascade="all, delete-orphan")
 
 
@@ -38,17 +60,3 @@ class Alias(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_used = Column(DateTime(timezone=True), nullable=True)
-
-
-class SmtpAccount(Base):
-    __tablename__ = "smtp_accounts"
-    id = Column(Integer, primary_key=True)
-    label = Column(String, default="")
-    pattern = Column(String, unique=True, nullable=False)  # z.B. "user@gmail.com" oder "@gmail.com"
-    smtp_host = Column(String, nullable=False)
-    smtp_port = Column(Integer, default=587)
-    smtp_user = Column(String, nullable=False)
-    smtp_password = Column(String, nullable=False)
-    smtp_use_tls = Column(Boolean, default=True)
-    active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
