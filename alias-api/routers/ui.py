@@ -13,7 +13,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from models import Setting, Domain, EmailAddress, Alias, AliasDomainConfig
+from models import Setting, Domain, EmailAddress, Alias, AliasDomainConfig, AliasDomainAccess, User
 
 _VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
@@ -132,6 +132,21 @@ router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
 
 
+# ── Auth-Helpers ───────────────────────────────────────────────────────────────
+
+async def get_current_user(request: Request, db: AsyncSession) -> User | None:
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    return (await db.execute(
+        select(User).where(User.id == user_id, User.active == True)
+    )).scalar_one_or_none()
+
+
+def redirect_login():
+    return RedirectResponse("/login", status_code=302)
+
+
 async def get_setting(db: AsyncSession, key: str, default: str = "") -> str:
     result = await db.execute(select(Setting).where(Setting.key == key))
     s = result.scalar_one_or_none()
@@ -147,22 +162,26 @@ async def save_setting(db: AsyncSession, key: str, value: str):
         db.add(Setting(key=key, value=value))
 
 
+async def get_user_alias_configs(db: AsyncSession, user: User) -> list[AliasDomainConfig]:
+    """Gibt die für einen User freigegebenen Alias-Domain-Configs zurück."""
+    result = await db.execute(
+        select(AliasDomainConfig)
+        .join(AliasDomainAccess, AliasDomainAccess.alias_domain_config_id == AliasDomainConfig.id)
+        .where(AliasDomainAccess.user_id == user.id, AliasDomainConfig.active == True)
+        .order_by(AliasDomainConfig.created_at.desc())
+    )
+    return result.scalars().all()
+
+
 # ── Auth ───────────────────────────────────────────────────────────────────────
-
-def _redirect_if_not_logged_in(request: Request):
-    """Gibt RedirectResponse zurück wenn nicht eingeloggt, sonst None."""
-    if not request.session.get("logged_in"):
-        return RedirectResponse("/login", status_code=302)
-    return None
-
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if request.session.get("logged_in"):
+    if request.session.get("user_id"):
         return RedirectResponse("/", status_code=302)
-    has_password = bool(await get_setting(db, "ui_password_hash"))
+    has_users = bool((await db.execute(select(User))).scalars().first())
     return templates.TemplateResponse("login.html", {
-        "request": request, "has_password": has_password,
+        "request": request, "has_users": has_users,
     })
 
 
@@ -170,23 +189,45 @@ async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
 async def login_submit(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    username: str = Form(...),
     password: str = Form(...),
 ):
-    stored_hash = await get_setting(db, "ui_password_hash")
-    if not stored_hash:
-        # Erstes Login: Passwort direkt setzen
-        hashed = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
-        await save_setting(db, "ui_password_hash", hashed)
+    has_users = bool((await db.execute(select(User))).scalars().first())
+
+    if not has_users:
+        # Erstes Login: Admin-Account anlegen
+        pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+        admin = User(username=username.strip(), password_hash=pw_hash, is_admin=True)
+        db.add(admin)
+        await db.flush()
+        # Alle bestehenden AliasDomainConfigs dem neuen Admin freigeben
+        configs = (await db.execute(select(AliasDomainConfig))).scalars().all()
+        for cfg in configs:
+            db.add(AliasDomainAccess(user_id=admin.id, alias_domain_config_id=cfg.id))
+        # Bestehende Domains + Aliases zuweisen
+        for d in (await db.execute(select(Domain).where(Domain.user_id == None))).scalars().all():
+            d.user_id = admin.id
+        for a in (await db.execute(select(Alias).where(Alias.user_id == None))).scalars().all():
+            a.user_id = admin.id
         await db.commit()
-        request.session["logged_in"] = True
+        request.session["user_id"] = admin.id
+        request.session["is_admin"] = True
         return RedirectResponse("/", status_code=302)
-    if _bcrypt.checkpw(password.encode(), stored_hash.encode()):
-        request.session["logged_in"] = True
-        return RedirectResponse("/", status_code=302)
-    has_password = bool(stored_hash)
-    return templates.TemplateResponse("login.html", {
-        "request": request, "error": "Falsches Passwort", "has_password": has_password,
-    })
+
+    user = (await db.execute(
+        select(User).where(User.username == username.strip(), User.active == True)
+    )).scalar_one_or_none()
+
+    if not user or not _bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Falscher Benutzername oder Passwort",
+            "has_users": has_users,
+        })
+
+    request.session["user_id"] = user.id
+    request.session["is_admin"] = user.is_admin
+    return RedirectResponse("/", status_code=302)
 
 
 @router.get("/logout")
@@ -199,15 +240,22 @@ async def logout(request: Request):
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
-    alias_count = (await db.execute(select(Alias))).scalars().all()
-    domain_count = (await db.execute(select(Domain))).scalars().all()
-    address_count = (await db.execute(select(EmailAddress))).scalars().all()
-    recent_aliases = (
-        await db.execute(select(Alias).order_by(Alias.created_at.desc()).limit(10))
-    ).scalars().all()
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    alias_count = (await db.execute(select(Alias).where(Alias.user_id == user.id))).scalars().all()
+    domain_count = (await db.execute(select(Domain).where(Domain.user_id == user.id))).scalars().all()
+    address_count = (await db.execute(
+        select(EmailAddress)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(Domain.user_id == user.id)
+    )).scalars().all()
+    recent_aliases = (await db.execute(
+        select(Alias).where(Alias.user_id == user.id).order_by(Alias.created_at.desc()).limit(10)
+    )).scalars().all()
     return templates.TemplateResponse("index.html", {
         "request": request,
+        "current_user": user,
         "alias_count": len(alias_count),
         "domain_count": len(domain_count),
         "address_count": len(address_count),
@@ -219,8 +267,10 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
-    return templates.TemplateResponse("settings.html", {"request": request})
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    return templates.TemplateResponse("settings.html", {"request": request, "current_user": user})
 
 
 @router.post("/settings")
@@ -231,41 +281,140 @@ async def settings_save(
     new_password: str = Form(""),
     new_password2: str = Form(""),
 ):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
     error = None
     success = None
 
     if new_password:
-        stored_hash = await get_setting(db, "ui_password_hash")
-        if stored_hash and not _bcrypt.checkpw(old_password.encode(), stored_hash.encode()):
+        if not _bcrypt.checkpw(old_password.encode(), user.password_hash.encode()):
             error = "Aktuelles Passwort ist falsch."
         elif new_password != new_password2:
             error = "Neues Passwort und Bestätigung stimmen nicht überein."
         else:
-            hashed = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt()).decode()
-            await save_setting(db, "ui_password_hash", hashed)
+            user.password_hash = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt()).decode()
             await db.commit()
             success = "Passwort wurde geändert."
     else:
         error = "Bitte neues Passwort eingeben."
 
     return templates.TemplateResponse("settings.html", {
-        "request": request,
-        "error": error,
-        "success": success,
+        "request": request, "current_user": user, "error": error, "success": success,
     })
 
 
-# ── Alias-Domains ──────────────────────────────────────────────────────────────
+# ── Admin: Benutzerverwaltung ──────────────────────────────────────────────────
+
+@router.get("/admin/users", response_class=HTMLResponse)
+async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    users = (await db.execute(
+        select(User).options(selectinload(User.alias_domain_access)).order_by(User.created_at)
+    )).scalars().all()
+    all_configs = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.active == True).order_by(AliasDomainConfig.created_at)
+    )).scalars().all()
+    return templates.TemplateResponse("admin_users.html", {
+        "request": request, "current_user": user, "users": users, "all_configs": all_configs,
+    })
+
+
+@router.post("/admin/users/create")
+async def admin_user_create(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    username: str = Form(...),
+    password: str = Form(...),
+    is_admin: str = Form("false"),
+):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    username = username.strip()
+    existing = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    if not existing:
+        pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+        db.add(User(username=username, password_hash=pw_hash, is_admin=(is_admin == "true")))
+        await db.commit()
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{uid}/delete")
+async def admin_user_delete(uid: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    if uid != user.id:  # Admin kann sich nicht selbst löschen
+        await db.execute(delete(User).where(User.id == uid))
+        await db.commit()
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{uid}/toggle")
+async def admin_user_toggle(uid: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    if uid != user.id:
+        target = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+        if target:
+            target.active = not target.active
+            await db.commit()
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{uid}/set-password")
+async def admin_user_set_password(
+    uid: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    new_password: str = Form(...),
+):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    target = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    if target:
+        target.password_hash = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt()).decode()
+        await db.commit()
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{uid}/alias-access")
+async def admin_user_alias_access(
+    uid: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    form = await request.form()
+    selected_ids = {int(v) for k, v in form.multi_items() if k == "config_ids"}
+
+    # Bestehende Zugänge löschen und neu setzen
+    await db.execute(delete(AliasDomainAccess).where(AliasDomainAccess.user_id == uid))
+    for config_id in selected_ids:
+        db.add(AliasDomainAccess(user_id=uid, alias_domain_config_id=config_id))
+    await db.commit()
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+# ── Alias-Domains (nur Admin) ──────────────────────────────────────────────────
 
 @router.get("/alias-domains", response_class=HTMLResponse)
 async def alias_domains_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     configs = (await db.execute(
         select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
     )).scalars().all()
     return templates.TemplateResponse("alias_domains.html", {
-        "request": request, "configs": configs,
+        "request": request, "current_user": user, "configs": configs,
     })
 
 
@@ -288,13 +437,15 @@ async def alias_domain_add(
     catchall_enabled: str = Form("false"),
     catchall_target_address: str = Form(""),
 ):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     alias_domain = alias_domain.strip().lower()
     existing = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.alias_domain == alias_domain)
     )).scalar_one_or_none()
     if not existing:
-        db.add(AliasDomainConfig(
+        cfg = AliasDomainConfig(
             label=label.strip(),
             alias_domain=alias_domain,
             smtp_host=smtp_host.strip(),
@@ -309,21 +460,27 @@ async def alias_domain_add(
             api_url_for_vps=api_url_for_vps.strip(),
             catchall_enabled=catchall_enabled == "true",
             catchall_target_address=catchall_target_address.strip().lower(),
-        ))
+        )
+        db.add(cfg)
+        await db.flush()
+        # Neue Config dem Admin direkt freigeben
+        db.add(AliasDomainAccess(user_id=user.id, alias_domain_config_id=cfg.id))
         await db.commit()
     return RedirectResponse("/alias-domains", status_code=303)
 
 
 @router.get("/alias-domains/{config_id}/edit", response_class=HTMLResponse)
 async def alias_domain_edit_page(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     cfg = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
     )).scalar_one_or_none()
     if not cfg:
         return RedirectResponse("/alias-domains", status_code=302)
     return templates.TemplateResponse("alias_domain_edit.html", {
-        "request": request, "cfg": cfg,
+        "request": request, "current_user": user, "cfg": cfg,
     })
 
 
@@ -347,7 +504,9 @@ async def alias_domain_edit_save(
     catchall_enabled: str = Form("false"),
     catchall_target_address: str = Form(""),
 ):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     cfg = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
     )).scalar_one_or_none()
@@ -372,7 +531,9 @@ async def alias_domain_edit_save(
 
 @router.post("/alias-domains/{config_id}/delete")
 async def alias_domain_delete(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     await db.execute(delete(AliasDomainConfig).where(AliasDomainConfig.id == config_id))
     await db.commit()
     return RedirectResponse("/alias-domains", status_code=303)
@@ -380,7 +541,9 @@ async def alias_domain_delete(config_id: int, request: Request, db: AsyncSession
 
 @router.post("/alias-domains/{config_id}/toggle")
 async def alias_domain_toggle(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     cfg = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
     )).scalar_one_or_none()
@@ -392,7 +555,9 @@ async def alias_domain_toggle(config_id: int, request: Request, db: AsyncSession
 
 @router.post("/alias-domains/{config_id}/test", response_class=HTMLResponse)
 async def alias_domain_test(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     cfg = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
     )).scalar_one_or_none()
@@ -414,17 +579,17 @@ async def alias_domain_test(config_id: int, request: Request, db: AsyncSession =
         except Exception as e:
             test_error = f"Verbindung fehlgeschlagen: {e}"
     return templates.TemplateResponse("alias_domains.html", {
-        "request": request,
+        "request": request, "current_user": user,
         "configs": all_configs,
-        "test_success": test_success,
-        "test_error": test_error,
-        "tested_id": config_id,
+        "test_success": test_success, "test_error": test_error, "tested_id": config_id,
     })
 
 
 @router.post("/alias-domains/{config_id}/vps-setup", response_class=HTMLResponse)
 async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
     import paramiko
 
     cfg = (await db.execute(
@@ -436,7 +601,7 @@ async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSess
 
     if not cfg:
         return templates.TemplateResponse("alias_domains.html", {
-            "request": request, "configs": all_configs,
+            "request": request, "current_user": user, "configs": all_configs,
             "setup_error": "Konfiguration nicht gefunden", "setup_id": config_id,
         })
 
@@ -447,7 +612,7 @@ async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSess
     ] if not v]
     if missing:
         return templates.TemplateResponse("alias_domains.html", {
-            "request": request, "configs": all_configs,
+            "request": request, "current_user": user, "configs": all_configs,
             "setup_error": f"Fehlende Felder: {', '.join(missing)}", "setup_id": config_id,
         })
 
@@ -496,11 +661,9 @@ async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSess
         setup_error = str(e)
 
     return templates.TemplateResponse("alias_domains.html", {
-        "request": request,
+        "request": request, "current_user": user,
         "configs": all_configs,
-        "setup_log": setup_log,
-        "setup_error": setup_error,
-        "setup_id": config_id,
+        "setup_log": setup_log, "setup_error": setup_error, "setup_id": config_id,
     })
 
 
@@ -508,21 +671,19 @@ async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSess
 
 @router.get("/domains", response_class=HTMLResponse)
 async def domains_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
     domains = (await db.execute(
         select(Domain)
         .options(selectinload(Domain.alias_domain_config))
+        .where(Domain.user_id == user.id)
         .order_by(Domain.created_at.desc())
     )).scalars().all()
-    alias_configs = (await db.execute(
-        select(AliasDomainConfig)
-        .where(AliasDomainConfig.active == True)
-        .order_by(AliasDomainConfig.created_at.desc())
-    )).scalars().all()
+    alias_configs = await get_user_alias_configs(db, user)
     return templates.TemplateResponse("domains.html", {
-        "request": request,
-        "domains": domains,
-        "alias_configs": alias_configs,
+        "request": request, "current_user": user,
+        "domains": domains, "alias_configs": alias_configs,
     })
 
 
@@ -533,26 +694,36 @@ async def domain_add(
     domain: str = Form(...),
     alias_domain_config_id: str = Form(""),
 ):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
     domain = domain.strip().lower()
     config_id = int(alias_domain_config_id) if alias_domain_config_id.strip() else None
     existing = (await db.execute(select(Domain).where(Domain.domain == domain))).scalar_one_or_none()
     if not existing:
-        db.add(Domain(domain=domain, alias_domain_config_id=config_id))
+        db.add(Domain(domain=domain, alias_domain_config_id=config_id, user_id=user.id))
         await db.commit()
     return RedirectResponse("/domains", status_code=303)
 
 
 @router.post("/domains/{domain_id}/delete")
-async def domain_delete(domain_id: int, db: AsyncSession = Depends(get_db)):
-    await db.execute(delete(Domain).where(Domain.id == domain_id))
+async def domain_delete(domain_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    await db.execute(delete(Domain).where(Domain.id == domain_id, Domain.user_id == user.id))
     await db.commit()
     return RedirectResponse("/domains", status_code=303)
 
 
 @router.post("/domains/{domain_id}/toggle")
-async def domain_toggle(domain_id: int, db: AsyncSession = Depends(get_db)):
-    d = (await db.execute(select(Domain).where(Domain.id == domain_id))).scalar_one_or_none()
+async def domain_toggle(domain_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    d = (await db.execute(
+        select(Domain).where(Domain.id == domain_id, Domain.user_id == user.id)
+    )).scalar_one_or_none()
     if d:
         d.active = not d.active
         await db.commit()
@@ -563,23 +734,41 @@ async def domain_toggle(domain_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/addresses", response_class=HTMLResponse)
 async def addresses_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
-    addresses = (
-        await db.execute(select(EmailAddress).order_by(EmailAddress.created_at.desc()))
-    ).scalars().all()
-    domains = (await db.execute(select(Domain).where(Domain.active == True))).scalars().all()
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    addresses = (await db.execute(
+        select(EmailAddress)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(Domain.user_id == user.id)
+        .order_by(EmailAddress.created_at.desc())
+    )).scalars().all()
+    domains = (await db.execute(
+        select(Domain).where(Domain.active == True, Domain.user_id == user.id)
+    )).scalars().all()
     return templates.TemplateResponse("addresses.html", {
-        "request": request, "addresses": addresses, "domains": domains
+        "request": request, "current_user": user,
+        "addresses": addresses, "domains": domains,
     })
 
 
 @router.post("/addresses")
 async def address_add(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     address: str = Form(...),
     domain_id: int = Form(...),
 ):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
     address = address.strip().lower()
+    # Sicherstellen dass die Domain dem User gehört
+    domain = (await db.execute(
+        select(Domain).where(Domain.id == domain_id, Domain.user_id == user.id)
+    )).scalar_one_or_none()
+    if not domain:
+        return RedirectResponse("/addresses", status_code=303)
     existing = (await db.execute(select(EmailAddress).where(EmailAddress.address == address))).scalar_one_or_none()
     if not existing:
         db.add(EmailAddress(address=address, domain_id=domain_id))
@@ -588,17 +777,33 @@ async def address_add(
 
 
 @router.post("/addresses/{addr_id}/delete")
-async def address_delete(addr_id: int, db: AsyncSession = Depends(get_db)):
-    await db.execute(delete(EmailAddress).where(EmailAddress.id == addr_id))
-    await db.commit()
+async def address_delete(addr_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    addr = (await db.execute(
+        select(EmailAddress)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(EmailAddress.id == addr_id, Domain.user_id == user.id)
+    )).scalar_one_or_none()
+    if addr:
+        await db.execute(delete(EmailAddress).where(EmailAddress.id == addr_id))
+        await db.commit()
     return RedirectResponse("/addresses", status_code=303)
 
 
 @router.post("/addresses/{addr_id}/toggle")
-async def address_toggle(addr_id: int, db: AsyncSession = Depends(get_db)):
-    a = (await db.execute(select(EmailAddress).where(EmailAddress.id == addr_id))).scalar_one_or_none()
-    if a:
-        a.active = not a.active
+async def address_toggle(addr_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    addr = (await db.execute(
+        select(EmailAddress)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(EmailAddress.id == addr_id, Domain.user_id == user.id)
+    )).scalar_one_or_none()
+    if addr:
+        addr.active = not addr.active
         await db.commit()
     return RedirectResponse("/addresses", status_code=303)
 
@@ -607,17 +812,21 @@ async def address_toggle(addr_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/aliases", response_class=HTMLResponse)
 async def aliases_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if r := _redirect_if_not_logged_in(request): return r
-    aliases = (
-        await db.execute(select(Alias).order_by(Alias.created_at.desc()))
-    ).scalars().all()
-    email_addresses = (
-        await db.execute(select(EmailAddress).where(EmailAddress.active == True).order_by(EmailAddress.address))
-    ).scalars().all()
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    aliases = (await db.execute(
+        select(Alias).where(Alias.user_id == user.id).order_by(Alias.created_at.desc())
+    )).scalars().all()
+    email_addresses = (await db.execute(
+        select(EmailAddress)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(EmailAddress.active == True, Domain.user_id == user.id)
+        .order_by(EmailAddress.address)
+    )).scalars().all()
     return templates.TemplateResponse("aliases.html", {
-        "request": request,
-        "aliases": aliases,
-        "email_addresses": email_addresses,
+        "request": request, "current_user": user,
+        "aliases": aliases, "email_addresses": email_addresses,
     })
 
 
@@ -628,12 +837,15 @@ async def alias_create(
     real_address: str = Form(...),
     label: str = Form(""),
 ):
-    if r := _redirect_if_not_logged_in(request): return r
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
 
     email_addr = (await db.execute(
         select(EmailAddress)
         .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
-        .where(EmailAddress.address == real_address, EmailAddress.active == True)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(EmailAddress.address == real_address, EmailAddress.active == True, Domain.user_id == user.id)
     )).scalar_one_or_none()
     if not email_addr:
         return RedirectResponse("/aliases", status_code=303)
@@ -658,14 +870,19 @@ async def alias_create(
     else:
         return RedirectResponse("/aliases", status_code=303)
 
-    db.add(Alias(alias_address=candidate, real_address=real_address, label=label.strip()))
+    db.add(Alias(alias_address=candidate, real_address=real_address, label=label.strip(), user_id=user.id))
     await db.commit()
     return RedirectResponse("/aliases", status_code=303)
 
 
 @router.post("/aliases/{alias_id}/toggle")
-async def alias_toggle(alias_id: int, db: AsyncSession = Depends(get_db)):
-    a = (await db.execute(select(Alias).where(Alias.id == alias_id))).scalar_one_or_none()
+async def alias_toggle(alias_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    a = (await db.execute(
+        select(Alias).where(Alias.id == alias_id, Alias.user_id == user.id)
+    )).scalar_one_or_none()
     if a:
         a.active = not a.active
         await db.commit()
@@ -673,28 +890,32 @@ async def alias_toggle(alias_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/aliases/{alias_id}/delete")
-async def alias_delete(alias_id: int, db: AsyncSession = Depends(get_db)):
-    await db.execute(delete(Alias).where(Alias.id == alias_id))
+async def alias_delete(alias_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    await db.execute(delete(Alias).where(Alias.id == alias_id, Alias.user_id == user.id))
     await db.commit()
     return RedirectResponse("/aliases", status_code=303)
 
 
 @router.post("/aliases/{alias_id}/rotate")
-async def alias_rotate(alias_id: int, db: AsyncSession = Depends(get_db)):
-    """Deaktiviert den aktuellen Alias und erstellt einen neuen für dieselbe Adresse."""
+async def alias_rotate(alias_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
     a = (await db.execute(
-        select(Alias).where(Alias.id == alias_id, Alias.active == True)
+        select(Alias).where(Alias.id == alias_id, Alias.active == True, Alias.user_id == user.id)
     )).scalar_one_or_none()
     if not a:
         return RedirectResponse("/aliases", status_code=303)
 
     real_address = a.real_address
-
-    # Alias-Domain ermitteln (über EmailAddress → Domain → AliasDomainConfig)
     email_addr = (await db.execute(
         select(EmailAddress)
         .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
-        .where(EmailAddress.address == real_address, EmailAddress.active == True)
+        .join(Domain, EmailAddress.domain_id == Domain.id)
+        .where(EmailAddress.address == real_address, EmailAddress.active == True, Domain.user_id == user.id)
     )).scalar_one_or_none()
 
     alias_domain = None
@@ -707,7 +928,6 @@ async def alias_rotate(alias_id: int, db: AsyncSession = Depends(get_db)):
     if not alias_domain:
         return RedirectResponse("/aliases", status_code=303)
 
-    # Neuen eindeutigen Alias generieren
     chars = string.ascii_lowercase + string.digits
     for _ in range(10):
         local = "".join(secrets.choice(chars) for _ in range(10))
@@ -718,9 +938,8 @@ async def alias_rotate(alias_id: int, db: AsyncSession = Depends(get_db)):
     else:
         return RedirectResponse("/aliases", status_code=303)
 
-    # Alten deaktivieren, neuen anlegen
     a.active = False
-    db.add(Alias(alias_address=candidate, real_address=real_address))
+    db.add(Alias(alias_address=candidate, real_address=real_address, label=a.label, user_id=user.id))
     await db.commit()
     return RedirectResponse("/aliases", status_code=303)
 
@@ -728,6 +947,8 @@ async def alias_rotate(alias_id: int, db: AsyncSession = Depends(get_db)):
 # ── Hilfe ──────────────────────────────────────────────────────────────────────
 
 @router.get("/guide", response_class=HTMLResponse)
-async def guide_page(request: Request):
-    if r := _redirect_if_not_logged_in(request): return r
-    return templates.TemplateResponse("guide.html", {"request": request})
+async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    return templates.TemplateResponse("guide.html", {"request": request, "current_user": user})
