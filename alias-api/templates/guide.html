@@ -182,10 +182,24 @@
     <div>
       <p class="font-semibold text-sm">Was ist eine Alias-Domain?</p>
       <p class="text-gray-600 text-sm mt-1">
-        Eine Subdomain deiner eigenen Domain, deren MX-Record auf deinen VPS zeigt.
+        Eine Domain (oder Subdomain), deren MX-Record auf deinen VPS zeigt.
         Alias-Adressen werden unter dieser Domain erstellt (z.B. <code class="bg-gray-100 px-1 rounded">xy3k9@alias.deine-domain.de</code>).
         Eingehende E-Mails an diese Adressen werden vom VPS an deine echte Adresse weitergeleitet.
       </p>
+    </div>
+    <div>
+      <p class="font-semibold text-sm text-red-700">Achtung: Mail-Loop — Alias-Domain und echte Inbox dürfen nicht dieselbe Domain haben</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Wenn die Alias-Domain und die Zieladresse (echte Inbox) auf derselben Domain liegen, entsteht eine Endlosschleife:
+        Der VPS leitet die Mail weiter → der Empfänger-Mailserver schaut den MX nach → MX zeigt wieder auf den VPS → Bounce.
+      </p>
+      <p class="text-gray-600 text-sm mt-2 font-semibold">Falsch (Loop!):</p>
+      <p class="text-gray-600 text-sm"><code class="bg-red-50 border border-red-200 px-1 rounded">xy3k9@nosearch.de</code> → weiterleiten an → <code class="bg-red-50 border border-red-200 px-1 rounded">ich@nosearch.de</code> — beide Domains haben denselben MX (VPS)</p>
+      <p class="text-gray-600 text-sm mt-2 font-semibold">Richtig (kein Loop):</p>
+      <ul class="text-gray-600 text-sm mt-1 space-y-1 list-disc list-inside">
+        <li><strong>Andere Domain als Ziel:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@nosearch.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@bernauer24.com</code> (MX zeigt auf Strato, nicht VPS)</li>
+        <li><strong>Subdomain als Alias-Domain:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@alias.nosearch.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@nosearch.de</code> (unterschiedliche MX-Records)</li>
+      </ul>
     </div>
     <div>
       <p class="font-semibold text-sm">Warum brauche ich eine eigene Domain?</p>
