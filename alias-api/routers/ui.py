@@ -283,6 +283,8 @@ async def alias_domain_add(
     vps_user: str = Form("root"),
     vps_ssh_key: str = Form(""),
     api_url_for_vps: str = Form(""),
+    catchall_enabled: str = Form("false"),
+    catchall_target_address: str = Form(""),
 ):
     if r := _redirect_if_not_logged_in(request): return r
     alias_domain = alias_domain.strip().lower()
@@ -303,6 +305,8 @@ async def alias_domain_add(
             vps_user=vps_user.strip() or "root",
             vps_ssh_key=vps_ssh_key,
             api_url_for_vps=api_url_for_vps.strip(),
+            catchall_enabled=catchall_enabled == "true",
+            catchall_target_address=catchall_target_address.strip().lower(),
         ))
         await db.commit()
     return RedirectResponse("/alias-domains", status_code=303)
