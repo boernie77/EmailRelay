@@ -4,6 +4,36 @@
 <h1 class="text-2xl font-bold mb-2">Aliases</h1>
 <p class="text-gray-500 mb-6 text-sm">Alle generierten Alias-Adressen und ihre echten Empfänger.</p>
 
+<!-- Neuen Alias manuell erstellen -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-base font-semibold mb-4">Neuen Alias erstellen</h2>
+  {% if email_addresses %}
+  <form method="post" action="/aliases/create" class="flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Echte Adresse</label>
+      <select name="real_address" required
+              class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        {% for a in email_addresses %}
+        <option value="{{ a.address }}">{{ a.address }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Bezeichnung <span class="text-gray-400 font-normal">(optional)</span></label>
+      <input type="text" name="label" placeholder="z.B. Amazon, Newsletter …"
+             class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-64">
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition text-sm">
+      Alias erstellen
+    </button>
+  </form>
+  {% else %}
+  <p class="text-sm text-gray-400">Keine aktiven E-Mail-Adressen konfiguriert. Bitte zuerst unter <a href="/addresses" class="text-blue-600 hover:underline">Adressen</a> eine Adresse anlegen.</p>
+  {% endif %}
+</div>
+
+<!-- Alias-Liste -->
 <div class="bg-white rounded-xl shadow p-6">
   {% if aliases %}
   <table class="w-full text-sm">
@@ -11,6 +41,7 @@
       <tr class="text-left text-gray-500 border-b">
         <th class="pb-2">Alias-Adresse</th>
         <th class="pb-2">Echte Adresse</th>
+        <th class="pb-2">Bezeichnung</th>
         <th class="pb-2">Erstellt</th>
         <th class="pb-2">Zuletzt genutzt</th>
         <th class="pb-2">Status</th>
@@ -22,25 +53,26 @@
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2 font-mono text-blue-700">{{ a.alias_address }}</td>
         <td class="py-2 font-mono text-gray-600">{{ a.real_address }}</td>
+        <td class="py-2 text-gray-500">{{ a.label or '–' }}</td>
         <td class="py-2 text-gray-400">{{ a.created_at.strftime('%d.%m.%Y') }}</td>
         <td class="py-2 text-gray-400">{{ a.last_used.strftime('%d.%m.%Y %H:%M') if a.last_used else '–' }}</td>
         <td class="py-2">
           {% if a.active %}
           <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
           {% else %}
-          <span class="bg-red-100 text-red-500 px-2 py-0.5 rounded-full text-xs">Deaktiviert</span>
+          <span class="bg-red-100 text-red-500 px-2 py-0.5 rounded-full text-xs">Blockiert</span>
           {% endif %}
         </td>
         <td class="py-2 flex gap-2 flex-wrap">
           {% if a.active %}
           <form method="post" action="/aliases/{{ a.id }}/rotate"
                 onsubmit="return confirm('Neuen Alias erstellen? Der alte wird deaktiviert (kann reaktiviert werden).')">
-            <button class="text-xs text-green-600 hover:underline">Neuer Alias</button>
+            <button class="text-xs text-green-600 hover:underline">Rotieren</button>
           </form>
           {% endif %}
           <form method="post" action="/aliases/{{ a.id }}/toggle">
             <button class="text-xs text-blue-600 hover:underline">
-              {{ 'Deaktivieren' if a.active else 'Aktivieren' }}
+              {{ 'Blockieren' if a.active else 'Aktivieren' }}
             </button>
           </form>
           <form method="post" action="/aliases/{{ a.id }}/delete"
@@ -53,7 +85,7 @@
     </tbody>
   </table>
   {% else %}
-  <p class="text-gray-400">Noch keine Aliases vorhanden. Sie werden automatisch beim ersten Senden erstellt.</p>
+  <p class="text-gray-400">Noch keine Aliases vorhanden.</p>
   {% endif %}
 </div>
 {% endblock %}
