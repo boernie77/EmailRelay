@@ -739,8 +739,9 @@ async def alias_domain_test(config_id: int, request: Request, db: AsyncSession =
         select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
     )).scalar_one_or_none()
     all_configs = (await db.execute(
-        select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
+        select(AliasDomainConfig).options(selectinload(AliasDomainConfig.vps_config)).order_by(AliasDomainConfig.created_at.desc())
     )).scalars().all()
+    vpss = (await db.execute(select(VpsConfig).where(VpsConfig.active == True))).scalars().all()
     test_error = None
     test_success = None
     if not cfg:
@@ -757,90 +758,8 @@ async def alias_domain_test(config_id: int, request: Request, db: AsyncSession =
             test_error = f"Verbindung fehlgeschlagen: {e}"
     return templates.TemplateResponse("alias_domains.html", {
         "request": request, "current_user": user,
-        "configs": all_configs,
+        "configs": all_configs, "vpss": vpss,
         "test_success": test_success, "test_error": test_error, "tested_id": config_id,
-    })
-
-
-@router.post("/alias-domains/{config_id}/vps-setup", response_class=HTMLResponse)
-async def alias_domain_vps_setup(config_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    user = await get_current_user(request, db)
-    if not user or not user.is_admin:
-        return redirect_login()
-    import paramiko
-
-    cfg = (await db.execute(
-        select(AliasDomainConfig).where(AliasDomainConfig.id == config_id)
-    )).scalar_one_or_none()
-    all_configs = (await db.execute(
-        select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
-    )).scalars().all()
-
-    if not cfg:
-        return templates.TemplateResponse("alias_domains.html", {
-            "request": request, "current_user": user, "configs": all_configs,
-            "setup_error": "Konfiguration nicht gefunden", "setup_id": config_id,
-        })
-
-    api_secret = os.getenv("API_SECRET", "")
-    missing = [n for n, v in [
-        ("VPS-Host", cfg.vps_host), ("SSH-Key", cfg.vps_ssh_key),
-        ("Alias-Domain", cfg.alias_domain), ("API-URL für VPS", cfg.api_url_for_vps),
-    ] if not v]
-    if missing:
-        return templates.TemplateResponse("alias_domains.html", {
-            "request": request, "current_user": user, "configs": all_configs,
-            "setup_error": f"Fehlende Felder: {', '.join(missing)}", "setup_id": config_id,
-        })
-
-    script = (
-        _VPS_SETUP_SCRIPT
-        .replace("__ALIAS_DOMAIN__", cfg.alias_domain)
-        .replace("__API_URL__", cfg.api_url_for_vps)
-        .replace("__API_SECRET__", api_secret)
-    )
-
-    def _run_ssh() -> str:
-        key = None
-        last_err = None
-        for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
-            try:
-                key = cls.from_private_key(io.StringIO(cfg.vps_ssh_key))
-                break
-            except Exception as e:
-                last_err = e
-        if key is None:
-            raise ValueError(f"SSH-Key konnte nicht geladen werden: {last_err}")
-
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(cfg.vps_host, port=cfg.vps_port, username=cfg.vps_user, pkey=key, timeout=15)
-        try:
-            sftp = client.open_sftp()
-            with sftp.open("/tmp/_emailrelay_setup.sh", "w") as f:
-                f.write(script)
-            sftp.close()
-            _, stdout, stderr = client.exec_command("bash /tmp/_emailrelay_setup.sh; rm -f /tmp/_emailrelay_setup.sh")
-            output = stdout.read().decode(errors="replace")
-            exit_code = stdout.channel.recv_exit_status()
-            err = stderr.read().decode(errors="replace")
-            if exit_code != 0:
-                raise RuntimeError(f"Exit {exit_code}:\n{err or output}")
-            return output
-        finally:
-            client.close()
-
-    setup_log = None
-    setup_error = None
-    try:
-        setup_log = await asyncio.get_event_loop().run_in_executor(None, _run_ssh)
-    except Exception as e:
-        setup_error = str(e)
-
-    return templates.TemplateResponse("alias_domains.html", {
-        "request": request, "current_user": user,
-        "configs": all_configs,
-        "setup_log": setup_log, "setup_error": setup_error, "setup_id": config_id,
     })
 
 
