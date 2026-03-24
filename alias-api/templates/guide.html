@@ -239,6 +239,20 @@
   <div class="space-y-6">
 
     <div>
+      <p class="font-semibold text-sm text-red-700">Fehler: "user unknown" obwohl Alias existiert / Mail-Loop</p>
+      <p class="text-gray-600 text-sm mt-1">
+        Wenn im Mail-Log <code class="bg-gray-100 px-1 rounded">status=bounced (user unknown)</code> steht und der Alias korrekt eingerichtet ist,
+        liegt wahrscheinlich ein Mail-Loop vor: Die Zieladresse (echte Inbox) liegt auf derselben Domain wie die Alias-Domain.
+        Der VPS leitet die Mail weiter, der Mailserver des Empfängers schaut den MX nach — der zeigt wieder auf den VPS — Bounce.
+      </p>
+      <p class="text-gray-600 text-sm mt-1">
+        <strong>Lösung:</strong> Als Zieladresse eine Adresse auf einer anderen Domain verwenden (z.B. <code class="bg-gray-100 px-1 rounded">ich@andere-domain.de</code>),
+        oder die Alias-Domain als Subdomain einrichten (z.B. <code class="bg-gray-100 px-1 rounded">alias.nosearch.de</code> statt <code class="bg-gray-100 px-1 rounded">nosearch.de</code>),
+        die einen eigenen MX-Record hat der <em>nicht</em> auf den VPS zeigt.
+      </p>
+    </div>
+
+    <div>
       <p class="font-semibold text-sm text-red-700">Eingehende Mails kommen nicht an</p>
       <ol class="text-gray-600 text-sm mt-2 space-y-1 list-decimal list-inside">
         <li>Prüfe den Postfix-Status auf dem VPS: <code class="bg-gray-100 px-1 rounded">systemctl status postfix</code></li>
