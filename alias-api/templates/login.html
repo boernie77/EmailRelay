@@ -12,9 +12,9 @@
     <h1 class="text-2xl font-bold text-center mb-1">📧 E-Mail Relay</h1>
     <p class="text-center text-gray-400 text-sm mb-6" style="font-family: 'Dancing Script', cursive; font-size: 1.1rem;">by boernie.de</p>
 
-    {% if not has_password %}
+    {% if not has_users %}
     <div class="bg-blue-50 border border-blue-300 text-blue-700 text-sm px-4 py-3 rounded mb-4">
-      Erstes Login — das eingegebene Passwort wird als dauerhaftes Passwort gesetzt.
+      Erstes Login — dieser Account wird als Administrator angelegt.
     </div>
     {% endif %}
 
@@ -24,13 +24,20 @@
     </div>
     {% endif %}
 
-    <form method="post" action="/login">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
-      <input type="password" name="password" autofocus required
-             class="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400">
+    <form method="post" action="/login" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
+        <input type="text" name="username" autofocus required
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+        <input type="password" name="password" required
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
       <button type="submit"
               class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
-        {% if has_password %}Anmelden{% else %}Passwort setzen & anmelden{% endif %}
+        {% if not has_users %}Admin-Account erstellen & anmelden{% else %}Anmelden{% endif %}
       </button>
     </form>
   </div>
