@@ -410,6 +410,189 @@ async def admin_user_alias_access(
     return RedirectResponse("/admin/users", status_code=303)
 
 
+# ── VPS-Konfiguration (nur Admin) ─────────────────────────────────────────────
+
+@router.get("/vps", response_class=HTMLResponse)
+async def vps_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    vpss = (await db.execute(select(VpsConfig).order_by(VpsConfig.created_at))).scalars().all()
+    return templates.TemplateResponse("vps_configs.html", {
+        "request": request, "current_user": user, "vpss": vpss,
+    })
+
+
+@router.post("/vps")
+async def vps_add(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    label: str = Form(""),
+    host: str = Form(...),
+    port: str = Form("22"),
+    user_str: str = Form("root"),
+    ssh_key: str = Form(""),
+    api_url: str = Form(""),
+):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    db.add(VpsConfig(
+        label=label.strip(),
+        host=host.strip(),
+        port=int(port or 22),
+        user=user_str.strip() or "root",
+        ssh_key=ssh_key,
+        api_url=api_url.strip(),
+    ))
+    await db.commit()
+    return RedirectResponse("/vps", status_code=303)
+
+
+@router.get("/vps/{vps_id}/edit", response_class=HTMLResponse)
+async def vps_edit_page(vps_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == vps_id))).scalar_one_or_none()
+    if not vps:
+        return RedirectResponse("/vps", status_code=302)
+    return templates.TemplateResponse("vps_config_edit.html", {
+        "request": request, "current_user": user, "vps": vps,
+    })
+
+
+@router.post("/vps/{vps_id}/edit")
+async def vps_edit_save(
+    vps_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    label: str = Form(""),
+    host: str = Form(...),
+    port: str = Form("22"),
+    user_str: str = Form("root"),
+    ssh_key: str = Form(""),
+    api_url: str = Form(""),
+):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == vps_id))).scalar_one_or_none()
+    if vps:
+        vps.label = label.strip()
+        vps.host = host.strip()
+        vps.port = int(port or 22)
+        vps.user = user_str.strip() or "root"
+        vps.ssh_key = ssh_key
+        vps.api_url = api_url.strip()
+        await db.commit()
+    return RedirectResponse("/vps", status_code=303)
+
+
+@router.post("/vps/{vps_id}/delete")
+async def vps_delete(vps_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    await db.execute(delete(VpsConfig).where(VpsConfig.id == vps_id))
+    await db.commit()
+    return RedirectResponse("/vps", status_code=303)
+
+
+@router.post("/vps/{vps_id}/setup", response_class=HTMLResponse)
+async def vps_setup(vps_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    import paramiko
+
+    vps = (await db.execute(
+        select(VpsConfig)
+        .options(selectinload(VpsConfig.alias_domain_configs))
+        .where(VpsConfig.id == vps_id)
+    )).scalar_one_or_none()
+    vpss = (await db.execute(select(VpsConfig).order_by(VpsConfig.created_at))).scalars().all()
+
+    if not vps:
+        return templates.TemplateResponse("vps_configs.html", {
+            "request": request, "current_user": user, "vpss": vpss,
+            "setup_error": "VPS-Konfiguration nicht gefunden", "setup_id": vps_id,
+        })
+
+    missing = [n for n, v in [
+        ("Host", vps.host), ("SSH-Key", vps.ssh_key), ("API-URL", vps.api_url),
+    ] if not v]
+    if missing:
+        return templates.TemplateResponse("vps_configs.html", {
+            "request": request, "current_user": user, "vpss": vpss,
+            "setup_error": f"Fehlende Felder: {', '.join(missing)}", "setup_id": vps_id,
+        })
+
+    # Alle aktiven Alias-Domains für diesen VPS sammeln
+    alias_domains = [
+        cfg.alias_domain for cfg in vps.alias_domain_configs if cfg.active and cfg.alias_domain
+    ]
+    if not alias_domains:
+        return templates.TemplateResponse("vps_configs.html", {
+            "request": request, "current_user": user, "vpss": vpss,
+            "setup_error": "Keine aktiven Alias-Domains für diesen VPS konfiguriert.", "setup_id": vps_id,
+        })
+
+    api_secret = os.getenv("API_SECRET", "")
+    # Postfix-Domains (kommagetrennt) und Regex-Einträge (eine Zeile pro Domain)
+    domains_postfix = ", ".join(alias_domains)
+    domains_regex = "\n".join(f"/@{d.replace('.', r'\\.')}$/  OK" for d in alias_domains)
+
+    script = (
+        _VPS_SETUP_SCRIPT
+        .replace("__ALIAS_DOMAINS_POSTFIX__", domains_postfix)
+        .replace("__ALIAS_DOMAINS_REGEX__", domains_regex)
+        .replace("__API_URL__", vps.api_url)
+        .replace("__API_SECRET__", api_secret)
+    )
+
+    def _run_ssh() -> str:
+        key = None
+        last_err = None
+        for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+            try:
+                key = cls.from_private_key(io.StringIO(vps.ssh_key))
+                break
+            except Exception as e:
+                last_err = e
+        if key is None:
+            raise ValueError(f"SSH-Key konnte nicht geladen werden: {last_err}")
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(vps.host, port=vps.port, username=vps.user, pkey=key, timeout=15)
+        try:
+            sftp = client.open_sftp()
+            with sftp.open("/tmp/_emailrelay_setup.sh", "w") as f:
+                f.write(script)
+            sftp.close()
+            _, stdout, stderr = client.exec_command("bash /tmp/_emailrelay_setup.sh; rm -f /tmp/_emailrelay_setup.sh")
+            output = stdout.read().decode(errors="replace")
+            exit_code = stdout.channel.recv_exit_status()
+            err = stderr.read().decode(errors="replace")
+            if exit_code != 0:
+                raise RuntimeError(f"Exit {exit_code}:\n{err or output}")
+            return output
+        finally:
+            client.close()
+
+    setup_log = None
+    setup_error = None
+    try:
+        setup_log = await asyncio.get_event_loop().run_in_executor(None, _run_ssh)
+    except Exception as e:
+        setup_error = str(e)
+
+    return templates.TemplateResponse("vps_configs.html", {
+        "request": request, "current_user": user, "vpss": vpss,
+        "setup_log": setup_log, "setup_error": setup_error, "setup_id": vps_id,
+    })
+
+
 # ── Alias-Domains (nur Admin) ──────────────────────────────────────────────────
 
 @router.get("/alias-domains", response_class=HTMLResponse)
