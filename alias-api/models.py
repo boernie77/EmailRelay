@@ -18,7 +18,6 @@ class User(Base):
 
 
 class AliasDomainAccess(Base):
-    """Welcher User darf welche AliasDomainConfig verwenden."""
     __tablename__ = "alias_domain_access"
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     alias_domain_config_id = Column(Integer, ForeignKey("alias_domain_configs.id", ondelete="CASCADE"), primary_key=True)
@@ -32,6 +31,20 @@ class Setting(Base):
     value = Column(Text, nullable=False)
 
 
+class VpsConfig(Base):
+    __tablename__ = "vps_configs"
+    id = Column(Integer, primary_key=True)
+    label = Column(String, default="")
+    host = Column(String, default="")
+    port = Column(Integer, default=22)
+    user = Column(String, default="root")
+    ssh_key = Column(Text, default="")
+    api_url = Column(String, default="")
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    alias_domain_configs = relationship("AliasDomainConfig", back_populates="vps_config")
+
+
 class AliasDomainConfig(Base):
     __tablename__ = "alias_domain_configs"
     id = Column(Integer, primary_key=True)
@@ -42,15 +55,12 @@ class AliasDomainConfig(Base):
     smtp_user = Column(String, default="")
     smtp_password = Column(String, default="")
     smtp_use_tls = Column(Boolean, default=True)
-    vps_host = Column(String, default="")
-    vps_port = Column(Integer, default=22)
-    vps_user = Column(String, default="root")
-    vps_ssh_key = Column(Text, default="")
-    api_url_for_vps = Column(String, default="")
     active = Column(Boolean, default=True)
     catchall_enabled = Column(Boolean, default=False)
     catchall_target_address = Column(String, default="")
+    vps_config_id = Column(Integer, ForeignKey("vps_configs.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    vps_config = relationship("VpsConfig", back_populates="alias_domain_configs")
     domains = relationship("Domain", back_populates="alias_domain_config")
     user_access = relationship("AliasDomainAccess", back_populates="config", cascade="all, delete-orphan")
 
