@@ -95,20 +95,43 @@ async def resolve_alias(
     db: AsyncSession = Depends(get_db),
     _=Depends(verify_secret),
 ):
-    """Löst einen Alias zur echten Adresse auf (für VPS-Forwarder)."""
+    """Löst einen Alias zur echten Adresse auf (für VPS-Forwarder). Erstellt ihn bei Catch-all automatisch."""
     result = await db.execute(
-        select(Alias).where(
-            Alias.alias_address == alias_address,
-            Alias.active == True,
-        )
+        select(Alias).where(Alias.alias_address == alias_address)
     )
     alias = result.scalar_one_or_none()
-    if not alias:
-        raise HTTPException(status_code=404, detail="Alias nicht gefunden oder deaktiviert")
+    if alias:
+        if not alias.active:
+            raise HTTPException(status_code=404, detail="Alias deaktiviert")
+        alias.last_used = func.now()
+        await db.commit()
+        return {"alias_address": alias_address, "real_address": alias.real_address}
 
-    alias.last_used = func.now()
+    # Alias unbekannt – Catch-all prüfen
+    domain_part = alias_address.split("@")[1].lower() if "@" in alias_address else ""
+    if not domain_part:
+        raise HTTPException(status_code=404, detail="Alias nicht gefunden")
+
+    cfg = (await db.execute(
+        select(AliasDomainConfig).where(
+            AliasDomainConfig.alias_domain == domain_part,
+            AliasDomainConfig.active == True,
+            AliasDomainConfig.catchall_enabled == True,
+        )
+    )).scalar_one_or_none()
+
+    if not cfg or not cfg.catchall_target_address:
+        raise HTTPException(status_code=404, detail="Alias nicht gefunden")
+
+    new_alias = Alias(
+        alias_address=alias_address,
+        real_address=cfg.catchall_target_address,
+        label="(catch-all)",
+        last_used=func.now(),
+    )
+    db.add(new_alias)
     await db.commit()
-    return {"alias_address": alias_address, "real_address": alias.real_address}
+    return {"alias_address": alias_address, "real_address": cfg.catchall_target_address}
 
 
 @router.get("/settings/smtp")
