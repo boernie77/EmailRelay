@@ -33,6 +33,13 @@
   {% endif %}
 </div>
 
+<!-- Legende -->
+<div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-6 text-sm text-blue-900 space-y-1">
+  <p><strong>Blockieren:</strong> Mails an diesen Alias werden abgelehnt (Absender bekommt eine Bounce-Nachricht). Der Alias bleibt gespeichert und kann reaktiviert werden.</p>
+  <p><strong>Rotieren:</strong> Erstellt einen neuen zufälligen Alias für dieselbe Adresse und deaktiviert den alten. Nützlich wenn ein Alias in Spam-Listen gelandet ist.</p>
+  <p><strong>Löschen:</strong> Entfernt den Alias dauerhaft. Mails an die alte Adresse gehen verloren — ohne Bounce.</p>
+</div>
+
 <!-- Alias-Liste -->
 <div class="bg-white rounded-xl shadow p-6">
   {% if aliases %}
