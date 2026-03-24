@@ -1007,23 +1007,10 @@ async def alias_rotate(alias_id: int, request: Request, db: AsyncSession = Depen
     if not a:
         return RedirectResponse("/aliases", status_code=303)
 
-    real_address = a.real_address
-    email_addr = (await db.execute(
-        select(EmailAddress)
-        .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
-        .join(Domain, EmailAddress.domain_id == Domain.id)
-        .where(EmailAddress.address == real_address, EmailAddress.active == True, Domain.user_id == user.id)
-    )).scalar_one_or_none()
-
-    alias_domain = None
-    if email_addr and email_addr.domain and email_addr.domain.alias_domain_config:
-        alias_domain = email_addr.domain.alias_domain_config.alias_domain
-    if not alias_domain:
-        result = await db.execute(select(Setting).where(Setting.key == "alias_domain"))
-        s = result.scalar_one_or_none()
-        alias_domain = s.value if s else None
+    alias_domain = a.alias_address.split("@", 1)[-1] if "@" in a.alias_address else None
     if not alias_domain:
         return RedirectResponse("/aliases", status_code=303)
+    real_address = a.real_address
 
     chars = string.ascii_lowercase + string.digits
     for _ in range(10):
