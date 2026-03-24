@@ -342,6 +342,8 @@ async def alias_domain_edit_save(
     vps_user: str = Form("root"),
     vps_ssh_key: str = Form(""),
     api_url_for_vps: str = Form(""),
+    catchall_enabled: str = Form("false"),
+    catchall_target_address: str = Form(""),
 ):
     if r := _redirect_if_not_logged_in(request): return r
     cfg = (await db.execute(
@@ -360,6 +362,8 @@ async def alias_domain_edit_save(
         cfg.vps_user = vps_user.strip() or "root"
         cfg.vps_ssh_key = vps_ssh_key
         cfg.api_url_for_vps = api_url_for_vps.strip()
+        cfg.catchall_enabled = catchall_enabled == "true"
+        cfg.catchall_target_address = catchall_target_address.strip().lower()
         await db.commit()
     return RedirectResponse("/alias-domains", status_code=303)
 
