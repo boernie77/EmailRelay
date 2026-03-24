@@ -935,6 +935,7 @@ async def alias_create(
     request: Request,
     db: AsyncSession = Depends(get_db),
     real_address: str = Form(...),
+    alias_domain_id: int = Form(...),
     label: str = Form(""),
 ):
     user = await get_current_user(request, db)
@@ -943,22 +944,18 @@ async def alias_create(
 
     email_addr = (await db.execute(
         select(EmailAddress)
-        .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
         .join(Domain, EmailAddress.domain_id == Domain.id)
         .where(EmailAddress.address == real_address, EmailAddress.active == True, Domain.user_id == user.id)
     )).scalar_one_or_none()
     if not email_addr:
         return RedirectResponse("/aliases", status_code=303)
 
-    alias_domain = None
-    if email_addr.domain and email_addr.domain.alias_domain_config and email_addr.domain.alias_domain_config.active:
-        alias_domain = email_addr.domain.alias_domain_config.alias_domain
-    if not alias_domain:
-        result = await db.execute(select(Setting).where(Setting.key == "alias_domain"))
-        s = result.scalar_one_or_none()
-        alias_domain = s.value if s else None
-    if not alias_domain:
+    alias_cfg = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.id == alias_domain_id, AliasDomainConfig.active == True)
+    )).scalar_one_or_none()
+    if not alias_cfg:
         return RedirectResponse("/aliases", status_code=303)
+    alias_domain = alias_cfg.alias_domain
 
     chars = string.ascii_lowercase + string.digits
     for _ in range(10):
