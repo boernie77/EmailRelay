@@ -24,7 +24,7 @@
     </div>
 
     <div class="border-t pt-4">
-      <h3 class="text-sm font-semibold text-gray-600 mb-3">SMTP-Verbindung</h3>
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">SMTP-Verbindung <span class="font-normal text-gray-400">(zum Senden weitergeleiteter Mails)</span></h3>
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">SMTP-Server</label>
@@ -61,34 +61,21 @@
     </div>
 
     <div class="border-t pt-4">
-      <h3 class="text-sm font-semibold text-gray-600 mb-3">VPS-Verbindung</h3>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">VPS-Host / IP</label>
-          <input type="text" name="vps_host" value="{{ cfg.vps_host }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Port</label>
-          <input type="number" name="vps_port" value="{{ cfg.vps_port }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Benutzer</label>
-          <input type="text" name="vps_user" value="{{ cfg.vps_user }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">API-URL für VPS</label>
-          <input type="text" name="api_url_for_vps" value="{{ cfg.api_url_for_vps }}"
-                 placeholder="http://[IPv6]:8080"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div class="col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Private-Key (PEM)</label>
-          <textarea name="vps_ssh_key" rows="6"
-                    class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400">{{ cfg.vps_ssh_key }}</textarea>
-        </div>
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">VPS <span class="font-normal text-gray-400">(für eingehende Mails)</span></h3>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">VPS-Konfiguration</label>
+        <select name="vps_config_id"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-80">
+          <option value="">(keiner zugewiesen)</option>
+          {% for vps in vpss %}
+          <option value="{{ vps.id }}" {% if cfg.vps_config_id == vps.id %}selected{% endif %}>
+            {{ vps.label or vps.host }} — {{ vps.host }}
+          </option>
+          {% endfor %}
+        </select>
+        {% if not vpss %}
+        <p class="text-xs text-amber-700 mt-1">Noch kein VPS konfiguriert. <a href="/vps" class="underline">Jetzt anlegen</a>.</p>
+        {% endif %}
       </div>
     </div>
 
