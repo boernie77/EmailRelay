@@ -21,13 +21,16 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    # Jede Migration in eigener Transaktion (PostgreSQL bricht bei Fehler die ganze TX ab)
+
+    # Jede Migration in eigener Transaktion
     for stmt in [
         "ALTER TABLE domains ADD COLUMN alias_domain_config_id INTEGER "
         "REFERENCES alias_domain_configs(id) ON DELETE SET NULL",
         "ALTER TABLE aliases ADD COLUMN label VARCHAR DEFAULT ''",
         "ALTER TABLE alias_domain_configs ADD COLUMN catchall_enabled BOOLEAN DEFAULT FALSE",
         "ALTER TABLE alias_domain_configs ADD COLUMN catchall_target_address VARCHAR DEFAULT ''",
+        "ALTER TABLE domains ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
+        "ALTER TABLE aliases ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
     ]:
         try:
             async with engine.begin() as conn:
@@ -36,6 +39,7 @@ async def init_db():
             pass
 
     await _migrate_to_alias_domain_configs()
+    await _migrate_to_users()
 
 
 async def _migrate_to_alias_domain_configs():
@@ -75,7 +79,6 @@ async def _migrate_to_alias_domain_configs():
                     d.alias_domain_config_id = cfg.id
                 await session.commit()
         else:
-            # Nicht zugewiesene Domains der ersten aktiven Config zuordnen
             first = (await session.execute(
                 select(AliasDomainConfig).where(AliasDomainConfig.active == True)
             )).scalars().first()
@@ -87,3 +90,61 @@ async def _migrate_to_alias_domain_configs():
                     for d in unassigned:
                         d.alias_domain_config_id = first.id
                     await session.commit()
+
+
+async def _migrate_to_users():
+    """Erstellt Admin-User aus bestehendem Password-Hash, weist alle Daten zu."""
+    from sqlalchemy import select
+    from models import User, AliasDomainAccess, AliasDomainConfig, Domain, Alias, Setting
+
+    async with AsyncSessionLocal() as session:
+        existing_admin = (await session.execute(
+            select(User).where(User.is_admin == True)
+        )).scalars().first()
+
+        if existing_admin:
+            # Bereits migriert – nur sicherstellen dass alle Daten einen User haben
+            admin = existing_admin
+        else:
+            # Admin aus bestehendem Password-Hash erstellen
+            pw_hash_setting = (await session.execute(
+                select(Setting).where(Setting.key == "ui_password_hash")
+            )).scalar_one_or_none()
+
+            pw_hash = pw_hash_setting.value if pw_hash_setting else ""
+            if not pw_hash:
+                # Noch kein Passwort gesetzt – Platzhalter, wird beim ersten Login ersetzt
+                import bcrypt as _bcrypt
+                pw_hash = _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
+
+            admin = User(username="admin", password_hash=pw_hash, is_admin=True)
+            session.add(admin)
+            await session.flush()
+
+        # Alle Alias-Domains dem Admin freigeben
+        all_configs = (await session.execute(select(AliasDomainConfig))).scalars().all()
+        for cfg in all_configs:
+            exists = (await session.execute(
+                select(AliasDomainAccess).where(
+                    AliasDomainAccess.user_id == admin.id,
+                    AliasDomainAccess.alias_domain_config_id == cfg.id,
+                )
+            )).scalar_one_or_none()
+            if not exists:
+                session.add(AliasDomainAccess(user_id=admin.id, alias_domain_config_id=cfg.id))
+
+        # Alle Domains ohne User dem Admin zuweisen
+        unassigned_domains = (await session.execute(
+            select(Domain).where(Domain.user_id == None)
+        )).scalars().all()
+        for d in unassigned_domains:
+            d.user_id = admin.id
+
+        # Alle Aliases ohne User dem Admin zuweisen
+        unassigned_aliases = (await session.execute(
+            select(Alias).where(Alias.user_id == None)
+        )).scalars().all()
+        for a in unassigned_aliases:
+            a.user_id = admin.id
+
+        await session.commit()
