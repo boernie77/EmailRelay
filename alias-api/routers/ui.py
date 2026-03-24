@@ -13,7 +13,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from models import Setting, Domain, EmailAddress, Alias, AliasDomainConfig, AliasDomainAccess, User
+from models import Setting, Domain, EmailAddress, Alias, AliasDomainConfig, AliasDomainAccess, VpsConfig, User
 
 _VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
