@@ -13,13 +13,18 @@
       <a href="/" class="text-xl font-bold tracking-wide">📧 E-Mail Relay <span style="font-family: 'Dancing Script', cursive; font-size: 1.2rem;">byboernie.de</span></a>
       <div class="flex gap-6 text-sm font-medium items-center">
         <a href="/" class="hover:text-blue-300 transition">Dashboard</a>
+        {% if current_user and current_user.is_admin %}
         <a href="/alias-domains" class="hover:text-blue-300 transition">Alias-Domains</a>
+        <a href="/admin/users" class="hover:text-yellow-300 transition">Benutzer</a>
+        {% endif %}
         <a href="/domains" class="hover:text-blue-300 transition">Domains</a>
         <a href="/addresses" class="hover:text-blue-300 transition">Adressen</a>
         <a href="/aliases" class="hover:text-blue-300 transition">Aliases</a>
         <a href="/settings" class="hover:text-blue-300 transition">Einstellungen</a>
         <a href="/guide" class="hover:text-blue-300 transition">Hilfe</a>
-        <a href="/logout" class="text-gray-400 hover:text-red-300 transition text-xs ml-2">Abmelden</a>
+        <span class="text-gray-400 text-xs">|</span>
+        <span class="text-gray-300 text-xs">{{ current_user.username if current_user else '' }}{% if current_user and current_user.is_admin %} <span class="text-yellow-400">(Admin)</span>{% endif %}</span>
+        <a href="/logout" class="text-gray-400 hover:text-red-300 transition text-xs">Abmelden</a>
       </div>
     </div>
   </nav>
