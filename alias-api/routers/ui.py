@@ -920,9 +920,13 @@ async def aliases_page(request: Request, db: AsyncSession = Depends(get_db)):
         .where(EmailAddress.active == True, Domain.user_id == user.id)
         .order_by(EmailAddress.address)
     )).scalars().all()
+    alias_domain_configs = (await db.execute(
+        select(AliasDomainConfig).where(AliasDomainConfig.active == True).order_by(AliasDomainConfig.alias_domain)
+    )).scalars().all()
     return templates.TemplateResponse("aliases.html", {
         "request": request, "current_user": user,
         "aliases": aliases, "email_addresses": email_addresses,
+        "alias_domain_configs": alias_domain_configs,
     })
 
 
