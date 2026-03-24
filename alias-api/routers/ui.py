@@ -601,10 +601,13 @@ async def alias_domains_page(request: Request, db: AsyncSession = Depends(get_db
     if not user or not user.is_admin:
         return redirect_login()
     configs = (await db.execute(
-        select(AliasDomainConfig).order_by(AliasDomainConfig.created_at.desc())
+        select(AliasDomainConfig)
+        .options(selectinload(AliasDomainConfig.vps_config))
+        .order_by(AliasDomainConfig.created_at.desc())
     )).scalars().all()
+    vpss = (await db.execute(select(VpsConfig).where(VpsConfig.active == True).order_by(VpsConfig.created_at))).scalars().all()
     return templates.TemplateResponse("alias_domains.html", {
-        "request": request, "current_user": user, "configs": configs,
+        "request": request, "current_user": user, "configs": configs, "vpss": vpss,
     })
 
 
