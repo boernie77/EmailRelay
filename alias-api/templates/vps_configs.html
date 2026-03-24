@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %} – VPS-Konfiguration{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-2">VPS-Konfiguration</h1>
+<p class="text-gray-500 mb-6 text-sm">
+  Der VPS empfängt eingehende E-Mails über Postfix und leitet sie weiter.
+  Ein VPS gilt für alle Alias-Domains — SSH-Key und API-URL werden hier einmalig konfiguriert.
+</p>
+
+{% if setup_log %}
+<div class="bg-green-50 border border-green-400 rounded-xl p-4 mb-4">
+  <p class="font-semibold text-green-700 mb-2">VPS Setup erfolgreich</p>
+  <pre class="text-xs text-green-800 whitespace-pre-wrap">{{ setup_log }}</pre>
+</div>
+{% endif %}
+{% if setup_error %}
+<div class="bg-red-50 border border-red-400 rounded-xl p-4 mb-4">
+  <p class="font-semibold text-red-700 mb-2">VPS Setup fehlgeschlagen</p>
+  <pre class="text-xs text-red-800 whitespace-pre-wrap">{{ setup_error }}</pre>
+</div>
+{% endif %}
+
+<!-- Neuen VPS anlegen -->
+<div class="bg-white rounded-xl shadow p-6 mb-8">
+  <h2 class="text-lg font-semibold mb-4">Neuen VPS anlegen</h2>
+  <form method="post" action="/vps" class="space-y-4">
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Bezeichnung <span class="text-gray-400 font-normal">(optional)</span></label>
+        <input type="text" name="label" placeholder="z.B. Hetzner VPS"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Host / IP <span class="text-red-500">*</span></label>
+        <input type="text" name="host" placeholder="1.2.3.4" required
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Port</label>
+        <input type="number" name="port" value="22"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Benutzer</label>
+        <input type="text" name="user_str" value="root"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">API-URL für VPS <span class="text-gray-400 font-normal">(wie der VPS die API auf dem Heimserver erreicht)</span></label>
+        <input type="text" name="api_url" placeholder="http://100.106.190.68:8080"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Private-Key (PEM)</label>
+        <textarea name="ssh_key" rows="5" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;..."
+                  class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+      </div>
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition text-sm">
+      VPS anlegen
+    </button>
+  </form>
+</div>
+
+<!-- Liste -->
+<div class="space-y-4">
+  <h2 class="text-lg font-semibold">Konfigurierte VPS</h2>
+  {% if vpss %}
+  {% for vps in vpss %}
+  <div class="bg-white rounded-xl shadow p-5">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-semibold text-gray-900">{{ vps.label or vps.host }}</span>
+          {% if vps.label %}<span class="text-sm text-gray-500">{{ vps.host }}</span>{% endif %}
+          {% if vps.active %}
+          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
+          {% else %}
+          <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs">Inaktiv</span>
+          {% endif %}
+        </div>
+        <div class="text-sm text-gray-500">
+          SSH: {{ vps.user }}@{{ vps.host }}:{{ vps.port }}
+          {% if vps.api_url %} &nbsp;·&nbsp; API: {{ vps.api_url }}{% endif %}
+          {% if vps.ssh_key %} &nbsp;·&nbsp; <span class="text-green-600">SSH-Key hinterlegt</span>
+          {% else %} &nbsp;·&nbsp; <span class="text-red-500">Kein SSH-Key</span>{% endif %}
+        </div>
+        {% if setup_id == vps.id %}
+        {% if setup_log %}
+        <div class="mt-2 text-xs text-green-800 bg-green-50 border border-green-200 rounded px-3 py-2">
+          <span class="font-semibold">Setup OK</span>
+          <pre class="whitespace-pre-wrap mt-1">{{ setup_log }}</pre>
+        </div>
+        {% endif %}
+        {% if setup_error %}
+        <div class="mt-2 text-xs text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2">
+          <span class="font-semibold">Setup Fehler:</span>
+          <pre class="whitespace-pre-wrap mt-1">{{ setup_error }}</pre>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+        <a href="/vps/{{ vps.id }}/edit"
+           class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-1.5 rounded-lg transition">
+          Bearbeiten
+        </a>
+        <form method="post" action="/vps/{{ vps.id }}/setup"
+              onsubmit="return confirm('VPS Setup ausführen? Postfix wird installiert/konfiguriert für alle zugewiesenen Alias-Domains.')">
+          <button type="submit"
+                  class="text-xs bg-gray-700 hover:bg-gray-800 text-white font-medium px-3 py-1.5 rounded-lg transition">
+            Setup ausführen
+          </button>
+        </form>
+        <form method="post" action="/vps/{{ vps.id }}/delete"
+              onsubmit="return confirm('VPS-Konfiguration löschen?')">
+          <button type="submit"
+                  class="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-medium px-3 py-1.5 rounded-lg transition">
+            Löschen
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="bg-white rounded-xl shadow p-6 text-gray-400">Noch kein VPS konfiguriert.</div>
+  {% endif %}
+</div>
+{% endblock %}
