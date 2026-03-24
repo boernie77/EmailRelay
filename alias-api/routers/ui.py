@@ -601,7 +601,56 @@ async def aliases_page(request: Request, db: AsyncSession = Depends(get_db)):
     aliases = (
         await db.execute(select(Alias).order_by(Alias.created_at.desc()))
     ).scalars().all()
-    return templates.TemplateResponse("aliases.html", {"request": request, "aliases": aliases})
+    email_addresses = (
+        await db.execute(select(EmailAddress).where(EmailAddress.active == True).order_by(EmailAddress.address))
+    ).scalars().all()
+    return templates.TemplateResponse("aliases.html", {
+        "request": request,
+        "aliases": aliases,
+        "email_addresses": email_addresses,
+    })
+
+
+@router.post("/aliases/create")
+async def alias_create(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    real_address: str = Form(...),
+    label: str = Form(""),
+):
+    if r := _redirect_if_not_logged_in(request): return r
+
+    email_addr = (await db.execute(
+        select(EmailAddress)
+        .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
+        .where(EmailAddress.address == real_address, EmailAddress.active == True)
+    )).scalar_one_or_none()
+    if not email_addr:
+        return RedirectResponse("/aliases", status_code=303)
+
+    alias_domain = None
+    if email_addr.domain and email_addr.domain.alias_domain_config and email_addr.domain.alias_domain_config.active:
+        alias_domain = email_addr.domain.alias_domain_config.alias_domain
+    if not alias_domain:
+        result = await db.execute(select(Setting).where(Setting.key == "alias_domain"))
+        s = result.scalar_one_or_none()
+        alias_domain = s.value if s else None
+    if not alias_domain:
+        return RedirectResponse("/aliases", status_code=303)
+
+    chars = string.ascii_lowercase + string.digits
+    for _ in range(10):
+        local = "".join(secrets.choice(chars) for _ in range(10))
+        candidate = f"{local}@{alias_domain}"
+        existing = (await db.execute(select(Alias).where(Alias.alias_address == candidate))).scalar_one_or_none()
+        if not existing:
+            break
+    else:
+        return RedirectResponse("/aliases", status_code=303)
+
+    db.add(Alias(alias_address=candidate, real_address=real_address, label=label.strip()))
+    await db.commit()
+    return RedirectResponse("/aliases", status_code=303)
 
 
 @router.post("/aliases/{alias_id}/toggle")
