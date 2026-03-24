@@ -92,6 +92,30 @@
       </div>
     </div>
 
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">Catch-all</h3>
+      <p class="text-xs text-gray-500 mb-3">
+        Wenn aktiviert, werden Mails an beliebige Adressen dieser Alias-Domain akzeptiert.
+        Der Alias wird beim ersten Eingang automatisch angelegt und an die Zieladresse weitergeleitet.
+      </p>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Catch-all aktivieren</label>
+          <select name="catchall_enabled"
+                  class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="false" {% if not cfg.catchall_enabled %}selected{% endif %}>Deaktiviert</option>
+            <option value="true" {% if cfg.catchall_enabled %}selected{% endif %}>Aktiviert</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Zieladresse für Catch-all</label>
+          <input type="text" name="catchall_target_address" value="{{ cfg.catchall_target_address }}"
+                 placeholder="z.B. shop@bernauer24.com"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+      </div>
+    </div>
+
     <div class="flex gap-3">
       <button type="submit"
               class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition text-sm">
