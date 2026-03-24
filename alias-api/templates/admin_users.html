@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %} – Benutzerverwaltung{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-2">Benutzerverwaltung</h1>
+<p class="text-gray-500 mb-6 text-sm">Benutzer verwalten und Alias-Domain-Zugriff steuern. Benutzer sehen nur ihre eigenen Daten.</p>
+
+<!-- Neuen Benutzer anlegen -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-base font-semibold mb-4">Neuen Benutzer anlegen</h2>
+  <form method="post" action="/admin/users/create" class="flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
+      <input type="text" name="username" required
+             class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-48">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+      <input type="password" name="password" required
+             class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-48">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Rolle</label>
+      <select name="is_admin"
+              class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <option value="false">Benutzer</option>
+        <option value="true">Administrator</option>
+      </select>
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition text-sm">
+      Anlegen
+    </button>
+  </form>
+</div>
+
+<!-- Benutzerliste -->
+<div class="space-y-4">
+  {% for u in users %}
+  <div class="bg-white rounded-xl shadow p-5">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <span class="font-semibold text-gray-800">{{ u.username }}</span>
+        {% if u.is_admin %}<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">Admin</span>{% endif %}
+        {% if u.active %}
+        <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Aktiv</span>
+        {% else %}
+        <span class="bg-red-100 text-red-500 text-xs px-2 py-0.5 rounded-full">Gesperrt</span>
+        {% endif %}
+        {% if u.id == current_user.id %}<span class="text-gray-400 text-xs">(du)</span>{% endif %}
+      </div>
+      {% if u.id != current_user.id %}
+      <div class="flex gap-2">
+        <form method="post" action="/admin/users/{{ u.id }}/toggle">
+          <button class="text-xs text-blue-600 hover:underline">
+            {{ 'Sperren' if u.active else 'Entsperren' }}
+          </button>
+        </form>
+        <form method="post" action="/admin/users/{{ u.id }}/delete"
+              onsubmit="return confirm('Benutzer {{ u.username }} löschen? Domains und Aliases bleiben erhalten.')">
+          <button class="text-xs text-red-500 hover:underline">Löschen</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Passwort zurücksetzen -->
+      <div>
+        <p class="text-xs text-gray-500 mb-2 font-medium">Passwort setzen</p>
+        <form method="post" action="/admin/users/{{ u.id }}/set-password" class="flex gap-2">
+          <input type="password" name="new_password" placeholder="Neues Passwort" required
+                 class="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 flex-1">
+          <button type="submit"
+                  class="bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+            Setzen
+          </button>
+        </form>
+      </div>
+
+      <!-- Alias-Domain Zugriff -->
+      {% if all_configs %}
+      <div>
+        <p class="text-xs text-gray-500 mb-2 font-medium">Alias-Domain Zugriff</p>
+        <form method="post" action="/admin/users/{{ u.id }}/alias-access" class="flex flex-wrap gap-2 items-center">
+          {% set user_config_ids = u.alias_domain_access | map(attribute='alias_domain_config_id') | list %}
+          {% for cfg in all_configs %}
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="config_ids" value="{{ cfg.id }}"
+                   {% if cfg.id in user_config_ids %}checked{% endif %}
+                   class="rounded">
+            <span>{{ cfg.label or cfg.alias_domain }}</span>
+          </label>
+          {% endfor %}
+          <button type="submit"
+                  class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition ml-1">
+            Speichern
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
