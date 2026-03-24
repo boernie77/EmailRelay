@@ -82,8 +82,10 @@ headers = {"x-api-secret": API_SECRET}
 try:
     resp = httpx.get(f"{API_URL}/api/alias/incoming/{alias_address}",
                      headers=headers, timeout=10)
-    if resp.status_code == 404:
-        sys.exit(67)
+    if resp.status_code == 410:
+        sys.exit(0)   # blockiert: still verwerfen
+    if resp.status_code != 200:
+        sys.exit(67)  # nicht gefunden: bounce (User unknown)
     real_address = resp.json()["real_address"]
 except Exception as e:
     print(f"API-Fehler: {e}", file=sys.stderr)
