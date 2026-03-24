@@ -21,6 +21,20 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Jede Migration in eigener Transaktion (PostgreSQL bricht bei Fehler die ganze TX ab)
+    for stmt in [
+        "ALTER TABLE domains ADD COLUMN alias_domain_config_id INTEGER "
+        "REFERENCES alias_domain_configs(id) ON DELETE SET NULL",
+        "ALTER TABLE aliases ADD COLUMN label VARCHAR DEFAULT ''",
+        "ALTER TABLE alias_domain_configs ADD COLUMN catchall_enabled BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE alias_domain_configs ADD COLUMN catchall_target_address VARCHAR DEFAULT ''",
+    ]:
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text(stmt))
+        except Exception:
+            pass
+
     await _migrate_to_alias_domain_configs()
 
 
