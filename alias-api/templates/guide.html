@@ -194,11 +194,11 @@
         Der VPS leitet die Mail weiter → der Empfänger-Mailserver schaut den MX nach → MX zeigt wieder auf den VPS → Bounce.
       </p>
       <p class="text-gray-600 text-sm mt-2 font-semibold">Falsch (Loop!):</p>
-      <p class="text-gray-600 text-sm"><code class="bg-red-50 border border-red-200 px-1 rounded">xy3k9@nosearch.de</code> → weiterleiten an → <code class="bg-red-50 border border-red-200 px-1 rounded">ich@nosearch.de</code> — beide Domains haben denselben MX (VPS)</p>
+      <p class="text-gray-600 text-sm"><code class="bg-red-50 border border-red-200 px-1 rounded">xy3k9@meine-domain.de</code> → weiterleiten an → <code class="bg-red-50 border border-red-200 px-1 rounded">ich@meine-domain.de</code> — beide auf derselben Domain, MX zeigt auf VPS</p>
       <p class="text-gray-600 text-sm mt-2 font-semibold">Richtig (kein Loop):</p>
       <ul class="text-gray-600 text-sm mt-1 space-y-1 list-disc list-inside">
-        <li><strong>Andere Domain als Ziel:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@nosearch.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@bernauer24.com</code> (MX zeigt auf Strato, nicht VPS)</li>
-        <li><strong>Subdomain als Alias-Domain:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@alias.nosearch.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@nosearch.de</code> (unterschiedliche MX-Records)</li>
+        <li><strong>Andere Domain als Ziel:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@alias-domain.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@andere-domain.de</code> (MX zeigt auf deinen Mailprovider, nicht VPS)</li>
+        <li><strong>Subdomain als Alias-Domain:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@alias.meine-domain.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@meine-domain.de</code> (unterschiedliche MX-Records)</li>
       </ul>
     </div>
     <div>
