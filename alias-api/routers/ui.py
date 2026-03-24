@@ -180,8 +180,10 @@ async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
     if request.session.get("user_id"):
         return RedirectResponse("/", status_code=302)
     has_users = bool((await db.execute(select(User))).scalars().first())
+    # Upgrade-Hinweis: Keine User, aber altes Passwort vorhanden
+    is_upgrade = not has_users and bool(await get_setting(db, "ui_password_hash"))
     return templates.TemplateResponse("login.html", {
-        "request": request, "has_users": has_users,
+        "request": request, "has_users": has_users, "is_upgrade": is_upgrade,
     })
 
 
@@ -193,18 +195,23 @@ async def login_submit(
     password: str = Form(...),
 ):
     has_users = bool((await db.execute(select(User))).scalars().first())
+    is_upgrade = not has_users and bool(await get_setting(db, "ui_password_hash"))
 
     if not has_users:
-        # Erstes Login: Admin-Account anlegen
-        pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+        # Beim Upgrade: Passwort gegen alten Hash prüfen
+        stored_hash = await get_setting(db, "ui_password_hash")
+        if stored_hash and not _bcrypt.checkpw(password.encode(), stored_hash.encode()):
+            return templates.TemplateResponse("login.html", {
+                "request": request,
+                "error": "Falsches Passwort",
+                "has_users": False, "is_upgrade": is_upgrade,
+            })
+        pw_hash = stored_hash if stored_hash else _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
         admin = User(username=username.strip(), password_hash=pw_hash, is_admin=True)
         db.add(admin)
         await db.flush()
-        # Alle bestehenden AliasDomainConfigs dem neuen Admin freigeben
-        configs = (await db.execute(select(AliasDomainConfig))).scalars().all()
-        for cfg in configs:
+        for cfg in (await db.execute(select(AliasDomainConfig))).scalars().all():
             db.add(AliasDomainAccess(user_id=admin.id, alias_domain_config_id=cfg.id))
-        # Bestehende Domains + Aliases zuweisen
         for d in (await db.execute(select(Domain).where(Domain.user_id == None))).scalars().all():
             d.user_id = admin.id
         for a in (await db.execute(select(Alias).where(Alias.user_id == None))).scalars().all():
@@ -222,7 +229,7 @@ async def login_submit(
         return templates.TemplateResponse("login.html", {
             "request": request,
             "error": "Falscher Benutzername oder Passwort",
-            "has_users": has_users,
+            "has_users": has_users, "is_upgrade": False,
         })
 
     request.session["user_id"] = user.id
