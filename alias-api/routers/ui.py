@@ -663,8 +663,9 @@ async def alias_domain_edit_page(config_id: int, request: Request, db: AsyncSess
     )).scalar_one_or_none()
     if not cfg:
         return RedirectResponse("/alias-domains", status_code=302)
+    vpss = (await db.execute(select(VpsConfig).where(VpsConfig.active == True).order_by(VpsConfig.created_at))).scalars().all()
     return templates.TemplateResponse("alias_domain_edit.html", {
-        "request": request, "current_user": user, "cfg": cfg,
+        "request": request, "current_user": user, "cfg": cfg, "vpss": vpss,
     })
 
 
