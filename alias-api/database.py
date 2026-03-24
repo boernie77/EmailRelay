@@ -22,7 +22,6 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Jede Migration in eigener Transaktion
     for stmt in [
         "ALTER TABLE domains ADD COLUMN alias_domain_config_id INTEGER "
         "REFERENCES alias_domain_configs(id) ON DELETE SET NULL",
@@ -31,6 +30,8 @@ async def init_db():
         "ALTER TABLE alias_domain_configs ADD COLUMN catchall_target_address VARCHAR DEFAULT ''",
         "ALTER TABLE domains ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
         "ALTER TABLE aliases ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
+        "ALTER TABLE alias_domain_configs ADD COLUMN vps_config_id INTEGER "
+        "REFERENCES vps_configs(id) ON DELETE SET NULL",
     ]:
         try:
             async with engine.begin() as conn:
@@ -39,7 +40,7 @@ async def init_db():
             pass
 
     await _migrate_to_alias_domain_configs()
-    await _migrate_to_users()
+    await _migrate_to_vps_configs()
 
 
 async def _migrate_to_alias_domain_configs():
@@ -66,16 +67,10 @@ async def _migrate_to_alias_domain_configs():
                     smtp_user=await gs("smtp_user"),
                     smtp_password=await gs("smtp_password"),
                     smtp_use_tls=(await gs("smtp_use_tls")) != "false",
-                    vps_host=await gs("vps_host"),
-                    vps_port=int(await gs("vps_port") or 22),
-                    vps_user=await gs("vps_user") or "root",
-                    vps_ssh_key=await gs("vps_ssh_key"),
-                    api_url_for_vps=await gs("api_url_for_vps"),
                 )
                 session.add(cfg)
                 await session.flush()
-                domains = (await session.execute(select(Domain))).scalars().all()
-                for d in domains:
+                for d in (await session.execute(select(Domain))).scalars().all():
                     d.alias_domain_config_id = cfg.id
                 await session.commit()
         else:
@@ -83,68 +78,52 @@ async def _migrate_to_alias_domain_configs():
                 select(AliasDomainConfig).where(AliasDomainConfig.active == True)
             )).scalars().first()
             if first:
-                unassigned = (await session.execute(
+                for d in (await session.execute(
                     select(Domain).where(Domain.alias_domain_config_id == None)
-                )).scalars().all()
-                if unassigned:
-                    for d in unassigned:
-                        d.alias_domain_config_id = first.id
-                    await session.commit()
+                )).scalars().all():
+                    d.alias_domain_config_id = first.id
+                await session.commit()
 
 
-async def _migrate_to_users():
-    """Erstellt Admin-User aus bestehendem Password-Hash, weist alle Daten zu."""
+async def _migrate_to_vps_configs():
+    """Erstellt VpsConfig aus alten VPS-Feldern in alias_domain_configs (falls vorhanden)."""
     from sqlalchemy import select
-    from models import User, AliasDomainAccess, AliasDomainConfig, Domain, Alias, Setting
+    from models import VpsConfig, AliasDomainConfig
 
     async with AsyncSessionLocal() as session:
-        existing_admin = (await session.execute(
-            select(User).where(User.is_admin == True)
-        )).scalars().first()
+        existing_vps = (await session.execute(select(VpsConfig))).scalars().first()
+        if existing_vps:
+            # Bereits migriert – alle AliasDomainConfigs ohne VPS dem ersten zuweisen
+            for cfg in (await session.execute(
+                select(AliasDomainConfig).where(AliasDomainConfig.vps_config_id == None)
+            )).scalars().all():
+                cfg.vps_config_id = existing_vps.id
+            await session.commit()
+            return
 
-        if existing_admin:
-            # Bereits migriert – nur sicherstellen dass alle Daten einen User haben
-            admin = existing_admin
-        else:
-            # Admin aus bestehendem Password-Hash erstellen
-            pw_hash_setting = (await session.execute(
-                select(Setting).where(Setting.key == "ui_password_hash")
-            )).scalar_one_or_none()
+        # Alte VPS-Daten aus DB lesen (Felder existieren in DB, aber nicht mehr im Modell)
+        rows = (await session.execute(text(
+            "SELECT id, vps_host, vps_port, vps_user, vps_ssh_key, api_url_for_vps "
+            "FROM alias_domain_configs "
+            "WHERE vps_host IS NOT NULL AND vps_host != '' "
+            "LIMIT 1"
+        ))).fetchall()
 
-            pw_hash = pw_hash_setting.value if pw_hash_setting else ""
-            if not pw_hash:
-                # Noch kein Passwort gesetzt – Platzhalter, wird beim ersten Login ersetzt
-                import bcrypt as _bcrypt
-                pw_hash = _bcrypt.hashpw(b"changeme", _bcrypt.gensalt()).decode()
+        if not rows:
+            return
 
-            admin = User(username="admin", password_hash=pw_hash, is_admin=True)
-            session.add(admin)
-            await session.flush()
+        row = rows[0]
+        vps = VpsConfig(
+            label="VPS",
+            host=row[1] or "",
+            port=row[2] or 22,
+            user=row[3] or "root",
+            ssh_key=row[4] or "",
+            api_url=row[5] or "",
+        )
+        session.add(vps)
+        await session.flush()
 
-        # Alle Alias-Domains dem Admin freigeben
-        all_configs = (await session.execute(select(AliasDomainConfig))).scalars().all()
-        for cfg in all_configs:
-            exists = (await session.execute(
-                select(AliasDomainAccess).where(
-                    AliasDomainAccess.user_id == admin.id,
-                    AliasDomainAccess.alias_domain_config_id == cfg.id,
-                )
-            )).scalar_one_or_none()
-            if not exists:
-                session.add(AliasDomainAccess(user_id=admin.id, alias_domain_config_id=cfg.id))
-
-        # Alle Domains ohne User dem Admin zuweisen
-        unassigned_domains = (await session.execute(
-            select(Domain).where(Domain.user_id == None)
-        )).scalars().all()
-        for d in unassigned_domains:
-            d.user_id = admin.id
-
-        # Alle Aliases ohne User dem Admin zuweisen
-        unassigned_aliases = (await session.execute(
-            select(Alias).where(Alias.user_id == None)
-        )).scalars().all()
-        for a in unassigned_aliases:
-            a.user_id = admin.id
-
+        for cfg in (await session.execute(select(AliasDomainConfig))).scalars().all():
+            cfg.vps_config_id = vps.id
         await session.commit()
