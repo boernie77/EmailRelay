@@ -59,6 +59,7 @@ class Alias(Base):
     id = Column(Integer, primary_key=True)
     alias_address = Column(String, unique=True, nullable=False)
     real_address = Column(String, nullable=False)
+    label = Column(String, default="")
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_used = Column(DateTime(timezone=True), nullable=True)
