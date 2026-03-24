@@ -102,7 +102,7 @@ async def resolve_alias(
     alias = result.scalar_one_or_none()
     if alias:
         if not alias.active:
-            raise HTTPException(status_code=404, detail="Alias deaktiviert")
+            raise HTTPException(status_code=410, detail="Alias blockiert")
         alias.last_used = func.now()
         await db.commit()
         return {"alias_address": alias_address, "real_address": alias.real_address}
