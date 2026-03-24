@@ -622,11 +622,7 @@ async def alias_domain_add(
     smtp_user: str = Form(""),
     smtp_password: str = Form(""),
     smtp_use_tls: str = Form("true"),
-    vps_host: str = Form(""),
-    vps_port: str = Form("22"),
-    vps_user: str = Form("root"),
-    vps_ssh_key: str = Form(""),
-    api_url_for_vps: str = Form(""),
+    vps_config_id: str = Form(""),
     catchall_enabled: str = Form("false"),
     catchall_target_address: str = Form(""),
 ):
@@ -646,17 +642,12 @@ async def alias_domain_add(
             smtp_user=smtp_user.strip(),
             smtp_password=smtp_password,
             smtp_use_tls=smtp_use_tls != "false",
-            vps_host=vps_host.strip(),
-            vps_port=int(vps_port or 22),
-            vps_user=vps_user.strip() or "root",
-            vps_ssh_key=vps_ssh_key,
-            api_url_for_vps=api_url_for_vps.strip(),
+            vps_config_id=int(vps_config_id) if vps_config_id.strip() else None,
             catchall_enabled=catchall_enabled == "true",
             catchall_target_address=catchall_target_address.strip().lower(),
         )
         db.add(cfg)
         await db.flush()
-        # Neue Config dem Admin direkt freigeben
         db.add(AliasDomainAccess(user_id=user.id, alias_domain_config_id=cfg.id))
         await db.commit()
     return RedirectResponse("/alias-domains", status_code=303)
