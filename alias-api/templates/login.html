@@ -13,9 +13,15 @@
     <p class="text-center text-gray-400 text-sm mb-6" style="font-family: 'Dancing Script', cursive; font-size: 1.1rem;">by boernie.de</p>
 
     {% if not has_users %}
+    {% if is_upgrade %}
+    <div class="bg-amber-50 border border-amber-300 text-amber-800 text-sm px-4 py-3 rounded mb-4">
+      <strong>Update erkannt.</strong> Wähle einen Benutzernamen und gib dein bisheriges Passwort ein. Dein Account wird als Administrator angelegt.
+    </div>
+    {% else %}
     <div class="bg-blue-50 border border-blue-300 text-blue-700 text-sm px-4 py-3 rounded mb-4">
       Erstes Login — dieser Account wird als Administrator angelegt.
     </div>
+    {% endif %}
     {% endif %}
 
     {% if error %}
