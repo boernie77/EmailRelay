@@ -17,12 +17,10 @@ from models import Setting, Domain, EmailAddress, Alias, AliasDomainConfig, Alia
 
 _VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
-ALIAS_DOMAIN='__ALIAS_DOMAIN__'
 API_URL='__API_URL__'
 API_SECRET='__API_SECRET__'
 
 echo "=== EmailRelay VPS Setup ==="
-echo "Domain: $ALIAS_DOMAIN"
 echo ""
 echo "Installiere Pakete..."
 export DEBIAN_FRONTEND=noninteractive
@@ -44,7 +42,7 @@ myorigin = \$myhostname
 inet_interfaces = all
 inet_protocols = all
 mydestination = localhost
-virtual_mailbox_domains = __ALIAS_DOMAIN__
+virtual_mailbox_domains = __ALIAS_DOMAINS_POSTFIX__
 virtual_transport = emailrelay
 virtual_mailbox_maps = regexp:/etc/postfix/virtual_mailbox_regex
 smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
@@ -53,7 +51,9 @@ smtp_tls_security_level = may
 message_size_limit = 52428800
 MAINCF
 
-printf '/@%s$/  OK\n' "$ALIAS_DOMAIN" > /etc/postfix/virtual_mailbox_regex
+cat > /etc/postfix/virtual_mailbox_regex << 'REGEXEOF'
+__ALIAS_DOMAINS_REGEX__
+REGEXEOF
 
 if ! grep -q "^emailrelay" /etc/postfix/master.cf; then
   printf '\n# EmailRelay forwarder\nemailrelay unix  -       n       n       -       -       pipe\n  flags=Rq user=nobody argv=/usr/local/bin/emailrelay-forward.py ${recipient}\n' >> /etc/postfix/master.cf
