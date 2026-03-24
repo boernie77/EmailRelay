@@ -26,6 +26,8 @@ class AliasDomainConfig(Base):
     vps_ssh_key = Column(Text, default="")
     api_url_for_vps = Column(String, default="")
     active = Column(Boolean, default=True)
+    catchall_enabled = Column(Boolean, default=False)
+    catchall_target_address = Column(String, default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     domains = relationship("Domain", back_populates="alias_domain_config")
 
