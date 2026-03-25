@@ -154,6 +154,12 @@ async def resolve_alias(
     _=Depends(verify_incoming_secret),
 ):
     """Löst einen Alias zur echten Adresse auf (für VPS-Forwarder). Erstellt ihn bei Catch-all automatisch."""
+    global _last_vps_ok_written
+    now = datetime.now(timezone.utc)
+    if _last_vps_ok_written is None or (now - _last_vps_ok_written) > _VPS_OK_WRITE_COOLDOWN:
+        _last_vps_ok_written = now
+        asyncio.create_task(_record_vps_event("last_vps_ok"))
+
     result = await db.execute(
         select(Alias).where(Alias.alias_address == alias_address)
     )
