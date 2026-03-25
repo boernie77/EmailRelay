@@ -1,5 +1,5 @@
 """
-EmailRelay SMTP-Proxy
+E-Mail Relay SMTP-Proxy
 
 Lauscht auf Port 1587. Thunderbird verbindet sich hier.
 - Ausgehende Mails: From-Adresse wird durch Alias ersetzt
