@@ -34,6 +34,11 @@ document.getElementById('test').addEventListener('click', async () => {
   }
 });
 
+document.getElementById('toggle-secret').addEventListener('click', () => {
+  const input = document.getElementById('api-secret');
+  input.type = input.type === 'password' ? 'text' : 'password';
+});
+
 function setStatus(msg, cls) {
   const el = document.getElementById('status');
   el.textContent = msg;
