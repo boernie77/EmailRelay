@@ -3,47 +3,50 @@
 import struct, zlib, math, os
 
 def make_png(size):
-    r, g, b = 30, 58, 138  # Dunkelblau
-    er, eg, eb = 255, 255, 255  # Weiß (Briefumschlag)
-    radius = size * 0.18
-    pad = size * 0.07
+    bg = (30, 58, 95)    # #1e3a5f — Dunkelblau
+    fg = (255, 255, 255) # Weiß
 
-    def in_rounded_rect(x, y):
-        x1, y1 = pad, pad
-        x2, y2 = size - 1 - pad, size - 1 - pad
-        if x < x1 or x > x2 or y < y1 or y > y2:
-            return False
-        # Ecken prüfen
-        for cx, cy in [(x1+radius, y1+radius), (x2-radius, y1+radius),
-                       (x1+radius, y2-radius), (x2-radius, y2-radius)]:
-            if x < cx and y < cy or x < cx and y > size-1-cy or \
-               x > size-1-cx and y < cy or x > size-1-cx and y > size-1-cy:
-                dist = math.sqrt((x - cx)**2 + (y - cy)**2)
-                if dist > radius:
-                    return False
+    def in_rounded_rect(x, y, r=0.18):
+        pad = size * 0.0
+        r = size * r
+        if x < r or x > size-1-r or y < r or y > size-1-r:
+            corners = [(r, r), (size-1-r, r), (r, size-1-r), (size-1-r, size-1-r)]
+            in_x_zone = x < r or x > size-1-r
+            in_y_zone = y < r or y > size-1-r
+            if in_x_zone and in_y_zone:
+                cx = r if x < r else size-1-r
+                cy = r if y < r else size-1-r
+                return math.sqrt((x-cx)**2 + (y-cy)**2) <= r
+            return True
         return True
 
-    def envelope_pixel(x, y):
-        """Einfaches Briefumschlag-Symbol."""
-        ex1 = size * 0.18
-        ex2 = size * 0.82
-        ey1 = size * 0.28
-        ey2 = size * 0.72
-        if not (ex1 <= x <= ex2 and ey1 <= y <= ey2):
-            return False
-        # Diagonale Linien oben (V-Form)
-        mid_x = size * 0.5
-        slope = (ey2 - ey1) / (ex2 - ex1) * 0.6
-        y_line_left = ey1 + slope * (x - ex1)
-        y_line_right = ey1 + slope * (ex2 - x)
-        thickness = max(1, size * 0.06)
-        if abs(y - min(y_line_left, y_line_right)) < thickness and y < ey1 + (ey2-ey1)*0.5:
-            return True
-        # Rahmen
-        border = max(1, size * 0.05)
-        if (x - ex1 < border or ex2 - x < border or
-                ey2 - y < border):
-            return True
+    # Briefumschlag-Koordinaten (relativ zu size)
+    ex1, ey1 = size*0.13, size*0.26
+    ex2, ey2 = size*0.87, size*0.74
+    mid_x = size * 0.5
+    fold_y = size * 0.52  # V-Spitze
+
+    stroke = max(1.5, size * 0.045)
+
+    def on_envelope(x, y):
+        # Außenrahmen
+        if ex1 <= x <= ex2 and ey1 <= y <= ey2:
+            on_border = (x - ex1 < stroke or ex2 - x < stroke or
+                         ey2 - y < stroke)
+            # V-Linie oben (Klappe)
+            t = (x - ex1) / (ex2 - ex1)
+            y_v = ey1 + abs(t - 0.5) * 2 * (fold_y - ey1)
+            on_v = abs(y - y_v) < stroke and y <= fold_y + stroke
+
+            # Diagonalen unten
+            t_left = (x - ex1) / (mid_x - ex1) if x <= mid_x else None
+            t_right = (x - mid_x) / (ex2 - mid_x) if x > mid_x else None
+            y_dl = ey2 - (ey2 - fold_y) * (t_left) if t_left is not None else None
+            y_dr = fold_y + (ey2 - fold_y) * (t_right) if t_right is not None else None
+            on_dl = y_dl is not None and abs(y - y_dl) < stroke and y >= fold_y - stroke
+            on_dr = y_dr is not None and abs(y - y_dr) < stroke and y >= fold_y - stroke
+
+            return on_border or on_v or on_dl or on_dr
         return False
 
     rows = []
@@ -51,10 +54,10 @@ def make_png(size):
         row = b'\x00'
         for x in range(size):
             if in_rounded_rect(x, y):
-                if envelope_pixel(x, y):
-                    row += bytes([er, eg, eb, 255])
+                if on_envelope(x, y):
+                    row += bytes([*fg, 255])
                 else:
-                    row += bytes([r, g, b, 255])
+                    row += bytes([*bg, 255])
             else:
                 row += bytes([0, 0, 0, 0])
         rows.append(row)
@@ -62,9 +65,9 @@ def make_png(size):
     raw = b''.join(rows)
     compressed = zlib.compress(raw, 9)
 
-    def chunk(ctype, data):
-        c = ctype + data
-        return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+    def chunk(t, d):
+        c = t + d
+        return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
 
     ihdr = struct.pack('>II', size, size) + bytes([8, 6, 0, 0, 0])
     return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', compressed) + chunk(b'IEND', b'')
