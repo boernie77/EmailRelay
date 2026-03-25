@@ -277,7 +277,13 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return redirect_login()
-    return templates.TemplateResponse("settings.html", {"request": request, "current_user": user})
+    ntfy_setting = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
+    ntfy_url = ntfy_setting.value if ntfy_setting else ""
+    random_suffix = secrets.token_hex(4)
+    return templates.TemplateResponse("settings.html", {
+        "request": request, "current_user": user,
+        "ntfy_url": ntfy_url, "random_suffix": random_suffix,
+    })
 
 
 @router.post("/settings")
