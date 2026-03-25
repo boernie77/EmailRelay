@@ -52,6 +52,43 @@ async def get_or_create_alias(real_address: str) -> str | None:
         return resp.json()["alias_address"]
 
 
+async def get_alias_for_reply(in_reply_to: str) -> str | None:
+    """Gibt den Alias zurück, der für eine Message-ID verwendet wurde (für Antworten)."""
+    clean_id = in_reply_to.strip().strip("<>")
+    if not clean_id:
+        return None
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{API_URL}/api/alias/message-log",
+                params={"message_id": clean_id},
+                headers={"x-api-secret": API_SECRET},
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                return resp.json()["alias_address"]
+        except Exception as e:
+            log.warning(f"Reply-Alias-Lookup fehlgeschlagen: {e}")
+    return None
+
+
+async def log_message_alias(message_id: str, alias_address: str):
+    """Speichert Message-ID → Alias für zukünftige Replies."""
+    clean_id = message_id.strip().strip("<>")
+    if not clean_id:
+        return
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(
+                f"{API_URL}/api/alias/message-log",
+                json={"message_id": clean_id, "alias_address": alias_address},
+                headers={"x-api-secret": API_SECRET},
+                timeout=5,
+            )
+        except Exception as e:
+            log.warning(f"Message-ID konnte nicht geloggt werden: {e}")
+
+
 class AliasHandler(AsyncMessage):
     async def handle_message(self, message: email.message.Message):
         # From-Header parsen
