@@ -342,6 +342,8 @@ async def settings_save_ntfy(
     user = await get_current_user(request, db)
     if not user:
         return redirect_login()
+    if not user.is_admin:
+        return RedirectResponse("/settings", status_code=302)
     ntfy_url = ntfy_url.strip()
     existing = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
     if existing:
