@@ -21,6 +21,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch {}
   document.getElementById('label').value = domain;
 
+  // Einstellungen-Link immer registrieren
+  document.getElementById('settings-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.runtime.openOptionsPage();
+  });
+
   // Einstellungen fehlen
   if (!apiUrl || !apiSecret) {
     showError('Bitte zuerst die Einstellungen konfigurieren.');
