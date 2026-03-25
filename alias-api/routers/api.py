@@ -35,6 +35,19 @@ async def _get_ntfy_url(db: AsyncSession) -> str | None:
     return s.value if s and s.value else None
 
 
+async def _record_vps_event(key: str):
+    """Schreibt Zeitstempel eines VPS-Ereignisses in die Settings-Tabelle."""
+    from database import AsyncSessionLocal
+    async with AsyncSessionLocal() as session:
+        existing = (await session.execute(select(Setting).where(Setting.key == key))).scalar_one_or_none()
+        now_iso = datetime.now(timezone.utc).isoformat()
+        if existing:
+            existing.value = now_iso
+        else:
+            session.add(Setting(key=key, value=now_iso))
+        await session.commit()
+
+
 async def _send_ntfy(url: str, message: str, title: str = "EmailRelay"):
     async with httpx.AsyncClient() as client:
         try:
