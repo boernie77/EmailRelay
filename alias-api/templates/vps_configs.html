@@ -119,6 +119,12 @@
            class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-1.5 rounded-lg transition">
           Bearbeiten
         </a>
+        <form method="post" action="/vps/{{ vps.id }}/test">
+          <button type="submit"
+                  class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium px-3 py-1.5 rounded-lg transition">
+            Verbindungstest
+          </button>
+        </form>
         <form method="post" action="/vps/{{ vps.id }}/setup"
               onsubmit="return confirm('VPS Setup ausführen? Postfix wird installiert/konfiguriert für alle zugewiesenen Alias-Domains.')">
           <button type="submit"
