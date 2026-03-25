@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const addresses = await resp.json();
     if (!addresses.length) {
-      showError('Keine Adressen konfiguriert. Bitte in EmailRelay eine Adresse anlegen.');
+      showError('Keine Adressen konfiguriert. Bitte in E-Mail Relay eine Adresse anlegen.');
       return;
     }
 
