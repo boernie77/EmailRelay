@@ -21,6 +21,7 @@ Internet ──SMTP:25──► Postfix (VPS) ──Tailscale VPN──► dein 
 - **Automatischer Alias beim Senden**: From-Adresse wird beim ersten Senden automatisch ersetzt, kein manuelles Anlegen nötig
 - **Weiterleitung eingehender Mails**: Antworten an den Alias landen im echten Postfach
 - **Web-UI**: Aliases, Domains und Adressen verwalten, Einstellungen konfigurieren
+- **Chrome Extension**: Alias-Adressen direkt beim Surfen erstellen und ins Formularfeld einfügen
 - **VPS Auto-Setup**: Postfix auf dem Mailserver per Knopfdruck via SSH einrichten
 - **Docker-basiert**: Läuft als Docker Compose Stack, kompatibel mit Portainer
 - **Tailscale-Integration**: Zuverlässige Verbindung zwischen VPS und Heimserver, auch hinter DS-Lite
