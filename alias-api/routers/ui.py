@@ -260,6 +260,18 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     recent_aliases = (await db.execute(
         select(Alias).where(Alias.user_id == user.id).order_by(Alias.created_at.desc()).limit(10)
     )).scalars().all()
+
+    # VPS-Warnung: letzte 403 neuer als letzter Erfolg?
+    from datetime import datetime, timezone
+    vps_warning = False
+    if user.is_admin:
+        s403 = (await db.execute(select(Setting).where(Setting.key == "last_vps_403"))).scalar_one_or_none()
+        sok = (await db.execute(select(Setting).where(Setting.key == "last_vps_ok"))).scalar_one_or_none()
+        if s403:
+            t403 = datetime.fromisoformat(s403.value)
+            tok = datetime.fromisoformat(sok.value) if sok else None
+            vps_warning = tok is None or t403 > tok
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "current_user": user,
@@ -267,6 +279,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "domain_count": len(domain_count),
         "address_count": len(address_count),
         "recent_aliases": recent_aliases,
+        "vps_warning": vps_warning,
     })
 
 
