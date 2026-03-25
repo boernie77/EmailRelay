@@ -101,20 +101,9 @@ async function createAlias() {
     // Alias in Zwischenablage
     await navigator.clipboard.writeText(alias_address);
 
-    // Fokussiertes Feld auf der Seite befüllen (falls vorhanden)
+    // Zuletzt fokussiertes Feld auf der Seite befüllen (via Content Script)
     try {
-      await chrome.scripting.executeScript({
-        target: { tabId: currentTab.id },
-        func: (alias) => {
-          const el = document.activeElement;
-          if (el && ['INPUT', 'TEXTAREA'].includes(el.tagName)) {
-            el.value = alias;
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        },
-        args: [alias_address]
-      });
+      await chrome.tabs.sendMessage(currentTab.id, { type: 'fill', value: alias_address });
     } catch {}
 
     // Ergebnis anzeigen
