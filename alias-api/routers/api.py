@@ -2,6 +2,9 @@
 import os
 import secrets
 import string
+import asyncio
+import httpx
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,9 +18,48 @@ router = APIRouter(prefix="/api", tags=["api"])
 
 API_SECRET = os.getenv("API_SECRET", "")
 
+_last_ntfy_sent: datetime | None = None
+_NTFY_COOLDOWN = timedelta(hours=1)
+
 
 def verify_secret(x_api_secret: str = Header(...)):
     if x_api_secret != API_SECRET:
+        raise HTTPException(status_code=403, detail="Ungültiger API-Key")
+
+
+async def _get_ntfy_url(db: AsyncSession) -> str | None:
+    result = await db.execute(select(Setting).where(Setting.key == "ntfy_url"))
+    s = result.scalar_one_or_none()
+    return s.value if s and s.value else None
+
+
+async def _send_ntfy(url: str, message: str, title: str = "EmailRelay"):
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(url, content=message.encode(),
+                              headers={"Title": title, "Priority": "high"}, timeout=5)
+        except Exception:
+            pass
+
+
+async def verify_incoming_secret(
+    x_api_secret: str = Header(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Auth für VPS-Aufrufe — sendet ntfy-Benachrichtigung bei falschem Secret."""
+    global _last_ntfy_sent
+    if x_api_secret != API_SECRET:
+        now = datetime.now(timezone.utc)
+        if _last_ntfy_sent is None or (now - _last_ntfy_sent) > _NTFY_COOLDOWN:
+            ntfy_url = await _get_ntfy_url(db)
+            if ntfy_url:
+                _last_ntfy_sent = now
+                asyncio.create_task(_send_ntfy(
+                    ntfy_url,
+                    "VPS konnte sich nicht authentifizieren (403 Forbidden).\n"
+                    "API-Secret veraltet? → VPS-Setup unter /vps ausführen.",
+                    title="EmailRelay: VPS-Fehler",
+                ))
         raise HTTPException(status_code=403, detail="Ungültiger API-Key")
 
 
