@@ -257,3 +257,13 @@ async def get_alias_for_message(
     if not entry:
         raise HTTPException(status_code=404, detail="Kein Alias für diese Message-ID")
     return {"alias_address": entry.alias_address}
+
+
+@router.post("/settings/test-ntfy")
+async def test_ntfy(db: AsyncSession = Depends(get_db), _=Depends(verify_secret)):
+    """Sendet eine Test-Benachrichtigung an die konfigurierte ntfy-URL."""
+    ntfy_url = await _get_ntfy_url(db)
+    if not ntfy_url:
+        raise HTTPException(status_code=400, detail="Keine ntfy-URL konfiguriert")
+    await _send_ntfy(ntfy_url, "Test-Benachrichtigung von EmailRelay ✓", title="EmailRelay: Test")
+    return {"ok": True}
