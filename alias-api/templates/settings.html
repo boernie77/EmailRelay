@@ -81,16 +81,13 @@ async function testNtfy() {
   btn.disabled = true;
   btn.textContent = 'Wird gesendet…';
   try {
-    const API_SECRET = document.querySelector('meta[name="api-secret"]')?.content || '';
-    const resp = await fetch('/api/settings/test-ntfy', {
-      method: 'POST',
-      headers: {'x-api-secret': API_SECRET}
-    });
-    btn.textContent = resp.ok ? '✓ Gesendet!' : '✗ Fehler';
+    const resp = await fetch('/settings/test-ntfy', { method: 'POST' });
+    const data = await resp.json();
+    btn.textContent = data.ok ? '✓ Gesendet!' : '✗ ' + (data.error || 'Fehler');
   } catch {
     btn.textContent = '✗ Fehler';
   }
-  setTimeout(() => { btn.disabled = false; btn.textContent = 'Test senden'; }, 2500);
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Test senden'; }, 3000);
 }
 </script>
 {% endblock %}
