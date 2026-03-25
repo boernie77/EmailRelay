@@ -321,6 +321,8 @@ async def create_alias_with_label(
     payload: dict,
     db: AsyncSession = Depends(get_db),
     _=Depends(verify_secret),
+    x_username: str | None = Header(None),
+    x_password: str | None = Header(None),
 ):
     """Erstellt einen neuen Alias mit optionaler Bezeichnung (für Chrome Extension)."""
     real_address = payload.get("real_address", "").strip().lower()
