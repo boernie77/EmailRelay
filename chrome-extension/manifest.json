@@ -3,6 +3,7 @@
   "name": "E-Mail Relay",
   "version": "1.0",
   "description": "Alias-Adressen direkt beim Surfen erstellen — schützt deine echte E-Mail-Adresse.",
+  "homepage_url": "https://byboernie.de",
   "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://*/*", "http://*/*"],
   "action": {
