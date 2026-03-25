@@ -35,6 +35,25 @@ async def _get_ntfy_url(db: AsyncSession) -> str | None:
     return s.value if s and s.value else None
 
 
+async def _get_user_id_from_credentials(
+    db: AsyncSession,
+    username: str | None,
+    password: str | None,
+) -> int | None:
+    """Prüft Username/Passwort und gibt user_id zurück, oder None."""
+    if not username or not password:
+        return None
+    import bcrypt as _bcrypt
+    user = (await db.execute(
+        select(User).where(User.username == username, User.active == True)
+    )).scalar_one_or_none()
+    if not user:
+        return None
+    if not _bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        return None
+    return user.id
+
+
 async def _record_vps_event(key: str):
     """Schreibt Zeitstempel eines VPS-Ereignisses in die Settings-Tabelle."""
     from database import AsyncSessionLocal
