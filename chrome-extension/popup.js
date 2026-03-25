@@ -1,6 +1,8 @@
 let currentTab = null;
 let apiUrl = '';
 let apiSecret = '';
+let apiUsername = '';
+let apiPassword = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Einstellungen laden
