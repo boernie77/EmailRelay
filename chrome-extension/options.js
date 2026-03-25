@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 document.getElementById('save').addEventListener('click', async () => {
   const apiUrl = document.getElementById('api-url').value.trim().replace(/\/$/, '');
   const apiSecret = document.getElementById('api-secret').value.trim();
-  await chrome.storage.sync.set({ apiUrl, apiSecret });
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+  await chrome.storage.sync.set({ apiUrl, apiSecret, username, password });
   setStatus('Gespeichert ✓', 'ok');
 });
 
