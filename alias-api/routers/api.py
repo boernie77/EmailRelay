@@ -75,6 +75,7 @@ async def verify_incoming_secret(
                     "API-Secret veraltet? → VPS-Setup unter /vps ausführen.",
                     title="EmailRelay: VPS-Fehler",
                 ))
+        asyncio.create_task(_record_vps_event("last_vps_403"))
         raise HTTPException(status_code=403, detail="Ungültiger API-Key")
 
 
