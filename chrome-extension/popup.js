@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // E-Mail-Adressen laden
   try {
     const resp = await fetch(`${apiUrl}/api/addresses`, {
-      headers: { 'x-api-secret': apiSecret }
+      headers: { 'x-api-secret': apiSecret, 'x-username': apiUsername, 'x-password': apiPassword }
     });
     if (resp.status === 403) throw new Error('API-Secret falsch — Einstellungen prüfen.');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
