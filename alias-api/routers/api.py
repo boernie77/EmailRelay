@@ -325,7 +325,8 @@ async def create_alias_with_label(
     else:
         raise HTTPException(status_code=500, detail="Konnte keinen eindeutigen Alias generieren")
 
-    new_alias = Alias(alias_address=candidate, real_address=real_address, label=label)
+    user_id = domain_obj.user_id if domain_obj else None
+    new_alias = Alias(alias_address=candidate, real_address=real_address, label=label, user_id=user_id)
     db.add(new_alias)
     await db.commit()
     return {"alias_address": candidate, "real_address": real_address, "label": label}
