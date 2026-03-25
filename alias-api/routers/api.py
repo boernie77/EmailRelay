@@ -178,3 +178,40 @@ async def get_smtp_config(
     # Fallback: globale Settings
     keys = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_use_tls"]
     return {key: await get_setting(db, key) for key in keys}
+
+
+@router.post("/alias/message-log")
+async def log_message_alias(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_secret),
+):
+    """Speichert Message-ID → Alias für spätere Reply-Zuordnung (smtp-proxy → API)."""
+    message_id = payload.get("message_id", "").strip().strip("<>")
+    alias_address = payload.get("alias_address", "").strip()
+    if not message_id or not alias_address:
+        raise HTTPException(status_code=400, detail="message_id und alias_address erforderlich")
+    entry = AliasMessageLog(message_id=message_id, alias_address=alias_address)
+    db.add(entry)
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()  # Duplikat ignorieren
+    return {"ok": True}
+
+
+@router.get("/alias/message-log")
+async def get_alias_for_message(
+    message_id: str,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_secret),
+):
+    """Gibt den Alias zurück, der für eine bestimmte Message-ID verwendet wurde."""
+    clean_id = message_id.strip().strip("<>")
+    result = await db.execute(
+        select(AliasMessageLog).where(AliasMessageLog.message_id == clean_id)
+    )
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Kein Alias für diese Message-ID")
+    return {"alias_address": entry.alias_address}
