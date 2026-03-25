@@ -95,6 +95,8 @@ async function createAlias() {
       method: 'POST',
       headers: {
         'x-api-secret': apiSecret,
+        'x-username': apiUsername,
+        'x-password': apiPassword,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ real_address: realAddress, label })
