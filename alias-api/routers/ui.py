@@ -836,6 +836,7 @@ async def addresses_page(request: Request, db: AsyncSession = Depends(get_db)):
     addresses = (await db.execute(
         select(EmailAddress)
         .join(Domain, EmailAddress.domain_id == Domain.id)
+        .options(selectinload(EmailAddress.domain))
         .where(Domain.user_id == user.id)
         .order_by(EmailAddress.created_at.desc())
     )).scalars().all()
