@@ -100,3 +100,12 @@ class Alias(Base):
     last_used = Column(DateTime(timezone=True), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     user = relationship("User", back_populates="aliases")
+
+
+class AliasMessageLog(Base):
+    """Speichert Message-ID → Alias-Zuordnung für korrekte Alias-Auswahl bei Antworten."""
+    __tablename__ = "alias_message_logs"
+    id = Column(Integer, primary_key=True)
+    message_id = Column(String, unique=True, nullable=False, index=True)
+    alias_address = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
