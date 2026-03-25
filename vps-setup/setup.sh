@@ -1,5 +1,5 @@
 #!/bin/bash
-# EmailRelay VPS Setup-Script
+# E-Mail Relay VPS Setup-Script
 # Ausführen auf dem Hetzner-VPS als root:
 #   curl -s https://raw.githubusercontent.com/boernie77/EmailRelay/main/vps-setup/setup.sh | bash
 # Oder: bash setup.sh
