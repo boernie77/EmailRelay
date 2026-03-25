@@ -3,6 +3,20 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
 
+{% if vps_warning %}
+<div class="bg-red-50 border border-red-300 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
+  <span class="text-red-500 text-xl">⚠</span>
+  <div>
+    <p class="font-semibold text-red-700">VPS-Verbindungsproblem</p>
+    <p class="text-sm text-red-600 mt-0.5">
+      Der VPS konnte sich zuletzt nicht authentifizieren (falsches API-Secret).
+      Eingehende Mails werden nicht weitergeleitet.
+      <a href="/vps" class="font-semibold underline hover:text-red-800">→ VPS-Setup ausführen</a>
+    </p>
+  </div>
+</div>
+{% endif %}
+
 <div class="grid grid-cols-3 gap-4 mb-8">
   <div class="bg-white rounded-xl shadow p-6 text-center">
     <div class="text-4xl font-bold text-blue-600">{{ alias_count }}</div>
