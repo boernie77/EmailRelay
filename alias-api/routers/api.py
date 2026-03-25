@@ -281,6 +281,56 @@ async def get_alias_for_message(
     return {"alias_address": entry.alias_address}
 
 
+@router.get("/addresses")
+async def list_addresses(db: AsyncSession = Depends(get_db), _=Depends(verify_secret)):
+    """Gibt alle aktiven E-Mail-Adressen zurück (für Chrome Extension)."""
+    result = await db.execute(
+        select(EmailAddress).where(EmailAddress.active == True).order_by(EmailAddress.address)
+    )
+    return [{"address": a.address} for a in result.scalars().all()]
+
+
+@router.post("/alias/create")
+async def create_alias_with_label(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_secret),
+):
+    """Erstellt einen neuen Alias mit optionaler Bezeichnung (für Chrome Extension)."""
+    real_address = payload.get("real_address", "").strip().lower()
+    label = payload.get("label", "").strip()
+
+    email_addr = (await db.execute(
+        select(EmailAddress)
+        .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
+        .where(EmailAddress.address == real_address, EmailAddress.active == True)
+    )).scalar_one_or_none()
+    if not email_addr:
+        raise HTTPException(status_code=404, detail="Adresse nicht konfiguriert")
+
+    domain_obj = email_addr.domain
+    alias_domain = None
+    if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
+        alias_domain = domain_obj.alias_domain_config.alias_domain
+    if not alias_domain:
+        alias_domain = await get_setting(db, "alias_domain")
+    if not alias_domain:
+        raise HTTPException(status_code=500, detail="Alias-Domain nicht konfiguriert")
+
+    for _ in range(10):
+        local = generate_alias_local()
+        candidate = f"{local}@{alias_domain}"
+        if not (await db.execute(select(Alias).where(Alias.alias_address == candidate))).scalar_one_or_none():
+            break
+    else:
+        raise HTTPException(status_code=500, detail="Konnte keinen eindeutigen Alias generieren")
+
+    new_alias = Alias(alias_address=candidate, real_address=real_address, label=label)
+    db.add(new_alias)
+    await db.commit()
+    return {"alias_address": candidate, "real_address": real_address, "label": label}
+
+
 @router.post("/settings/test-ntfy")
 async def test_ntfy(db: AsyncSession = Depends(get_db), _=Depends(verify_secret)):
     """Sendet eine Test-Benachrichtigung an die konfigurierte ntfy-URL."""
