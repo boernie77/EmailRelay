@@ -64,7 +64,7 @@ EOF
 # Transport-Definition
 cat >> /etc/postfix/master.cf << EOF
 
-# EmailRelay forwarder
+# E-Mail Relay forwarder
 emailrelay unix  -       n       n       -       -       pipe
   flags=Rq user=nobody argv=/usr/local/bin/emailrelay-forward.py \${recipient}
 EOF
