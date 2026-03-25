@@ -92,7 +92,7 @@ async def verify_incoming_secret(
                     ntfy_url,
                     "VPS konnte sich nicht authentifizieren (403 Forbidden).\n"
                     "API-Secret veraltet? → VPS-Setup unter /vps ausführen.",
-                    title="EmailRelay: VPS-Fehler",
+                    title="E-Mail Relay: VPS-Fehler",
                 ))
         asyncio.create_task(_record_vps_event("last_vps_403"))
         raise HTTPException(status_code=403, detail="Ungültiger API-Key")
