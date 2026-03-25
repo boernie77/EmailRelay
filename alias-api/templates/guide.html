@@ -168,6 +168,36 @@
   </p>
 </div>
 
+<!-- Chrome Extension -->
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h2 class="text-xl font-semibold mb-3">Chrome Extension</h2>
+  <p class="text-gray-700 text-sm leading-relaxed mb-4">
+    Mit der Chrome Extension kannst du Alias-Adressen direkt beim Surfen erstellen — ohne die Web-UI öffnen zu müssen.
+    Klick auf das Extension-Icon, wähle deine Zieladresse, gib eine Bezeichnung ein (z.B. den Namen der Website) und
+    erstelle den Alias. Er wird automatisch in die Zwischenablage kopiert und ins zuletzt fokussierte Eingabefeld eingefügt.
+  </p>
+
+  <h3 class="font-semibold text-sm mb-2">Voraussetzungen</h3>
+  <ul class="text-gray-600 text-sm space-y-1 list-disc list-inside mb-4">
+    <li>E-Mail Relay muss über eine öffentlich erreichbare HTTPS-URL verfügbar sein (z.B. <code class="bg-gray-100 px-1 rounded">https://api.deine-domain.de</code>)</li>
+    <li>Dafür: Caddy oder nginx als Reverse Proxy auf dem VPS, der Anfragen an den Heimserver (via Tailscale) weiterleitet</li>
+  </ul>
+
+  <h3 class="font-semibold text-sm mb-2">Installation</h3>
+  <ol class="text-gray-600 text-sm space-y-2 list-decimal list-inside mb-4">
+    <li>Repository klonen oder den Ordner <code class="bg-gray-100 px-1 rounded">chrome-extension/</code> herunterladen</li>
+    <li>Icons generieren: <code class="bg-gray-100 px-1 rounded">python3 generate_icons.py</code> (einmalig, im Ordner ausführen)</li>
+    <li>Chrome öffnen → <code class="bg-gray-100 px-1 rounded">chrome://extensions</code> → <strong>Entwicklermodus</strong> aktivieren</li>
+    <li><strong>„Entpackte Erweiterung laden"</strong> → Ordner <code class="bg-gray-100 px-1 rounded">chrome-extension</code> auswählen</li>
+    <li>Extension-Icon in der Toolbar anklicken → <strong>Einstellungen</strong> → API-URL, API-Secret und ggf. Benutzername/Passwort eintragen</li>
+  </ol>
+
+  <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+    <strong>Tipp:</strong> Mit Benutzername und Passwort in den Einstellungen werden nur die eigenen Adressen angezeigt —
+    bei mehreren Benutzern empfohlen.
+  </div>
+</div>
+
 <!-- FAQ -->
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-xl font-semibold mb-4">FAQ</h2>
