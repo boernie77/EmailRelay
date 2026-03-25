@@ -9,7 +9,7 @@ set -e
 echo "=== E-Mail Relay VPS Setup ==="
 echo ""
 read -p "Alias-Domain (z.B. alias.deine-domain.de): " ALIAS_DOMAIN
-read -p "EmailRelay API-URL (z.B. http://DEINE_HEIMSERVER_IPv6:8080): " API_URL
+read -p "E-Mail Relay API-URL (z.B. http://DEINE_HEIMSERVER_IPv6:8080): " API_URL
 read -p "API-Secret (gleicher Wert wie in .env): " API_SECRET
 
 echo ""
