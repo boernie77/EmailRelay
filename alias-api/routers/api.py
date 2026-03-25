@@ -135,7 +135,7 @@ async def get_or_create_alias(
 async def resolve_alias(
     alias_address: str,
     db: AsyncSession = Depends(get_db),
-    _=Depends(verify_secret),
+    _=Depends(verify_incoming_secret),
 ):
     """Löst einen Alias zur echten Adresse auf (für VPS-Forwarder). Erstellt ihn bei Catch-all automatisch."""
     result = await db.execute(
