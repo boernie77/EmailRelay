@@ -100,7 +100,15 @@ class AliasHandler(AsyncMessage):
 
         alias_address = None
         try:
-            alias_address = await get_or_create_alias(real_address)
+            # Bei Antworten: Alias der ursprünglichen Mail wiederverwenden
+            in_reply_to = message.get("In-Reply-To", "").strip()
+            if in_reply_to:
+                alias_address = await get_alias_for_reply(in_reply_to)
+                if alias_address:
+                    log.info(f"Reply-Alias für {in_reply_to}: {alias_address}")
+            # Kein Reply-Alias → normalen Alias ermitteln
+            if not alias_address:
+                alias_address = await get_or_create_alias(real_address)
         except Exception as e:
             log.warning(f"Alias-API nicht erreichbar: {e} – sende ohne Alias")
 
@@ -110,6 +118,10 @@ class AliasHandler(AsyncMessage):
             message["From"] = formataddr((display_name, alias_address))
             # Reply-To entfernen – würde sonst die echte Adresse verraten
             del message["Reply-To"]
+            # Message-ID für zukünftige Replies loggen
+            msg_id = message.get("Message-ID", "").strip()
+            if msg_id:
+                await log_message_alias(msg_id, alias_address)
 
         # SMTP-Konfiguration laden (per Absenderadresse, Fallback auf globale Settings)
         try:
