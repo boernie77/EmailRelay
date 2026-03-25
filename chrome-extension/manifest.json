@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "EmailRelay",
+  "name": "E-Mail Relay",
   "version": "1.0",
   "description": "Alias-Adressen direkt beim Surfen erstellen — schützt deine echte E-Mail-Adresse.",
   "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://*/*", "http://*/*"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "EmailRelay – Alias erstellen",
+    "default_title": "E-Mail Relay – Alias erstellen",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
