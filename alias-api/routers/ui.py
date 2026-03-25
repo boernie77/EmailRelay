@@ -1168,3 +1168,8 @@ async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return redirect_login()
     return templates.TemplateResponse("guide.html", {"request": request, "current_user": user})
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+async def privacy_page():
+    return HTMLResponse(content=PRIVACY_POLICY_HTML)
