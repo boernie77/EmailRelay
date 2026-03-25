@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="EmailRelay", lifespan=lifespan)
+app = FastAPI(title="E-Mail Relay", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("API_SECRET", "changeme"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(api.router)
