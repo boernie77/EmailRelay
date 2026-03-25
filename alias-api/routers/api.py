@@ -49,14 +49,14 @@ async def get_or_create_alias(
     if not email_addr:
         raise HTTPException(status_code=404, detail="Adresse nicht für Aliase konfiguriert")
 
-    # Bestehenden Alias suchen
+    # Bestehenden Alias suchen – zuletzt genutzten nehmen (mehrere möglich)
     result = await db.execute(
         select(Alias).where(
             Alias.real_address == real_address,
             Alias.active == True,
-        )
+        ).order_by(Alias.last_used.desc().nullslast(), Alias.created_at.desc())
     )
-    alias = result.scalar_one_or_none()
+    alias = result.scalars().first()
 
     if alias:
         # last_used aktualisieren
