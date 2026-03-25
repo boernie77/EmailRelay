@@ -593,6 +593,72 @@ async def vps_setup(vps_id: int, request: Request, db: AsyncSession = Depends(ge
     })
 
 
+@router.post("/vps/{vps_id}/test", response_class=HTMLResponse)
+async def vps_test(vps_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    import paramiko, re
+
+    vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == vps_id))).scalar_one_or_none()
+    vpss = (await db.execute(select(VpsConfig).order_by(VpsConfig.created_at))).scalars().all()
+
+    if not vps:
+        return templates.TemplateResponse("vps_configs.html", {
+            "request": request, "current_user": user, "vpss": vpss,
+            "test_error": "VPS nicht gefunden", "test_id": vps_id,
+        })
+
+    if not vps.host or not vps.ssh_key:
+        return templates.TemplateResponse("vps_configs.html", {
+            "request": request, "current_user": user, "vpss": vpss,
+            "test_error": "Host oder SSH-Key fehlt", "test_id": vps_id,
+        })
+
+    local_secret = os.getenv("API_SECRET", "")
+
+    def _run_test() -> str:
+        key = None
+        last_err = None
+        for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+            try:
+                key = cls.from_private_key(io.StringIO(vps.ssh_key))
+                break
+            except Exception as e:
+                last_err = e
+        if key is None:
+            raise ValueError(f"SSH-Key konnte nicht geladen werden: {last_err}")
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(vps.host, port=vps.port, username=vps.user, pkey=key, timeout=15)
+        try:
+            _, stdout, _ = client.exec_command(
+                "grep '^API_SECRET' /usr/local/bin/emailrelay-forward.py | head -1"
+            )
+            line = stdout.read().decode().strip()
+            m = re.search(r'API_SECRET\s*=\s*["\']([^"\']+)["\']', line)
+            vps_secret = m.group(1) if m else None
+            if vps_secret is None:
+                raise ValueError("API_SECRET nicht im Forward-Script gefunden — Setup noch nicht ausgeführt?")
+            if vps_secret != local_secret:
+                raise ValueError("API_SECRET veraltet — bitte Setup ausführen um zu synchronisieren")
+            return "API-Secret stimmt überein"
+        finally:
+            client.close()
+
+    test_ok = None
+    test_error = None
+    try:
+        test_ok = await asyncio.get_event_loop().run_in_executor(None, _run_test)
+    except Exception as e:
+        test_error = str(e)
+
+    return templates.TemplateResponse("vps_configs.html", {
+        "request": request, "current_user": user, "vpss": vpss,
+        "test_ok": test_ok, "test_error": test_error, "test_id": vps_id,
+    })
+
+
 # ── Alias-Domains (nur Admin) ──────────────────────────────────────────────────
 
 @router.get("/alias-domains", response_class=HTMLResponse)
