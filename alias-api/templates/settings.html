@@ -19,6 +19,7 @@
   <a href="/alias-domains" class="font-semibold underline">Alias-Domains</a>.
 </div>
 
+{% if current_user.is_admin %}
 <!-- ntfy-Benachrichtigungen -->
 <div class="bg-white rounded-xl shadow p-6 max-w-md mb-6">
   <h2 class="text-lg font-semibold mb-1">Push-Benachrichtigungen (ntfy)</h2>
