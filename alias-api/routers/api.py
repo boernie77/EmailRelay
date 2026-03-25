@@ -301,11 +301,18 @@ async def get_alias_for_message(
 
 
 @router.get("/addresses")
-async def list_addresses(db: AsyncSession = Depends(get_db), _=Depends(verify_secret)):
-    """Gibt alle aktiven E-Mail-Adressen zurück (für Chrome Extension)."""
-    result = await db.execute(
-        select(EmailAddress).where(EmailAddress.active == True).order_by(EmailAddress.address)
-    )
+async def list_addresses(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_secret),
+    x_username: str | None = Header(None),
+    x_password: str | None = Header(None),
+):
+    """Gibt aktiven E-Mail-Adressen zurück. Mit User-Credentials nur die des Benutzers."""
+    user_id = await _get_user_id_from_credentials(db, x_username, x_password)
+    query = select(EmailAddress).where(EmailAddress.active == True)
+    if user_id:
+        query = query.join(Domain, EmailAddress.domain_id == Domain.id).where(Domain.user_id == user_id)
+    result = await db.execute(query.order_by(EmailAddress.address))
     return [{"address": a.address} for a in result.scalars().all()]
 
 
