@@ -76,11 +76,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => { document.getElementById('copy').textContent = 'Nochmal kopieren'; }, 1500);
   });
 
-  // Einstellungen öffnen
-  document.getElementById('settings-link').addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.runtime.openOptionsPage();
-  });
 });
 
 async function createAlias() {
