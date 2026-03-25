@@ -368,5 +368,5 @@ async def test_ntfy(db: AsyncSession = Depends(get_db), _=Depends(verify_secret)
     ntfy_url = await _get_ntfy_url(db)
     if not ntfy_url:
         raise HTTPException(status_code=400, detail="Keine ntfy-URL konfiguriert")
-    await _send_ntfy(ntfy_url, "Test-Benachrichtigung von EmailRelay ✓", title="EmailRelay: Test")
+    await _send_ntfy(ntfy_url, "Test-Benachrichtigung von E-Mail Relay ✓", title="E-Mail Relay: Test")
     return {"ok": True}
