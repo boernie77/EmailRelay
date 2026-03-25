@@ -67,7 +67,7 @@ async def _record_vps_event(key: str):
         await session.commit()
 
 
-async def _send_ntfy(url: str, message: str, title: str = "EmailRelay"):
+async def _send_ntfy(url: str, message: str, title: str = "E-Mail Relay"):
     async with httpx.AsyncClient() as client:
         try:
             await client.post(url, content=message.encode(),
