@@ -20,8 +20,10 @@ document.getElementById('test').addEventListener('click', async () => {
   const apiSecret = document.getElementById('api-secret').value.trim();
   setStatus('Teste…', '');
   try {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
     const resp = await fetch(`${apiUrl}/api/addresses`, {
-      headers: { 'x-api-secret': apiSecret }
+      headers: { 'x-api-secret': apiSecret, 'x-username': username, 'x-password': password }
     });
     if (resp.status === 403) { setStatus('✗ Falsches API-Secret', 'err'); return; }
     if (!resp.ok) { setStatus(`✗ HTTP ${resp.status}`, 'err'); return; }
