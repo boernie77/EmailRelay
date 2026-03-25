@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
 from database import get_db
-from models import Alias, AliasDomainConfig, EmailAddress, Domain, Setting
+from models import Alias, AliasMessageLog, AliasDomainConfig, EmailAddress, Domain, Setting
 
 router = APIRouter(prefix="/api", tags=["api"])
 
