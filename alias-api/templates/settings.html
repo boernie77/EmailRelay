@@ -74,3 +74,23 @@
   </form>
 </div>
 {% endblock %}
+{% block scripts %}
+<script>
+async function testNtfy() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Wird gesendet…';
+  try {
+    const API_SECRET = document.querySelector('meta[name="api-secret"]')?.content || '';
+    const resp = await fetch('/api/settings/test-ntfy', {
+      method: 'POST',
+      headers: {'x-api-secret': API_SECRET}
+    });
+    btn.textContent = resp.ok ? '✓ Gesendet!' : '✗ Fehler';
+  } catch {
+    btn.textContent = '✗ Fehler';
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Test senden'; }, 2500);
+}
+</script>
+{% endblock %}
