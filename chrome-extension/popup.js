@@ -6,9 +6,11 @@ let apiPassword = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Einstellungen laden
-  const settings = await chrome.storage.sync.get(['apiUrl', 'apiSecret']);
+  const settings = await chrome.storage.sync.get(['apiUrl', 'apiSecret', 'username', 'password']);
   apiUrl = (settings.apiUrl || '').replace(/\/$/, '');
   apiSecret = settings.apiSecret || '';
+  apiUsername = settings.username || '';
+  apiPassword = settings.password || '';
 
   // Aktiven Tab ermitteln
   [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
