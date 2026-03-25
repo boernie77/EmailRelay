@@ -371,8 +371,8 @@ async def settings_test_ntfy(request: Request, db: AsyncSession = Depends(get_db
         return {"ok": False, "error": "Keine ntfy-URL konfiguriert"}
     async with httpx.AsyncClient() as client:
         try:
-            await client.post(ntfy_url, content="Test-Benachrichtigung von EmailRelay ✓".encode(),
-                              headers={"Title": "EmailRelay: Test", "Priority": "default"}, timeout=5)
+            await client.post(ntfy_url, content="Test-Benachrichtigung von E-Mail Relay ✓".encode(),
+                              headers={"Title": "E-Mail Relay: Test", "Priority": "default"}, timeout=5)
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": str(e)}
