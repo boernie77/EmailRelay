@@ -362,7 +362,7 @@ async def settings_save_ntfy(
 async def settings_test_ntfy(request: Request, db: AsyncSession = Depends(get_db)):
     import httpx
     user = await get_current_user(request, db)
-    if not user:
+    if not user or not user.is_admin:
         from fastapi import HTTPException
         raise HTTPException(status_code=403)
     ntfy_setting = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
