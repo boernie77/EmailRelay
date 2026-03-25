@@ -312,9 +312,55 @@ async def settings_save(
     else:
         error = "Bitte neues Passwort eingeben."
 
+    ntfy_setting = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
     return templates.TemplateResponse("settings.html", {
         "request": request, "current_user": user, "error": error, "success": success,
+        "ntfy_url": ntfy_setting.value if ntfy_setting else "",
+        "random_suffix": secrets.token_hex(4),
     })
+
+
+@router.post("/settings/ntfy", response_class=HTMLResponse)
+async def settings_save_ntfy(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    ntfy_url: str = Form(""),
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    ntfy_url = ntfy_url.strip()
+    existing = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
+    if existing:
+        existing.value = ntfy_url
+    else:
+        db.add(Setting(key="ntfy_url", value=ntfy_url))
+    await db.commit()
+    return templates.TemplateResponse("settings.html", {
+        "request": request, "current_user": user,
+        "success": "ntfy-URL gespeichert.",
+        "ntfy_url": ntfy_url, "random_suffix": secrets.token_hex(4),
+    })
+
+
+@router.post("/settings/test-ntfy")
+async def settings_test_ntfy(request: Request, db: AsyncSession = Depends(get_db)):
+    import httpx
+    user = await get_current_user(request, db)
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403)
+    ntfy_setting = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
+    ntfy_url = ntfy_setting.value if ntfy_setting and ntfy_setting.value else ""
+    if not ntfy_url:
+        return {"ok": False, "error": "Keine ntfy-URL konfiguriert"}
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(ntfy_url, content="Test-Benachrichtigung von EmailRelay ✓".encode(),
+                              headers={"Title": "EmailRelay: Test", "Priority": "default"}, timeout=5)
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
 
 # ── Admin: Benutzerverwaltung ──────────────────────────────────────────────────
