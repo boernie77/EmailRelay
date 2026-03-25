@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const { apiUrl, apiSecret } = await chrome.storage.sync.get(['apiUrl', 'apiSecret']);
+  const { apiUrl, apiSecret, username, password } = await chrome.storage.sync.get(['apiUrl', 'apiSecret', 'username', 'password']);
   document.getElementById('api-url').value = apiUrl || 'https://api.byboernie.de';
   document.getElementById('api-secret').value = apiSecret || '';
+  document.getElementById('username').value = username || '';
+  document.getElementById('password').value = password || '';
 });
 
 document.getElementById('save').addEventListener('click', async () => {
