@@ -26,7 +26,7 @@ echo "Konfiguriere Postfix..."
 cp /etc/postfix/main.cf /etc/postfix/main.cf.bak 2>/dev/null || true
 
 cat > /etc/postfix/main.cf << EOF
-# EmailRelay Postfix Konfiguration
+# E-Mail Relay Postfix Konfiguration
 smtpd_banner = \$myhostname ESMTP
 biff = no
 append_dot_mydomain = no
