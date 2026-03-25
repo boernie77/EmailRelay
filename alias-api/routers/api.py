@@ -20,6 +20,8 @@ API_SECRET = os.getenv("API_SECRET", "")
 
 _last_ntfy_sent: datetime | None = None
 _NTFY_COOLDOWN = timedelta(hours=1)
+_last_vps_ok_written: datetime | None = None
+_VPS_OK_WRITE_COOLDOWN = timedelta(minutes=10)
 
 
 def verify_secret(x_api_secret: str = Header(...)):
