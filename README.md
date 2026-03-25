@@ -168,6 +168,55 @@ postfix reload
 
 In Thunderbird unter *Kontoeinstellungen → [Konto] → Identitäten* prüfen, ob ein Reply-To eingetragen ist — diesen löschen.
 
+## Chrome Extension
+
+Die Chrome Extension ermöglicht es, direkt beim Ausfüllen von Webformularen einen neuen Alias zu erstellen — ohne die Web-UI öffnen zu müssen.
+
+### Was sie macht
+
+- Klick auf das Extension-Icon öffnet ein Popup
+- Alias-Domain und Zieladresse (deine echte Inbox) auswählen
+- Bezeichnung eingeben (z.B. der Website-Name)
+- Alias wird erstellt, automatisch in die Zwischenablage kopiert und ins zuletzt fokussierte Eingabefeld eingefügt
+
+### Voraussetzungen
+
+- E-Mail Relay muss laufen und über eine **öffentlich erreichbare URL** verfügbar sein (z.B. via Reverse Proxy auf dem VPS, z.B. `https://api.deine-domain.de`)
+- In den Extension-Einstellungen: API-URL, API-Secret sowie optional Benutzername und Passwort eintragen
+- Mit Benutzerkonto werden nur die eigenen Adressen angezeigt
+
+### Installation (manuell, ohne Chrome Web Store)
+
+```bash
+# 1. Repository klonen (oder nur den chrome-extension/-Ordner herunterladen)
+git clone https://github.com/boernie77/EmailRelay.git
+cd EmailRelay/chrome-extension
+
+# 2. Icons generieren (einmalig, benötigt Python 3)
+python3 generate_icons.py
+```
+
+3. Chrome öffnen → `chrome://extensions` → **Entwicklermodus** aktivieren (oben rechts)
+4. **"Entpackte Erweiterung laden"** → Ordner `chrome-extension` auswählen
+5. Extension-Icon in der Toolbar anklicken → **Einstellungen** → API-URL und API-Secret eintragen
+
+### Öffentliche API-URL einrichten
+
+Die Extension muss die API über HTTPS erreichen können. Empfohlene Lösung: Caddy als Reverse Proxy auf dem VPS:
+
+```
+# /etc/caddy/Caddyfile
+api.deine-domain.de {
+    reverse_proxy http://<TAILSCALE-IP-HEIMSERVER>:8080
+}
+```
+
+```bash
+systemctl reload caddy
+```
+
+DNS: `A api.deine-domain.de → IP-des-VPS`
+
 ## Tech Stack
 
 - **Backend**: Python 3.12, FastAPI, aiosmtpd, SQLAlchemy, asyncpg
