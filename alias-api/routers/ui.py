@@ -20,7 +20,7 @@ set -e
 API_URL='__API_URL__'
 API_SECRET='__API_SECRET__'
 
-echo "=== EmailRelay VPS Setup ==="
+echo "=== E-Mail Relay VPS Setup ==="
 echo ""
 echo "Installiere Pakete..."
 export DEBIAN_FRONTEND=noninteractive
