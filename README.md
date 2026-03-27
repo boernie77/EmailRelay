@@ -229,4 +229,6 @@ DNS: `A api.deine-domain.de → IP-des-VPS`
 
 ## Lizenz
 
-MIT
+Copyright (c) 2026 Christian. Alle Rechte vorbehalten.
+
+Die Nutzung, Vervielfältigung oder Verbreitung dieses Projekts oder von Teilen davon ist ohne ausdrückliche schriftliche Genehmigung des Urhebers nicht gestattet.
