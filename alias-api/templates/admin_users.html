@@ -79,9 +79,13 @@
       </div>
 
       <!-- Alias-Domain Zugriff -->
-      {% if all_configs %}
       <div>
-        <p class="text-xs text-gray-500 mb-2 font-medium">Alias-Domain Zugriff</p>
+        {% if all_configs %}
+        <p class="text-xs text-gray-500 mb-1 font-medium">Alias-Domain Zugriff</p>
+        <p class="text-xs text-gray-400 mb-2">
+          Zugewiesen → Benutzer gibt beim Setup nur seine Weiterleitungsadresse ein (Modus A).
+          Nicht zugewiesen → Benutzer richtet im Setup seine eigene Domain ein (Modus B).
+        </p>
         <form method="post" action="/admin/users/{{ u.id }}/alias-access" class="flex flex-wrap gap-2 items-center">
           {% set user_config_ids = u.alias_domain_access | map(attribute='alias_domain_config_id') | list %}
           {% for cfg in all_configs %}
@@ -97,8 +101,12 @@
             Speichern
           </button>
         </form>
+        {% else %}
+        <p class="text-xs text-gray-400">
+          Keine Admin-Alias-Domains vorhanden — Benutzer richtet beim Setup seine eigene Domain ein (Modus B).
+        </p>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
   {% endfor %}
