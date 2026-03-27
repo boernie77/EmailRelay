@@ -741,7 +741,7 @@ async def vps_setup(vps_id: int, request: Request, db: AsyncSession = Depends(ge
     api_secret = os.getenv("API_SECRET", "")
     # Postfix-Domains (kommagetrennt) und Regex-Einträge (eine Zeile pro Domain)
     domains_postfix = ", ".join(alias_domains)
-    domains_regex = "\n".join(f"/@{d.replace('.', r'\.')}$/  OK" for d in alias_domains)
+    domains_regex = "\n".join("/@" + d.replace(".", r"\.") + "$/  OK" for d in alias_domains)
 
     script = (
         _VPS_SETUP_SCRIPT
