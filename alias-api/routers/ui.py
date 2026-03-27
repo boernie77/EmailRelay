@@ -347,11 +347,10 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             tok = datetime.fromisoformat(sok.value) if sok else None
             vps_warning = tok is None or t403 > tok
 
-    # Nicht-Admins ohne E-Mail-Adressen zum Setup-Wizard leiten
+    # Setup-Wizard als Modal anzeigen wenn keine Adressen vorhanden
+    needs_setup = False
     if not user.is_admin and not address_count and not request.session.get("setup_skipped"):
-        alias_configs = await get_user_alias_configs(db, user)
-        if alias_configs:
-            return RedirectResponse("/setup", status_code=302)
+        needs_setup = True
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -361,6 +360,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "address_count": len(address_count),
         "recent_aliases": recent_aliases,
         "vps_warning": vps_warning,
+        "needs_setup": needs_setup,
     })
 
 
