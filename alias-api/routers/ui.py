@@ -371,10 +371,12 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
                     "registration_invite_code"]:
             system_smtp[key] = await get_setting(db, key)
         system_smtp["has_password"] = bool(await get_setting(db, "system_smtp_password"))
+    impressum_text = await get_setting(db, "impressum_text") if user.is_admin else ""
     return templates.TemplateResponse("settings.html", {
         "request": request, "current_user": user,
         "ntfy_url": ntfy_url, "random_suffix": random_suffix,
         "system_smtp": system_smtp, "saved": saved,
+        "impressum_text": impressum_text,
     })
 
 
