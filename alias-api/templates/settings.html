@@ -91,10 +91,19 @@
              class="rounded">
       <label for="sys_tls" class="text-sm text-gray-700">STARTTLS verwenden</label>
     </div>
-    <button type="submit"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
-      Speichern
-    </button>
+    <div class="flex gap-3 items-center">
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+        Speichern
+      </button>
+      {% if system_smtp.system_smtp_host %}
+      <button type="button" onclick="testSystemSmtp(this)"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-5 py-2 rounded-lg transition text-sm">
+        Verbindung testen
+      </button>
+      {% endif %}
+      <span id="smtp-test-status" class="text-sm"></span>
+    </div>
   </form>
 </div>
 
