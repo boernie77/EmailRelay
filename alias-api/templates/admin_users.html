@@ -40,6 +40,7 @@
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-3">
         <span class="font-semibold text-gray-800">{{ u.username }}</span>
+        {% if u.email %}<span class="text-gray-400 text-xs">{{ u.email }}</span>{% endif %}
         {% if u.is_admin %}<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">Admin</span>{% endif %}
         {% if u.active %}
         <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Aktiv</span>
