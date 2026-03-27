@@ -499,11 +499,35 @@ async def admin_registration_settings(request: Request, db: AsyncSession = Depen
         return redirect_login()
     form = await request.form()
     registration_enabled = "true" if form.get("registration_enabled") == "true" else "false"
-    registration_invite_code = (form.get("registration_invite_code") or "").strip()
     await save_setting(db, "registration_enabled", registration_enabled)
-    await save_setting(db, "registration_invite_code", registration_invite_code)
     await db.commit()
     return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/admin/users/save-invite-code")
+async def admin_save_invite_code(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return JSONResponse({"ok": False})
+    data = await request.json()
+    code = (data.get("code") or "").strip()
+    await save_setting(db, "registration_invite_code", code)
+    await db.commit()
+    return JSONResponse({"ok": True})
+
+
+@router.post("/admin/users/{uid}/preset-domain")
+async def admin_user_preset_domain(uid: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return JSONResponse({"ok": False})
+    data = await request.json()
+    domain = (data.get("domain") or "").strip().lower()
+    target = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    if target:
+        target.preset_alias_domain = domain or None
+        await db.commit()
+    return JSONResponse({"ok": True})
 
 
 @router.post("/admin/users/create")
