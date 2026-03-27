@@ -241,5 +241,13 @@ async function savePresetDomain(uid) {
     setTimeout(() => input.style.borderColor = '', 2000);
   } catch {}
 }
+
+function filterUsers(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('#user-list > [data-search]').forEach(card => {
+    const text = card.dataset.search || '';
+    card.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
 </script>
 {% endblock %}
