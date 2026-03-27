@@ -4,69 +4,292 @@
 <div class="max-w-lg mx-auto">
   <div class="bg-white rounded-xl shadow p-8">
 
-    <!-- Fortschrittsanzeige -->
+    {% if mode == "A" %}
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- Modus A: Admin hat Alias-Domain bereits zugewiesen → nur E-Mail eingeben -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Fortschrittsanzeige (1 Schritt) -->
     <div class="flex items-center gap-2 mb-8">
       <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold">1</div>
-      <div class="flex-1 h-1 bg-blue-600 rounded"></div>
-      <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold">2</div>
     </div>
 
     <h1 class="text-2xl font-bold mb-2">Willkommen bei E-Mail Relay!</h1>
     <p class="text-gray-500 text-sm mb-6">
-      Lass uns dein Konto einrichten. Du brauchst nur deine echte E-Mail-Adresse — Mails an deine Aliases werden dorthin weitergeleitet.
+      Gib deine echte E-Mail-Adresse an – Mails an deine Aliases werden dorthin weitergeleitet.
     </p>
 
     {% if error %}
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
-      {{ error }}
-    </div>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">{{ error }}</div>
     {% endif %}
 
     <form method="post" action="/setup" class="space-y-5">
+      <input type="hidden" name="step" value="finish_A">
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">
-          Deine echte E-Mail-Adresse
-        </label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Deine echte E-Mail-Adresse</label>
         <input type="email" name="email_address" autofocus required
                placeholder="ich@mein-postfach.de"
                class="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        <p class="text-xs text-gray-400 mt-1">
-          Eingehende Mails an deine Aliases werden an diese Adresse weitergeleitet.
-        </p>
+        <p class="text-xs text-gray-400 mt-1">Eingehende Mails an deine Aliases werden hierhin weitergeleitet.</p>
       </div>
 
       {% if alias_configs | length > 1 %}
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">
-          Alias-Domain
-        </label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Alias-Domain</label>
         <select name="alias_domain_config_id"
                 class="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
           {% for cfg in alias_configs %}
           <option value="{{ cfg.id }}">{{ cfg.alias_domain }}{% if cfg.label %} ({{ cfg.label }}){% endif %}</option>
           {% endfor %}
         </select>
-        <p class="text-xs text-gray-400 mt-1">
-          Deine Aliases werden auf dieser Domain erstellt.
-        </p>
       </div>
       {% else %}
       <input type="hidden" name="alias_domain_config_id" value="{{ alias_configs[0].id }}">
       <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
         <p class="text-xs text-gray-500 mb-0.5 font-medium">Deine Alias-Domain</p>
         <p class="text-sm font-mono text-gray-800">@{{ alias_configs[0].alias_domain }}</p>
-        <p class="text-xs text-gray-400 mt-1">Deine Aliases sehen z.B. so aus: <span class="font-mono">abc123def@{{ alias_configs[0].alias_domain }}</span></p>
+        <p class="text-xs text-gray-400 mt-1">Aliases sehen z.B. so aus: <span class="font-mono">abc123@{{ alias_configs[0].alias_domain }}</span></p>
       </div>
       {% endif %}
 
       <button type="submit"
               class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
-        Einrichten & Weiter →
+        Einrichten →
       </button>
     </form>
 
-    <form method="post" action="/setup/skip" class="mt-3">
+    {% else %}
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- Modus B: User legt eigene Alias-Domain an (4 Schritte) -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Fortschrittsanzeige (4 Schritte) -->
+    <div class="flex items-center gap-2 mb-8">
+      {% for i in [1, 2, 3, 4] %}
+      <div class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold
+                  {% if step >= i %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">{{ i }}</div>
+      {% if not loop.last %}
+      <div class="flex-1 h-1 rounded {% if step > i %}bg-blue-600{% else %}bg-gray-200{% endif %}"></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if error %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">{{ error }}</div>
+    {% endif %}
+
+    <!-- ─── Schritt 1: Alias-Domain ─────────────────────────────────────────── -->
+    {% if step == 1 %}
+    <h1 class="text-2xl font-bold mb-2">Alias-Domain einrichten</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      Du brauchst eine eigene Domain (oder Subdomain), auf der deine Aliases angelegt werden.
+      Der MX-Eintrag dieser Domain muss auf den Mail-Server zeigen.
+    </p>
+
+    <form method="post" action="/setup" class="space-y-5">
+      <input type="hidden" name="step" value="1">
+      {% if vps %}<input type="hidden" name="vps_id" value="{{ vps.id }}">{% endif %}
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Alias-Domain</label>
+        <input type="text" name="alias_domain" autofocus required
+               value="{{ alias_domain or '' }}"
+               placeholder="relay.meine-domain.de"
+               class="w-full border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <p class="text-xs text-gray-400 mt-1">
+          Kann eine Subdomain sein, z.B. <span class="font-mono">aliases.meine-domain.de</span>.
+          Alias-Adressen sehen dann so aus: <span class="font-mono">abc123@aliases.meine-domain.de</span>
+        </p>
+      </div>
+
+      {% if vps %}
+      <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+        <p class="font-medium mb-1">Mail-Server für MX-Eintrag:</p>
+        <p class="font-mono">{{ vps.host }}</p>
+        <p class="text-xs text-blue-600 mt-1">Im nächsten Schritt erhältst du genaue Anweisungen zum DNS-Eintrag.</p>
+      </div>
+      {% else %}
+      <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+        Noch kein VPS-Server konfiguriert. Wende dich an den Administrator.
+      </div>
+      {% endif %}
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+        Weiter →
+      </button>
+    </form>
+    {% endif %}
+
+    <!-- ─── Schritt 2: DNS einrichten ───────────────────────────────────────── -->
+    {% if step == 2 %}
+    <h1 class="text-2xl font-bold mb-2">DNS-Eintrag setzen</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      Damit Mails an <span class="font-mono font-medium text-gray-700">{{ alias_domain }}</span> ankommen,
+      muss der MX-Eintrag auf den Mail-Server zeigen.
+    </p>
+
+    <form method="post" action="/setup" class="space-y-5">
+      <input type="hidden" name="step" value="2">
+      <input type="hidden" name="alias_domain" value="{{ alias_domain }}">
+      <input type="hidden" name="vps_id" value="{{ vps_id or '' }}">
+
+      {% if vps %}
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">MX-Eintrag setzen bei deinem Domain-Anbieter:</p>
+        <div class="font-mono text-sm bg-white border border-gray-300 rounded px-3 py-2 text-gray-800">
+          <span class="text-blue-600">{{ alias_domain }}.</span>
+          <span class="text-gray-500">IN MX 10</span>
+          <span class="text-green-700">{{ vps.host }}.</span>
+        </div>
+        <p class="text-xs text-gray-500">TTL: 300 (oder niedrigster möglicher Wert)</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="button" id="dns-check-btn"
+                onclick="checkDns('{{ alias_domain }}', '{{ vps.host }}')"
+                class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition text-sm">
+          MX-Eintrag prüfen
+        </button>
+        <span id="dns-result" class="text-sm"></span>
+      </div>
+      <p class="text-xs text-gray-400">
+        DNS-Änderungen können bis zu 24 Stunden dauern. Du kannst auch ohne erfolgreiche Prüfung weitermachen.
+      </p>
+      {% else %}
+      <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+        Kein VPS konfiguriert – DNS-Einrichtung nicht möglich. Wende dich an den Administrator.
+      </div>
+      {% endif %}
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+        Weiter →
+      </button>
+    </form>
+    {% endif %}
+
+    <!-- ─── Schritt 3: SMTP-Zugangsdaten ────────────────────────────────────── -->
+    {% if step == 3 %}
+    <h1 class="text-2xl font-bold mb-2">E-Mail-Versand einrichten</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      Gib die SMTP-Zugangsdaten für den Versand weitergeleiteter Mails an.
+      Das ist dein E-Mail-Konto, über das E-Mail Relay ausgehende Mails verschickt.
+    </p>
+
+    <form method="post" action="/setup" class="space-y-4">
+      <input type="hidden" name="step" value="3">
+      <input type="hidden" name="alias_domain" value="{{ alias_domain }}">
+      <input type="hidden" name="vps_id" value="{{ vps_id or '' }}">
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2 sm:col-span-1" style="grid-column: span 2 / span 2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">SMTP-Server</label>
+          <input type="text" name="smtp_host" value="{{ smtp_host or '' }}" required
+                 placeholder="smtp.mein-anbieter.de"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+          <input type="number" name="smtp_port" value="{{ smtp_port or '587' }}"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Verschlüsselung</label>
+          <select name="smtp_use_tls"
+                  class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="true" {% if (smtp_use_tls or 'true') != 'false' %}selected{% endif %}>STARTTLS / TLS</option>
+            <option value="false" {% if smtp_use_tls == 'false' %}selected{% endif %}>Keine</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
+          <input type="text" name="smtp_user" value="{{ smtp_user or '' }}" required
+                 placeholder="ich@mein-anbieter.de"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+          <input type="password" name="smtp_password" id="smtp_password_input"
+                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+      </div>
+
+      <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        Bei Gmail: App-Passwort verwenden (Google-Konto → Sicherheit → App-Passwörter).
+      </p>
+
+      <div class="flex items-center gap-3">
+        <button type="button" id="smtp-test-btn" onclick="testSmtp()"
+                class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition text-sm">
+          Verbindung testen
+        </button>
+        <span id="smtp-result" class="text-sm"></span>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+        Weiter →
+      </button>
+    </form>
+    {% endif %}
+
+    <!-- ─── Schritt 4: Weiterleitungsadresse ────────────────────────────────── -->
+    {% if step == 4 %}
+    <h1 class="text-2xl font-bold mb-2">Weiterleitungsadresse</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      Gib deine echte E-Mail-Adresse an, an die eingehende Mails weitergeleitet werden sollen.
+    </p>
+
+    <!-- Zusammenfassung -->
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5 space-y-2 text-sm">
+      <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">Konfiguration</p>
+      <div class="flex justify-between">
+        <span class="text-gray-500">Alias-Domain</span>
+        <span class="font-mono text-gray-800">{{ alias_domain }}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-500">SMTP-Server</span>
+        <span class="font-mono text-gray-800">{{ smtp_host }}:{{ smtp_port }}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-500">SMTP-Benutzer</span>
+        <span class="font-mono text-gray-800">{{ smtp_user }}</span>
+      </div>
+    </div>
+
+    <form method="post" action="/setup" class="space-y-5">
+      <input type="hidden" name="step" value="finish_B">
+      <input type="hidden" name="alias_domain" value="{{ alias_domain }}">
+      <input type="hidden" name="vps_id" value="{{ vps_id or '' }}">
+      <input type="hidden" name="smtp_host" value="{{ smtp_host }}">
+      <input type="hidden" name="smtp_port" value="{{ smtp_port }}">
+      <input type="hidden" name="smtp_user" value="{{ smtp_user }}">
+      <input type="hidden" name="smtp_password" value="{{ smtp_password }}">
+      <input type="hidden" name="smtp_use_tls" value="{{ smtp_use_tls }}">
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Deine echte E-Mail-Adresse</label>
+        <input type="email" name="email_address" autofocus required
+               placeholder="ich@mein-postfach.de"
+               class="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <p class="text-xs text-gray-400 mt-1">
+          Eingehende Mails an deine Aliases werden hierhin weitergeleitet.
+          Diese Adresse muss auf einer anderen Domain liegen als <span class="font-mono">{{ alias_domain }}</span>.
+        </p>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+        Einrichtung abschließen →
+      </button>
+    </form>
+    {% endif %}
+
+    {% endif %}{# end mode check #}
+
+    <form method="post" action="/setup/skip" class="mt-4">
       <button type="submit" class="w-full text-sm text-gray-400 hover:text-gray-500 py-1 transition">
         Überspringen — ich richte das später ein
       </button>
@@ -85,4 +308,68 @@
     </ul>
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function checkDns(domain, expected) {
+  const btn = document.getElementById('dns-check-btn');
+  const result = document.getElementById('dns-result');
+  btn.disabled = true;
+  btn.textContent = 'Prüfe…';
+  result.textContent = '';
+  try {
+    const resp = await fetch('/setup/check-dns?domain=' + encodeURIComponent(domain) + '&expected=' + encodeURIComponent(expected));
+    const data = await resp.json();
+    if (data.ok) {
+      result.className = 'text-sm text-green-600 font-medium';
+      result.textContent = '✓ MX-Eintrag korrekt gesetzt';
+    } else {
+      result.className = 'text-sm text-red-600';
+      if (data.mx && data.mx.length > 0) {
+        result.textContent = '✗ Aktueller MX: ' + data.mx.join(', ');
+      } else {
+        result.textContent = '✗ ' + (data.error || 'Kein MX-Eintrag gefunden');
+      }
+    }
+  } catch {
+    result.className = 'text-sm text-red-600';
+    result.textContent = '✗ Prüfung fehlgeschlagen';
+  }
+  btn.disabled = false;
+  btn.textContent = 'MX-Eintrag prüfen';
+}
+
+async function testSmtp() {
+  const btn = document.getElementById('smtp-test-btn');
+  const result = document.getElementById('smtp-result');
+  const host = document.querySelector('input[name="smtp_host"]').value;
+  const port = parseInt(document.querySelector('input[name="smtp_port"]').value) || 587;
+  const username = document.querySelector('input[name="smtp_user"]').value;
+  const password = document.getElementById('smtp_password_input').value;
+  const useTls = document.querySelector('select[name="smtp_use_tls"]').value !== 'false';
+  btn.disabled = true;
+  btn.textContent = 'Teste…';
+  result.textContent = '';
+  try {
+    const resp = await fetch('/setup/test-smtp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ host, port, username, password, use_tls: useTls }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      result.className = 'text-sm text-green-600 font-medium';
+      result.textContent = '✓ Verbindung erfolgreich';
+    } else {
+      result.className = 'text-sm text-red-600';
+      result.textContent = '✗ ' + (data.error || 'Verbindung fehlgeschlagen');
+    }
+  } catch {
+    result.className = 'text-sm text-red-600';
+    result.textContent = '✗ Test fehlgeschlagen';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Verbindung testen';
+}
+</script>
 {% endblock %}
