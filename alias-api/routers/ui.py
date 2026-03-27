@@ -592,14 +592,25 @@ async def admin_user_delete(uid: int, request: Request, db: AsyncSession = Depen
 
 @router.post("/admin/users/{uid}/toggle")
 async def admin_user_toggle(uid: int, request: Request, db: AsyncSession = Depends(get_db)):
+    from email_utils import send_system_email
     user = await get_current_user(request, db)
     if not user or not user.is_admin:
         return redirect_login()
     if uid != user.id:
         target = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
         if target:
+            was_inactive = not target.active
             target.active = not target.active
             await db.commit()
+            # Benachrichtigung senden wenn Account freigeschaltet wird und E-Mail vorhanden
+            if was_inactive and target.active and target.email:
+                base_url = str(request.base_url).rstrip("/")
+                html = (
+                    f"<p>Hallo {target.username},</p>"
+                    f"<p>dein E-Mail Relay Konto wurde freigeschaltet. Du kannst dich jetzt anmelden.</p>"
+                    f"<p><a href='{base_url}/login'>Jetzt anmelden →</a></p>"
+                )
+                await send_system_email(target.email, "E-Mail Relay – Konto freigeschaltet", html, db)
     return RedirectResponse("/admin/users", status_code=303)
 
 
