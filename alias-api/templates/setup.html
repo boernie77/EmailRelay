@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %} – Einrichtung{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="bg-white rounded-xl shadow p-8">
+
+    <!-- Fortschrittsanzeige -->
+    <div class="flex items-center gap-2 mb-8">
+      <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold">1</div>
+      <div class="flex-1 h-1 bg-blue-600 rounded"></div>
+      <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-400 text-sm font-bold">2</div>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-2">Willkommen bei E-Mail Relay!</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      Lass uns dein Konto einrichten. Du brauchst nur deine echte E-Mail-Adresse — Mails an deine Aliases werden dorthin weitergeleitet.
+    </p>
+
+    {% if error %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/setup" class="space-y-5">
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">
+          Deine echte E-Mail-Adresse
+        </label>
+        <input type="email" name="email_address" autofocus required
+               placeholder="ich@mein-postfach.de"
+               class="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <p class="text-xs text-gray-400 mt-1">
+          Eingehende Mails an deine Aliases werden an diese Adresse weitergeleitet.
+        </p>
+      </div>
+
+      {% if alias_configs | length > 1 %}
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">
+          Alias-Domain
+        </label>
+        <select name="alias_domain_config_id"
+                class="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          {% for cfg in alias_configs %}
+          <option value="{{ cfg.id }}">{{ cfg.alias_domain }}{% if cfg.label %} ({{ cfg.label }}){% endif %}</option>
+          {% endfor %}
+        </select>
+        <p class="text-xs text-gray-400 mt-1">
+          Deine Aliases werden auf dieser Domain erstellt.
+        </p>
+      </div>
+      {% else %}
+      <input type="hidden" name="alias_domain_config_id" value="{{ alias_configs[0].id }}">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+        <p class="text-xs text-gray-500 mb-0.5 font-medium">Deine Alias-Domain</p>
+        <p class="text-sm font-mono text-gray-800">@{{ alias_configs[0].alias_domain }}</p>
+        <p class="text-xs text-gray-400 mt-1">Deine Aliases sehen z.B. so aus: <span class="font-mono">abc123def@{{ alias_configs[0].alias_domain }}</span></p>
+      </div>
+      {% endif %}
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+        Einrichten & Weiter →
+      </button>
+    </form>
+
+    <form method="post" action="/setup/skip" class="mt-3">
+      <button type="submit" class="w-full text-sm text-gray-400 hover:text-gray-500 py-1 transition">
+        Überspringen — ich richte das später ein
+      </button>
+    </form>
+
+  </div>
+
+  <!-- Erklärungsbox -->
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mt-4">
+    <h3 class="font-semibold text-blue-800 mb-2 text-sm">Wie funktioniert E-Mail Relay?</h3>
+    <ul class="text-sm text-blue-700 space-y-1.5">
+      <li>📬 Du erstellst Aliases für jede Website/jeden Dienst</li>
+      <li>🔒 Die Website kennt nur den Alias, nicht deine echte Adresse</li>
+      <li>📨 Eingehende Mails werden an dich weitergeleitet</li>
+      <li>🚫 Wenn Spam kommt: Alias deaktivieren, fertig</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
