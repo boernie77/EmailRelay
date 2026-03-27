@@ -901,6 +901,8 @@ async def alias_domain_add(
         await db.flush()
         db.add(AliasDomainAccess(user_id=user.id, alias_domain_config_id=cfg.id))
         await db.commit()
+        if cfg.vps_config_id:
+            asyncio.create_task(_auto_vps_setup(cfg.vps_config_id))
     return RedirectResponse("/alias-domains", status_code=303)
 
 
