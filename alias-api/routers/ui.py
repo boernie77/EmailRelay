@@ -481,6 +481,20 @@ async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db))
     })
 
 
+@router.post("/admin/users/registration-settings")
+async def admin_registration_settings(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    form = await request.form()
+    registration_enabled = "true" if form.get("registration_enabled") == "true" else "false"
+    registration_invite_code = (form.get("registration_invite_code") or "").strip()
+    await save_setting(db, "registration_enabled", registration_enabled)
+    await save_setting(db, "registration_invite_code", registration_invite_code)
+    await db.commit()
+    return RedirectResponse("/admin/users", status_code=303)
+
+
 @router.post("/admin/users/create")
 async def admin_user_create(
     request: Request,
