@@ -1580,6 +1580,7 @@ async def settings_system_smtp(
     user = await get_current_user(request, db)
     if not user or not user.is_admin:
         return redirect_login()
+    registration_invite_code_val = (await request.form()).get("registration_invite_code", "").strip()
     for key, val in [
         ("system_smtp_host", system_smtp_host.strip()),
         ("system_smtp_port", system_smtp_port.strip() or "587"),
@@ -1587,6 +1588,7 @@ async def settings_system_smtp(
         ("system_smtp_from", system_smtp_from.strip()),
         ("system_smtp_use_tls", system_smtp_use_tls),
         ("registration_enabled", registration_enabled),
+        ("registration_invite_code", registration_invite_code_val),
     ]:
         await save_setting(db, key, val)
     # Passwort nur überschreiben wenn neu eingegeben
