@@ -1256,8 +1256,14 @@ async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/privacy", response_class=HTMLResponse)
-async def privacy_page():
-    return HTMLResponse(content=PRIVACY_POLICY_HTML)
+async def privacy_page(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+
+@router.get("/impressum", response_class=HTMLResponse)
+async def impressum_page(request: Request, db: AsyncSession = Depends(get_db)):
+    impressum_text = await get_setting(db, "impressum_text", "")
+    return templates.TemplateResponse("impressum.html", {"request": request, "impressum_text": impressum_text})
 
 
 # ── Registrierung ──────────────────────────────────────────────────────────────
