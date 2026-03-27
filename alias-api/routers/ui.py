@@ -490,6 +490,7 @@ async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db))
     registration_invite_code = await get_setting(db, "registration_invite_code", "")
     return templates.TemplateResponse("admin_users.html", {
         "request": request, "current_user": user, "users": users, "all_configs": all_configs,
+        "all_config_ids": all_config_ids,
         "registration_enabled": registration_enabled,
         "registration_invite_code": registration_invite_code,
     })
