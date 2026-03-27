@@ -46,6 +46,15 @@
         {% if not has_users %}Admin-Account erstellen & anmelden{% else %}Anmelden{% endif %}
       </button>
     </form>
+
+    {% if has_users %}
+    <div class="mt-5 flex flex-col gap-2 text-center text-sm">
+      <a href="/forgot-password" class="text-gray-400 hover:text-gray-600 transition">Passwort vergessen?</a>
+      {% if registration_enabled %}
+      <a href="/register" class="text-blue-500 hover:text-blue-700 font-medium transition">Neues Konto erstellen</a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </body>
 </html>
