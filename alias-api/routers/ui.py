@@ -1354,8 +1354,11 @@ async def register_submit(
         })
 
     pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
-    new_user = User(username=username, password_hash=pw_hash, email=email, is_admin=False, active=False)
+    new_user = User(username=username, password_hash=pw_hash, email=email, is_admin=False, active=False,
+                    invite_code_used=required_code)
     db.add(new_user)
+    # Einladungscode nach Verwendung löschen (Einmal-Code)
+    await save_setting(db, "registration_invite_code", "")
     await db.flush()
 
     # Zugriff auf alle Standard-Alias-Domains automatisch gewähren
