@@ -1439,7 +1439,7 @@ async def reset_password_page(token: str, request: Request, db: AsyncSession = D
     )).scalar_one_or_none()
     valid = bool(
         user and user.token_expiry
-        and user.token_expiry.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
+        and user.token_expiry.astimezone(timezone.utc) > datetime.now(timezone.utc)
     )
     return templates.TemplateResponse("reset_password.html", {
         "request": request, "token": token, "valid": valid,
@@ -1460,7 +1460,7 @@ async def reset_password_submit(
     )).scalar_one_or_none()
     valid = bool(
         user and user.token_expiry
-        and user.token_expiry.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
+        and user.token_expiry.astimezone(timezone.utc) > datetime.now(timezone.utc)
     )
     if not valid:
         return templates.TemplateResponse("reset_password.html", {
