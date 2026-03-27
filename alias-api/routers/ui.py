@@ -969,6 +969,7 @@ async def alias_domain_edit_save(
         cfg.smtp_password = smtp_password
         cfg.smtp_use_tls = smtp_use_tls != "false"
         cfg.vps_config_id = int(vps_config_id) if vps_config_id.strip() else None
+        cfg.is_default = is_default == "true"
         cfg.catchall_enabled = catchall_enabled == "true"
         cfg.catchall_target_address = catchall_target_address.strip().lower()
         await db.commit()
