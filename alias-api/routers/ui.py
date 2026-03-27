@@ -298,10 +298,11 @@ async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
     if request.session.get("user_id"):
         return RedirectResponse("/", status_code=302)
     has_users = bool((await db.execute(select(User))).scalars().first())
-    # Upgrade-Hinweis: Keine User, aber altes Passwort vorhanden
     is_upgrade = not has_users and bool(await get_setting(db, "ui_password_hash"))
+    registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
     return templates.TemplateResponse("login.html", {
         "request": request, "has_users": has_users, "is_upgrade": is_upgrade,
+        "registration_enabled": registration_enabled,
     })
 
 
