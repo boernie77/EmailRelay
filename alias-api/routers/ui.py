@@ -422,7 +422,8 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     system_smtp = {}
     if user.is_admin:
         for key in ["system_smtp_host", "system_smtp_port", "system_smtp_user",
-                    "system_smtp_from", "system_smtp_use_tls", "registration_enabled"]:
+                    "system_smtp_from", "system_smtp_use_tls", "registration_enabled",
+                    "registration_invite_code"]:
             system_smtp[key] = await get_setting(db, key)
         system_smtp["has_password"] = bool(await get_setting(db, "system_smtp_password"))
     return templates.TemplateResponse("settings.html", {
