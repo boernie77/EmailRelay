@@ -390,6 +390,12 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             tok = datetime.fromisoformat(sok.value) if sok else None
             vps_warning = tok is None or t403 > tok
 
+    # Nicht-Admins ohne E-Mail-Adressen zum Setup-Wizard leiten
+    if not user.is_admin and not address_count and not request.session.get("setup_skipped"):
+        alias_configs = await get_user_alias_configs(db, user)
+        if alias_configs:
+            return RedirectResponse("/setup", status_code=302)
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "current_user": user,
