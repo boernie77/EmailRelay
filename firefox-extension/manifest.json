@@ -38,7 +38,7 @@
     "128": "icons/icon128.png"
   },
   "data_collection_permissions": {
-    "required": [],
+    "required": ["none"],
     "optional": []
   }
 }
