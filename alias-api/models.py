@@ -60,6 +60,7 @@ class AliasDomainConfig(Base):
     smtp_password = Column(String, default="")
     smtp_use_tls = Column(Boolean, default=True)
     active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)
     catchall_enabled = Column(Boolean, default=False)
     catchall_target_address = Column(String, default="")
     vps_config_id = Column(Integer, ForeignKey("vps_configs.id", ondelete="SET NULL"), nullable=True)
