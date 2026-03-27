@@ -171,6 +171,28 @@ function genCode() {
   for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
   document.querySelector('input[name="registration_invite_code"]').value = code;
 }
+async function testSystemSmtp(btn) {
+  const status = document.getElementById('smtp-test-status');
+  btn.disabled = true;
+  btn.textContent = 'Teste…';
+  status.textContent = '';
+  try {
+    const resp = await fetch('/settings/test-system-smtp', { method: 'POST' });
+    const data = await resp.json();
+    if (data.ok) {
+      status.textContent = '✓ Verbindung erfolgreich';
+      status.className = 'text-sm text-green-600 font-medium';
+    } else {
+      status.textContent = '✗ ' + (data.error || 'Fehler');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch {
+    status.textContent = '✗ Netzwerkfehler';
+    status.className = 'text-sm text-red-600';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Verbindung testen';
+}
 async function testNtfy() {
   const btn = event.target;
   btn.disabled = true;
