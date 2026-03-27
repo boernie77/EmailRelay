@@ -298,15 +298,7 @@ async def login_submit(
             "registration_enabled": registration_enabled,
         })
 
-    if not user.active:
-        registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
-        return templates.TemplateResponse("login.html", {
-            "request": request,
-            "error": "Dein Account wartet noch auf Freischaltung durch den Administrator.",
-            "has_users": has_users, "is_upgrade": False,
-            "registration_enabled": registration_enabled,
-        })
-
+    # Auch inaktive Benutzer einloggen — sie sehen dann ein Sperr-Popup
     request.session["user_id"] = user.id
     request.session["is_admin"] = user.is_admin
     return RedirectResponse("/", status_code=302)
