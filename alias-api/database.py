@@ -32,6 +32,11 @@ async def init_db():
         "ALTER TABLE aliases ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
         "ALTER TABLE alias_domain_configs ADD COLUMN vps_config_id INTEGER "
         "REFERENCES vps_configs(id) ON DELETE SET NULL",
+        "ALTER TABLE users ADD COLUMN email VARCHAR",
+        "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN reset_token VARCHAR",
+        "ALTER TABLE users ADD COLUMN token_expiry TIMESTAMPTZ",
+        "ALTER TABLE alias_domain_configs ADD COLUMN is_default BOOLEAN DEFAULT FALSE",
     ]:
         try:
             async with engine.begin() as conn:
