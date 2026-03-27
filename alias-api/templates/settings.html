@@ -25,6 +25,28 @@
 </div>
 
 {% if current_user.is_admin %}
+<!-- Impressum -->
+<div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6">
+  <h2 class="text-lg font-semibold mb-1">Impressum</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    Wird unter <a href="/impressum" target="_blank" class="text-blue-600 hover:underline">/impressum</a> angezeigt (ohne Login zugänglich).
+    Enthält persönliche Daten (Name, Adresse) — wird nicht im Code gespeichert, sondern nur in der Datenbank.
+  </p>
+  <form method="post" action="/settings/legal" class="space-y-3">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Impressum-Text</label>
+      <textarea name="impressum_text" rows="8"
+                placeholder="Vorname Nachname&#10;Musterstraße 1&#10;12345 Musterstadt&#10;&#10;E-Mail: kontakt@meine-domain.de"
+                class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400">{{ impressum_text or '' }}</textarea>
+      <p class="text-xs text-gray-400 mt-1">Zeilenumbrüche werden übernommen. Keine HTML-Tags nötig.</p>
+    </div>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+      Speichern
+    </button>
+  </form>
+</div>
+
 <!-- System-SMTP für Registrierung / Passwort-Reset -->
 <div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6">
   <h2 class="text-lg font-semibold mb-1">System-E-Mail (SMTP)</h2>
