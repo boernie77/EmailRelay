@@ -97,7 +97,8 @@
   {% set user_config_ids = u.alias_domain_access | map(attribute='alias_domain_config_id') | list %}
   {% set own_configs = user_own_domains[u.id] %}
 
-  <div class="bg-white rounded-xl shadow p-5 {% if not u.active and not u.is_admin %}border-2 border-amber-300{% endif %}">
+  <div class="bg-white rounded-xl shadow p-5 {% if not u.active and not u.is_admin %}border-2 border-amber-300{% endif %}"
+       data-search="{{ u.username|lower }} {{ u.email|lower if u.email }} {{ u.invite_code_used|lower if u.invite_code_used }}">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2 flex-wrap">
