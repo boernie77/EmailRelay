@@ -32,6 +32,17 @@ pip3 install -q httpx 2>/dev/null || pip3 install --break-system-packages -q htt
 
 echo "Konfiguriere Postfix..."
 cp /etc/postfix/main.cf /etc/postfix/main.cf.bak 2>/dev/null || true
+
+# TLS-Zertifikat generieren falls noch nicht vorhanden
+if [ ! -f /etc/postfix/smtp.crt ]; then
+  echo "Generiere selbstsigniertes TLS-Zertifikat für Postfix..."
+  openssl req -new -x509 -days 3650 -nodes \
+    -out /etc/postfix/smtp.crt \
+    -keyout /etc/postfix/smtp.key \
+    -subj "/CN=$(hostname -f)" 2>/dev/null
+  chmod 600 /etc/postfix/smtp.key
+fi
+
 cat > /etc/postfix/main.cf << MAINCF
 smtpd_banner = \$myhostname ESMTP
 biff = no
@@ -46,6 +57,8 @@ virtual_mailbox_domains = __ALIAS_DOMAINS_POSTFIX__
 virtual_transport = emailrelay
 virtual_mailbox_maps = regexp:/etc/postfix/virtual_mailbox_regex
 smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
+smtpd_tls_cert_file = /etc/postfix/smtp.crt
+smtpd_tls_key_file = /etc/postfix/smtp.key
 smtpd_tls_security_level = may
 smtp_tls_security_level = may
 message_size_limit = 52428800
