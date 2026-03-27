@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "E-Mail Relay",
+  "version": "1.0",
+  "description": "Alias-Adressen direkt beim Surfen erstellen — schützt deine echte E-Mail-Adresse.",
+  "homepage_url": "https://byboernie.de",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "emailrelay@boernie77",
+      "strict_min_version": "109.0"
+    }
+  },
+  "permissions": ["storage", "activeTab", "tabs", "clipboardWrite"],
+  "host_permissions": ["https://*/*", "http://*/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "E-Mail Relay – Alias erstellen",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true,
+    "browser_style": false
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
