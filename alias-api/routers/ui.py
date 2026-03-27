@@ -478,11 +478,14 @@ async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db))
     if not user or not user.is_admin:
         return redirect_login()
     users = (await db.execute(
-        select(User).options(selectinload(User.alias_domain_access)).order_by(User.created_at)
+        select(User)
+        .options(selectinload(User.alias_domain_access).selectinload(AliasDomainAccess.config))
+        .order_by(User.created_at)
     )).scalars().all()
     all_configs = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.active == True).order_by(AliasDomainConfig.created_at)
     )).scalars().all()
+    all_config_ids = {c.id for c in all_configs}
     registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
     registration_invite_code = await get_setting(db, "registration_invite_code", "")
     return templates.TemplateResponse("admin_users.html", {
