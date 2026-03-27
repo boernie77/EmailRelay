@@ -87,8 +87,7 @@
 <div class="space-y-4">
   {% for u in users %}
   {% set user_config_ids = u.alias_domain_access | map(attribute='alias_domain_config_id') | list %}
-  {% set has_admin_domain = user_config_ids | select('in', all_config_ids) | list | length > 0 %}
-  {% set own_configs = u.alias_domain_access | selectattr('alias_domain_config_id', 'not in', all_config_ids) | map(attribute='config') | list %}
+  {% set own_configs = user_own_domains[u.id] %}
 
   <div class="bg-white rounded-xl shadow p-5 {% if not u.active and not u.is_admin %}border-2 border-amber-300{% endif %}">
     <!-- Header -->
