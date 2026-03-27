@@ -17,6 +17,7 @@ class User(Base):
     reset_token = Column(String, nullable=True)
     token_expiry = Column(DateTime(timezone=True), nullable=True)
     invite_code_used = Column(String, nullable=True)
+    preset_alias_domain = Column(String, nullable=True)
     domains = relationship("Domain", back_populates="user")
     aliases = relationship("Alias", back_populates="user")
     alias_domain_access = relationship("AliasDomainAccess", back_populates="user", cascade="all, delete-orphan")
