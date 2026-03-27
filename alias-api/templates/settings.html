@@ -25,6 +25,65 @@
 </div>
 
 {% if current_user.is_admin %}
+<!-- System-SMTP für Registrierung / Passwort-Reset -->
+<div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6">
+  <h2 class="text-lg font-semibold mb-1">System-E-Mail (SMTP)</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    Wird für Passwort-Reset-E-Mails verwendet. Kann auch für eigene Registrierungen genutzt werden.
+  </p>
+  <form method="post" action="/settings/system-smtp" class="space-y-3">
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">SMTP-Host</label>
+        <input type="text" name="system_smtp_host" value="{{ system_smtp.system_smtp_host or '' }}"
+               placeholder="smtp.meinprovider.de"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+        <input type="number" name="system_smtp_port" value="{{ system_smtp.system_smtp_port or '587' }}"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
+      <input type="text" name="system_smtp_user" value="{{ system_smtp.system_smtp_user or '' }}"
+             placeholder="system@meine-domain.de"
+             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+      <input type="password" name="system_smtp_password"
+             placeholder="{{ '(gespeichert – leer lassen um zu behalten)' if system_smtp.has_password else '••••••••' }}"
+             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Absender-Adresse (optional)</label>
+      <input type="text" name="system_smtp_from" value="{{ system_smtp.system_smtp_from or '' }}"
+             placeholder="noreply@meine-domain.de"
+             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="checkbox" name="system_smtp_use_tls" value="true" id="sys_tls"
+             {% if system_smtp.system_smtp_use_tls != 'false' %}checked{% endif %}
+             class="rounded">
+      <label for="sys_tls" class="text-sm text-gray-700">STARTTLS verwenden</label>
+    </div>
+    <hr class="border-gray-200">
+    <div class="flex items-center gap-2">
+      <input type="checkbox" name="registration_enabled" value="true" id="reg_enabled"
+             {% if system_smtp.registration_enabled == 'true' %}checked{% endif %}
+             class="rounded">
+      <label for="reg_enabled" class="text-sm text-gray-700">Öffentliche Registrierung erlauben</label>
+    </div>
+    <p class="text-xs text-gray-400">Wenn aktiviert, können sich neue Benutzer selbst registrieren.</p>
+    <button type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+      Speichern
+    </button>
+  </form>
+</div>
+
 <!-- ntfy-Benachrichtigungen -->
 <div class="bg-white rounded-xl shadow p-6 max-w-md mb-6">
   <h2 class="text-lg font-semibold mb-1">Push-Benachrichtigungen (ntfy)</h2>
