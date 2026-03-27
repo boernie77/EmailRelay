@@ -1595,6 +1595,7 @@ async def setup_wizard(request: Request, db: AsyncSession = Depends(get_db)):
         return templates.TemplateResponse("setup.html", {
             "request": request, "current_user": user,
             "mode": "B", "step": 1, "vps": vps,
+            "alias_domain": user.preset_alias_domain or "",
         })
 
 
