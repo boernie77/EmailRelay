@@ -1372,7 +1372,11 @@ async def register_submit(
             except Exception:
                 pass
 
-    return templates.TemplateResponse("register.html", {"request": request, "success": True})
+    return templates.TemplateResponse("login.html", {
+        "request": request, "has_users": True, "is_upgrade": False,
+        "registration_enabled": True,
+        "success": f"Konto '{username}' erstellt! Du kannst dich jetzt anmelden.",
+    })
 
 
 # ── Passwort vergessen ─────────────────────────────────────────────────────────
