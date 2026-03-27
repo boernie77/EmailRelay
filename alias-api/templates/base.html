@@ -30,6 +30,25 @@
       </div>
     </div>
   </nav>
+  {% if current_user and not current_user.active %}
+  <!-- Sperr-Overlay für nicht freigeschaltete Accounts -->
+  <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
+      <div class="text-5xl mb-4">⏳</div>
+      <h2 class="text-xl font-bold text-gray-800 mb-2">Account wird geprüft</h2>
+      <p class="text-gray-500 text-sm mb-6">
+        Dein Account wurde erfolgreich erstellt und wartet auf Freischaltung durch den Administrator.
+        Du wirst per E-Mail benachrichtigt, sobald dein Account aktiviert wurde.
+      </p>
+      <p class="text-xs text-gray-400 mb-6">Angemeldet als <strong>{{ current_user.username }}</strong></p>
+      <a href="/logout"
+         class="inline-block text-sm text-gray-500 hover:text-gray-700 underline transition">
+        Abmelden
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
   <main class="max-w-6xl mx-auto px-4 py-8">
     {% block content %}{% endblock %}
   </main>
