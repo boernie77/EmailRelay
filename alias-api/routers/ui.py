@@ -324,9 +324,16 @@ async def logout(request: Request):
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    user = await get_current_user(request, db)
+    user = await get_any_user(request, db)
     if not user:
         return redirect_login()
+    if not user.active:
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "current_user": user,
+            "alias_count": 0, "domain_count": 0, "address_count": 0,
+            "recent_aliases": [], "vps_warning": False, "needs_setup": False,
+        })
     alias_count = (await db.execute(select(Alias).where(Alias.user_id == user.id))).scalars().all()
     domain_count = (await db.execute(select(Domain).where(Domain.user_id == user.id))).scalars().all()
     address_count = (await db.execute(
