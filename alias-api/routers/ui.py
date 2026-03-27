@@ -956,6 +956,8 @@ async def alias_domain_edit_save(
         cfg.catchall_enabled = catchall_enabled == "true"
         cfg.catchall_target_address = catchall_target_address.strip().lower()
         await db.commit()
+        if cfg.vps_config_id:
+            asyncio.create_task(_auto_vps_setup(cfg.vps_config_id))
     return RedirectResponse("/alias-domains", status_code=303)
 
 
