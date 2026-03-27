@@ -1819,6 +1819,29 @@ async def settings_system_smtp(
     return RedirectResponse("/settings?saved=1", status_code=303)
 
 
+@router.post("/settings/test-system-smtp")
+async def test_system_smtp(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return JSONResponse({"ok": False, "error": "Nicht angemeldet"})
+    try:
+        import aiosmtplib
+        host = await get_setting(db, "system_smtp_host")
+        port = int(await get_setting(db, "system_smtp_port") or "587")
+        username = await get_setting(db, "system_smtp_user")
+        password = await get_setting(db, "system_smtp_password")
+        use_tls = await get_setting(db, "system_smtp_use_tls", "true") != "false"
+        if not host or not username:
+            return JSONResponse({"ok": False, "error": "SMTP-Host und Benutzername nicht konfiguriert"})
+        smtp = aiosmtplib.SMTP(hostname=host, port=port, start_tls=use_tls, timeout=10)
+        await smtp.connect()
+        await smtp.login(username, password)
+        await smtp.quit()
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})
+
+
 @router.post("/settings/legal")
 async def settings_legal(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
