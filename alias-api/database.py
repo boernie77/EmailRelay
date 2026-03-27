@@ -37,6 +37,7 @@ async def init_db():
         "ALTER TABLE users ADD COLUMN reset_token VARCHAR",
         "ALTER TABLE users ADD COLUMN token_expiry TIMESTAMPTZ",
         "ALTER TABLE alias_domain_configs ADD COLUMN is_default BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN invite_code_used VARCHAR",
     ]:
         try:
             async with engine.begin() as conn:
