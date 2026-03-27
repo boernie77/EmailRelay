@@ -471,18 +471,28 @@ async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db))
         return redirect_login()
     users = (await db.execute(
         select(User)
-        .options(selectinload(User.alias_domain_access).selectinload(AliasDomainAccess.config))
+        .options(selectinload(User.alias_domain_access))
         .order_by(User.created_at)
     )).scalars().all()
     all_configs = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.active == True).order_by(AliasDomainConfig.created_at)
     )).scalars().all()
     all_config_ids = {c.id for c in all_configs}
+    # Alle referenzierten Config-IDs laden
+    referenced_ids = {a.alias_domain_config_id for u in users for a in u.alias_domain_access}
+    config_map = {}
+    if referenced_ids:
+        extra_configs = (await db.execute(
+            select(AliasDomainConfig).where(AliasDomainConfig.id.in_(referenced_ids))
+        )).scalars().all()
+        config_map = {c.id: c for c in extra_configs}
     # Eigene (user-erstellte) Alias-Domains pro User vorberechnen
     user_own_domains = {}
     for u in users:
-        own = [a.config for a in u.alias_domain_access
-               if a.alias_domain_config_id not in all_config_ids and a.config]
+        own = [config_map[a.alias_domain_config_id]
+               for a in u.alias_domain_access
+               if a.alias_domain_config_id not in all_config_ids
+               and a.alias_domain_config_id in config_map]
         user_own_domains[u.id] = own
     registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
     registration_invite_code = await get_setting(db, "registration_invite_code", "")
