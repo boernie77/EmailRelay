@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Mail Relay – Datenschutzerklärung</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #1f2937; line-height: 1.7; }
+    h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    h2 { font-size: 1.1rem; margin-top: 2rem; margin-bottom: 6px; color: #111827; }
+    h3 { font-size: 0.95rem; margin-top: 1.2rem; margin-bottom: 4px; color: #374151; }
+    .sub { color: #6b7280; font-size: 0.9rem; margin-bottom: 2rem; }
+    p, li { font-size: 0.95rem; color: #374151; }
+    ul { padding-left: 1.4rem; }
+    .section { border-top: 1px solid #e5e7eb; padding-top: 1.5rem; margin-top: 1.5rem; }
+    .back { font-size: 0.9rem; color: #6b7280; margin-bottom: 2rem; display: block; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #9ca3af; }
+    footer a { color: #6b7280; }
+  </style>
+</head>
+<body>
+  <a href="/login" class="back">← Zurück zur Anmeldung</a>
+  <h1>Datenschutzerklärung</h1>
+  <p class="sub">E-Mail Relay (Web-Dienst &amp; Browser-Extension) &mdash; Stand: März 2026</p>
+
+  <h2>1. Verantwortlicher</h2>
+  <p>E-Mail Relay ist ein selbst gehosteter Dienst. Den Verantwortlichen findest du im <a href="/impressum">Impressum</a>.</p>
+
+  <div class="section">
+    <h2>2. Web-Dienst</h2>
+
+    <h3>2.1 Welche Daten werden gespeichert?</h3>
+    <p>Für den Betrieb des Dienstes werden folgende Daten in einer PostgreSQL-Datenbank gespeichert:</p>
+    <ul>
+      <li><strong>Benutzerkonto:</strong> Benutzername, E-Mail-Adresse (für Passwort-Reset), bcrypt-Passwort-Hash</li>
+      <li><strong>Weiterleitungsadressen:</strong> Deine echten E-Mail-Adressen, an die Mails weitergeleitet werden</li>
+      <li><strong>Alias-Adressen:</strong> Generierte Alias-Adressen und zugehörige Bezeichnungen</li>
+      <li><strong>Alias-Domain-Konfiguration:</strong> SMTP-Zugangsdaten für den Versand (verschlüsselt in der DB)</li>
+      <li><strong>Nachrichten-IDs:</strong> Temporäre Zuordnung von E-Mail-Message-IDs zu Alias-Adressen (für Reply-Tracking)</li>
+    </ul>
+
+    <h3>2.2 Wie werden Mails verarbeitet?</h3>
+    <p>
+      Eingehende Mails werden vom Server entgegengenommen, der Absender-Alias aufgelöst und die Mail
+      <strong>unverzüglich weitergeleitet</strong>. Mails werden nicht dauerhaft gespeichert.
+      Lediglich die Message-ID wird temporär gespeichert, um Antworten dem richtigen Alias zuzuordnen.
+    </p>
+
+    <h3>2.3 Passwort-Reset</h3>
+    <p>
+      Wenn du ein Passwort-Reset anforderst, wird einmalig eine E-Mail an deine hinterlegte Adresse gesendet.
+      Reset-Tokens sind zeitlich begrenzt und werden nach Verwendung ungültig.
+    </p>
+
+    <h3>2.4 Datenweitergabe</h3>
+    <p>
+      Es findet keine Weitergabe von Daten an Dritte statt. Der Dienst kommuniziert ausschließlich mit
+      dem konfigurierten SMTP-Server für den E-Mail-Versand.
+    </p>
+
+    <h3>2.5 Löschung</h3>
+    <p>
+      Du kannst jederzeit beim Administrator die Löschung deines Kontos und aller zugehörigen Daten beantragen.
+      Nach der Löschung sind alle Alias-Adressen deaktiviert.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>3. Browser-Extension (Chrome &amp; Firefox)</h2>
+
+    <h3>3.1 Lokal gespeicherte Daten</h3>
+    <p>Die Extension speichert folgende Daten <strong>ausschließlich lokal im Browser</strong>:</p>
+    <ul>
+      <li>API-URL des eigenen Servers</li>
+      <li>API-Secret (Zugriffstoken)</li>
+      <li>Optionaler Benutzername und Passwort für den eigenen Server</li>
+    </ul>
+    <p>Diese Daten werden <strong>nicht</strong> an Dritte weitergegeben und nicht auf fremden Servern gespeichert.</p>
+
+    <h3>3.2 Übertragene Daten</h3>
+    <p>Die Extension sendet Anfragen ausschließlich an die vom Nutzer konfigurierte API-URL. Dabei werden übertragen:</p>
+    <ul>
+      <li>API-Secret als HTTP-Header zur Authentifizierung</li>
+      <li>Beim Erstellen eines Alias: die gewählte Weiterleitungsadresse und eine Bezeichnung</li>
+    </ul>
+    <p>Keine Tracking-, Analyse- oder Werbedienste.</p>
+
+    <h3>3.3 Berechtigungen</h3>
+    <ul>
+      <li><strong>storage</strong>: Lokales Speichern der Einstellungen</li>
+      <li><strong>activeTab / tabs</strong>: Ermitteln der aktuellen Domain als Bezeichnungsvorschlag</li>
+      <li><strong>clipboardWrite</strong>: Kopierfunktion für Alias-Adressen</li>
+      <li><strong>host_permissions (alle URLs)</strong>: Automatisches Einfügen des Alias in das aktive Eingabefeld</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>4. Cookies und Sitzungsdaten</h2>
+    <p>
+      Der Web-Dienst verwendet ein Session-Cookie zur Anmeldung. Dieses Cookie enthält keine personenbezogenen Daten,
+      nur eine zufällige Session-ID. Es wird beim Abmelden gelöscht.
+      Es werden keine Tracking- oder Marketing-Cookies verwendet.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>5. Kontakt</h2>
+    <p>Bei Fragen zum Datenschutz wende dich an den Betreiber. Kontaktdaten findest du im <a href="/impressum">Impressum</a>.</p>
+  </div>
+
+  <footer>
+    <a href="/impressum">Impressum</a> &nbsp;|&nbsp;
+    <a href="/login">Zur Anmeldung</a>
+  </footer>
+</body>
+</html>
