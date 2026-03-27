@@ -478,11 +478,17 @@ async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db))
         select(AliasDomainConfig).where(AliasDomainConfig.active == True).order_by(AliasDomainConfig.created_at)
     )).scalars().all()
     all_config_ids = {c.id for c in all_configs}
+    # Eigene (user-erstellte) Alias-Domains pro User vorberechnen
+    user_own_domains = {}
+    for u in users:
+        own = [a.config for a in u.alias_domain_access
+               if a.alias_domain_config_id not in all_config_ids and a.config]
+        user_own_domains[u.id] = own
     registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
     registration_invite_code = await get_setting(db, "registration_invite_code", "")
     return templates.TemplateResponse("admin_users.html", {
         "request": request, "current_user": user, "users": users, "all_configs": all_configs,
-        "all_config_ids": all_config_ids,
+        "all_config_ids": all_config_ids, "user_own_domains": user_own_domains,
         "registration_enabled": registration_enabled,
         "registration_invite_code": registration_invite_code,
     })
