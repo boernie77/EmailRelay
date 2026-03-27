@@ -107,7 +107,7 @@ if original_from and not msg.get("Reply-To"):
 del msg["From"]
 msg["From"] = cfg.get("smtp_user", real_address)
 del msg["To"]
-msg["To"] = real_address
+msg["To"] = alias_address  # Alias-Adresse anzeigen, Zustellung läuft über SMTP-Envelope
 
 try:
     use_tls = cfg.get("smtp_use_tls", "true") != "false"
