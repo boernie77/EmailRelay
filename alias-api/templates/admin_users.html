@@ -83,8 +83,16 @@
   </form>
 </div>
 
+<!-- Suche -->
+<div class="mb-4 max-w-3xl">
+  <input type="text" id="user-search"
+         placeholder="Suche nach Name, E-Mail oder Freischaltcode…"
+         oninput="filterUsers(this.value)"
+         class="w-full border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow">
+</div>
+
 <!-- Benutzerliste -->
-<div class="space-y-4">
+<div class="space-y-4" id="user-list">
   {% for u in users %}
   {% set user_config_ids = u.alias_domain_access | map(attribute='alias_domain_config_id') | list %}
   {% set own_configs = user_own_domains[u.id] %}
