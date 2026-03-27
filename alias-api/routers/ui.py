@@ -1290,9 +1290,8 @@ async def impressum_page(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if await get_setting(db, "registration_enabled", "false") != "true":
-        return RedirectResponse("/login", status_code=302)
-    return templates.TemplateResponse("register.html", {"request": request})
+    # Registrierung läuft jetzt auf der Login-Seite
+    return RedirectResponse("/login", status_code=302)
 
 
 @router.post("/register")
@@ -1305,24 +1304,28 @@ async def register_submit(
     password2: str = Form(...),
     invite_code: str = Form(""),
 ):
-    if await get_setting(db, "registration_enabled", "false") != "true":
+    registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
+    if not registration_enabled:
         return RedirectResponse("/login", status_code=302)
 
+    has_users = bool((await db.execute(select(User))).scalars().first())
     username = username.strip()
     email = email.strip().lower()
     invite_code = invite_code.strip()
     error = None
 
-    # Einladungscode prüfen (falls konfiguriert)
+    # Einladungscode ist immer Pflicht
     required_code = await get_setting(db, "registration_invite_code", "")
-    if required_code and invite_code != required_code:
+    if not required_code:
+        error = "Registrierung derzeit nicht möglich (kein Einladungscode konfiguriert)."
+    elif invite_code != required_code:
         error = "Ungültiger Einladungscode."
+    elif not username:
+        error = "Benutzername darf nicht leer sein."
     elif password != password2:
         error = "Passwörter stimmen nicht überein."
     elif len(password) < 8:
         error = "Passwort muss mindestens 8 Zeichen lang sein."
-    elif not username:
-        error = "Benutzername darf nicht leer sein."
     else:
         existing = (await db.execute(
             select(User).where(User.username == username)
@@ -1331,8 +1334,12 @@ async def register_submit(
             error = "Benutzername bereits vergeben."
 
     if error:
-        return templates.TemplateResponse("register.html", {
-            "request": request, "error": error, "username": username, "email": email,
+        return templates.TemplateResponse("login.html", {
+            "request": request, "error": error,
+            "has_users": has_users, "is_upgrade": False,
+            "registration_enabled": True,
+            "show_register_tab": True,
+            "reg_username": username, "reg_email": email,
         })
 
     pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
