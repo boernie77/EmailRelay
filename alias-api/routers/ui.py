@@ -1354,7 +1354,7 @@ async def register_submit(
         })
 
     pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
-    new_user = User(username=username, password_hash=pw_hash, email=email, is_admin=False)
+    new_user = User(username=username, password_hash=pw_hash, email=email, is_admin=False, active=False)
     db.add(new_user)
     await db.flush()
 
