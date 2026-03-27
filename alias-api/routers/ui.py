@@ -210,7 +210,7 @@ async def _auto_vps_setup(vps_id: int):
             return
         api_secret = os.getenv("API_SECRET", "")
         domains_postfix = ", ".join(alias_domains)
-        domains_regex = "\n".join(f"/@{d.replace('.', r'\.')}$/  OK" for d in alias_domains)
+        domains_regex = "\n".join("/@" + d.replace(".", r"\.") + "$/  OK" for d in alias_domains)
         script = (
             _VPS_SETUP_SCRIPT
             .replace("__ALIAS_DOMAINS_POSTFIX__", domains_postfix)
