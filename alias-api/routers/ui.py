@@ -128,61 +128,6 @@ echo ""
 echo "=== Setup abgeschlossen ==="
 '''
 
-PRIVACY_POLICY_HTML = """<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Mail Relay – Datenschutzerklärung</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #1f2937; line-height: 1.7; }
-    h1 { font-size: 1.6rem; margin-bottom: 4px; }
-    h2 { font-size: 1.1rem; margin-top: 2rem; margin-bottom: 4px; }
-    .sub { color: #6b7280; font-size: 0.9rem; margin-bottom: 2rem; }
-    p, li { font-size: 0.95rem; color: #374151; }
-    ul { padding-left: 1.4rem; }
-  </style>
-</head>
-<body>
-  <h1>Datenschutzerklärung</h1>
-  <p class="sub">E-Mail Relay Chrome Extension &mdash; Stand: März 2026</p>
-
-  <h2>1. Verantwortlicher</h2>
-  <p>Diese Chrome Extension ist ein selbst gehostetes, privates Werkzeug. Sie kommuniziert ausschließlich mit dem eigenen E-Mail-Relay-Server des Betreibers.</p>
-
-  <h2>2. Welche Daten werden gespeichert?</h2>
-  <p>Die Extension speichert folgende Daten <strong>ausschließlich lokal im Browser</strong> (chrome.storage.sync, d.h. im Google-Konto des Nutzers):</p>
-  <ul>
-    <li>API-URL des eigenen Servers</li>
-    <li>API-Secret (Zugriffstoken)</li>
-    <li>Optionaler Benutzername und Passwort für den eigenen Server</li>
-  </ul>
-  <p>Diese Daten werden <strong>nicht</strong> an Dritte weitergegeben und nicht auf fremden Servern gespeichert.</p>
-
-  <h2>3. Welche Daten werden übertragen?</h2>
-  <p>Die Extension sendet Anfragen ausschließlich an die vom Nutzer selbst konfigurierte API-URL (eigener Server). Dabei werden übertragen:</p>
-  <ul>
-    <li>API-Secret als HTTP-Header zur Authentifizierung</li>
-    <li>Optionaler Benutzername und Passwort als HTTP-Header</li>
-    <li>Beim Erstellen eines Alias: die gewählte echte E-Mail-Adresse und eine Bezeichnung</li>
-  </ul>
-  <p>Es findet <strong>keine Kommunikation mit Drittservern</strong> statt. Keine Tracking-, Analyse- oder Werbedienste.</p>
-
-  <h2>4. Zugriffsrechte</h2>
-  <ul>
-    <li><strong>storage</strong>: Lokales Speichern der Einstellungen</li>
-    <li><strong>activeTab / tabs</strong>: Ermitteln der aktuellen Domain als Bezeichnungsvorschlag</li>
-    <li><strong>scripting</strong>: Einsetzen des erstellten Alias in das zuletzt fokussierte Eingabefeld</li>
-    <li><strong>host_permissions (alle URLs)</strong>: Notwendig, um Content Scripts auf beliebigen Seiten auszuführen (für die Autofill-Funktion)</li>
-  </ul>
-
-  <h2>5. Datenweitergabe</h2>
-  <p>Keine. Die Extension gibt keine Daten an Dritte weiter.</p>
-
-  <h2>6. Kontakt</h2>
-  <p>Bei Fragen: <a href="https://byboernie.de">byboernie.de</a></p>
-</body>
-</html>"""
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
