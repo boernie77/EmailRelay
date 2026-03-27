@@ -950,6 +950,7 @@ async def alias_domain_edit_save(
     smtp_password: str = Form(""),
     smtp_use_tls: str = Form("true"),
     vps_config_id: str = Form(""),
+    is_default: str = Form("false"),
     catchall_enabled: str = Form("false"),
     catchall_target_address: str = Form(""),
 ):
