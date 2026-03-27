@@ -418,9 +418,17 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     ntfy_setting = (await db.execute(select(Setting).where(Setting.key == "ntfy_url"))).scalar_one_or_none()
     ntfy_url = ntfy_setting.value if ntfy_setting else ""
     random_suffix = secrets.token_hex(4)
+    saved = request.query_params.get("saved") == "1"
+    system_smtp = {}
+    if user.is_admin:
+        for key in ["system_smtp_host", "system_smtp_port", "system_smtp_user",
+                    "system_smtp_from", "system_smtp_use_tls", "registration_enabled"]:
+            system_smtp[key] = await get_setting(db, key)
+        system_smtp["has_password"] = bool(await get_setting(db, "system_smtp_password"))
     return templates.TemplateResponse("settings.html", {
         "request": request, "current_user": user,
         "ntfy_url": ntfy_url, "random_suffix": random_suffix,
+        "system_smtp": system_smtp, "saved": saved,
     })
 
 
