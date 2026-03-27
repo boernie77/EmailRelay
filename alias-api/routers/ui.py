@@ -1489,18 +1489,89 @@ async def reset_password_submit(
 
 # ── Setup-Wizard ───────────────────────────────────────────────────────────────
 
+async def _create_domain_and_address(db: AsyncSession, user: User, email_address: str, alias_domain_config_id: int):
+    """Legt Domain und E-Mail-Adresse an, falls noch nicht vorhanden."""
+    domain_name = email_address.split("@", 1)[1]
+    domain = (await db.execute(
+        select(Domain).where(Domain.domain == domain_name, Domain.user_id == user.id)
+    )).scalar_one_or_none()
+    if not domain:
+        domain = Domain(
+            domain=domain_name,
+            alias_domain_config_id=alias_domain_config_id,
+            user_id=user.id,
+        )
+        db.add(domain)
+        await db.flush()
+    existing_addr = (await db.execute(
+        select(EmailAddress).where(EmailAddress.address == email_address)
+    )).scalar_one_or_none()
+    if not existing_addr:
+        db.add(EmailAddress(address=email_address, domain_id=domain.id))
+
+
+@router.get("/setup/check-dns")
+async def setup_check_dns(request: Request, domain: str = "", expected: str = "", db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False, "error": "Nicht angemeldet"})
+    if not domain:
+        return JSONResponse({"ok": False, "error": "Keine Domain angegeben"})
+    try:
+        import dns.resolver
+        answers = dns.resolver.resolve(domain.strip(), "MX")
+        mx_hosts = [str(r.exchange).rstrip(".").lower() for r in answers]
+        ok = bool(expected) and any(expected.lower() in h or h == expected.lower() for h in mx_hosts)
+        return JSONResponse({"ok": ok, "mx": mx_hosts})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e), "mx": []})
+
+
+@router.post("/setup/test-smtp")
+async def setup_test_smtp_endpoint(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False, "error": "Nicht angemeldet"})
+    try:
+        import aiosmtplib
+        data = await request.json()
+        host = data.get("host", "").strip()
+        port = int(data.get("port", 587))
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
+        use_tls = data.get("use_tls", True)
+        if not host or not username:
+            return JSONResponse({"ok": False, "error": "Host und Benutzername erforderlich"})
+        smtp = aiosmtplib.SMTP(hostname=host, port=port, start_tls=bool(use_tls), timeout=10)
+        await smtp.connect()
+        await smtp.login(username, password)
+        await smtp.quit()
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})
+
+
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_wizard(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return redirect_login()
     alias_configs = await get_user_alias_configs(db, user)
-    if not alias_configs:
-        request.session["setup_skipped"] = True
-        return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse("setup.html", {
-        "request": request, "current_user": user, "alias_configs": alias_configs,
-    })
+    if alias_configs:
+        # Modus A: Admin hat dem User bereits eine Alias-Domain zugewiesen
+        return templates.TemplateResponse("setup.html", {
+            "request": request, "current_user": user,
+            "mode": "A", "alias_configs": alias_configs,
+        })
+    else:
+        # Modus B: User legt eigene Alias-Domain an
+        vps = (await db.execute(
+            select(VpsConfig).where(VpsConfig.active == True).order_by(VpsConfig.created_at)
+        )).scalars().first()
+        return templates.TemplateResponse("setup.html", {
+            "request": request, "current_user": user,
+            "mode": "B", "step": 1, "vps": vps,
+        })
 
 
 @router.post("/setup/skip")
@@ -1513,54 +1584,154 @@ async def setup_skip(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/setup")
-async def setup_submit(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    email_address: str = Form(...),
-    alias_domain_config_id: int = Form(...),
-):
+async def setup_submit(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return redirect_login()
 
-    email_address = email_address.strip().lower()
-    alias_configs = await get_user_alias_configs(db, user)
+    form = await request.form()
+    step = form.get("step", "")
 
-    # Sicherstellen dass der User Zugriff auf die gewählte Alias-Domain hat
-    alias_cfg = next((c for c in alias_configs if c.id == alias_domain_config_id), None)
+    # ── Modus A: Weiterleitungsadresse eingeben ─────────────────────────────────
+    if step == "finish_A":
+        alias_configs = await get_user_alias_configs(db, user)
+        email_address = (form.get("email_address") or "").strip().lower()
+        alias_domain_config_id = int(form.get("alias_domain_config_id") or 0)
+        alias_cfg = next((c for c in alias_configs if c.id == alias_domain_config_id), None)
+        if not alias_cfg or "@" not in email_address:
+            return templates.TemplateResponse("setup.html", {
+                "request": request, "current_user": user,
+                "mode": "A", "alias_configs": alias_configs,
+                "error": "Bitte eine gültige E-Mail-Adresse eingeben.",
+            })
+        await _create_domain_and_address(db, user, email_address, alias_domain_config_id)
+        await db.commit()
+        request.session["setup_skipped"] = True
+        return RedirectResponse("/aliases", status_code=302)
 
-    if not alias_cfg or "@" not in email_address:
+    # ── Modus B, Schritt 1: Alias-Domain eingeben ───────────────────────────────
+    if step == "1":
+        alias_domain = (form.get("alias_domain") or "").strip().lower()
+        vps_id = (form.get("vps_id") or "").strip()
+        vps = None
+        if vps_id:
+            vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == int(vps_id)))).scalar_one_or_none()
+        if not vps:
+            vps = (await db.execute(
+                select(VpsConfig).where(VpsConfig.active == True).order_by(VpsConfig.created_at)
+            )).scalars().first()
+        ctx = {"request": request, "current_user": user, "mode": "B", "step": 1, "vps": vps, "alias_domain": alias_domain}
+        if not alias_domain or "." not in alias_domain:
+            return templates.TemplateResponse("setup.html", {**ctx, "error": "Bitte eine gültige Domain eingeben (z.B. relay.meine-domain.de)."})
+        existing = (await db.execute(
+            select(AliasDomainConfig).where(AliasDomainConfig.alias_domain == alias_domain)
+        )).scalar_one_or_none()
+        if existing:
+            return templates.TemplateResponse("setup.html", {**ctx, "error": f"Die Domain '{alias_domain}' ist bereits vergeben."})
         return templates.TemplateResponse("setup.html", {
             "request": request, "current_user": user,
-            "alias_configs": alias_configs,
-            "error": "Bitte eine gültige E-Mail-Adresse eingeben.",
+            "mode": "B", "step": 2, "vps": vps,
+            "alias_domain": alias_domain, "vps_id": vps_id,
         })
 
-    domain_name = email_address.split("@", 1)[1]
+    # ── Modus B, Schritt 2: DNS-Schritt → weiter zu Schritt 3 ──────────────────
+    if step == "2":
+        alias_domain = (form.get("alias_domain") or "").strip().lower()
+        vps_id = (form.get("vps_id") or "").strip()
+        vps = None
+        if vps_id:
+            vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == int(vps_id)))).scalar_one_or_none()
+        return templates.TemplateResponse("setup.html", {
+            "request": request, "current_user": user,
+            "mode": "B", "step": 3, "vps": vps,
+            "alias_domain": alias_domain, "vps_id": vps_id,
+        })
 
-    # Domain anlegen falls noch nicht vorhanden
-    domain = (await db.execute(
-        select(Domain).where(Domain.domain == domain_name, Domain.user_id == user.id)
-    )).scalar_one_or_none()
-    if not domain:
-        domain = Domain(
-            domain=domain_name,
-            alias_domain_config_id=alias_domain_config_id,
-            user_id=user.id,
+    # ── Modus B, Schritt 3: SMTP-Zugangsdaten ──────────────────────────────────
+    if step == "3":
+        alias_domain = (form.get("alias_domain") or "").strip().lower()
+        vps_id = (form.get("vps_id") or "").strip()
+        smtp_host = (form.get("smtp_host") or "").strip()
+        smtp_port = (form.get("smtp_port") or "587").strip()
+        smtp_user = (form.get("smtp_user") or "").strip()
+        smtp_password = form.get("smtp_password") or ""
+        smtp_use_tls = form.get("smtp_use_tls") or "true"
+        vps = None
+        if vps_id:
+            vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == int(vps_id)))).scalar_one_or_none()
+        ctx = {
+            "request": request, "current_user": user,
+            "mode": "B", "step": 3, "vps": vps,
+            "alias_domain": alias_domain, "vps_id": vps_id,
+            "smtp_host": smtp_host, "smtp_port": smtp_port,
+            "smtp_user": smtp_user, "smtp_use_tls": smtp_use_tls,
+        }
+        if not smtp_host or not smtp_user:
+            return templates.TemplateResponse("setup.html", {**ctx, "error": "SMTP-Host und Benutzername sind erforderlich."})
+        return templates.TemplateResponse("setup.html", {
+            "request": request, "current_user": user,
+            "mode": "B", "step": 4, "vps": vps,
+            "alias_domain": alias_domain, "vps_id": vps_id,
+            "smtp_host": smtp_host, "smtp_port": smtp_port,
+            "smtp_user": smtp_user, "smtp_password": smtp_password,
+            "smtp_use_tls": smtp_use_tls,
+        })
+
+    # ── Modus B, Abschluss: Alles anlegen ──────────────────────────────────────
+    if step == "finish_B":
+        alias_domain = (form.get("alias_domain") or "").strip().lower()
+        vps_id = (form.get("vps_id") or "").strip()
+        smtp_host = (form.get("smtp_host") or "").strip()
+        smtp_port = (form.get("smtp_port") or "587").strip()
+        smtp_user = (form.get("smtp_user") or "").strip()
+        smtp_password = form.get("smtp_password") or ""
+        smtp_use_tls = form.get("smtp_use_tls") or "true"
+        email_address = (form.get("email_address") or "").strip().lower()
+        vps = None
+        if vps_id:
+            vps = (await db.execute(select(VpsConfig).where(VpsConfig.id == int(vps_id)))).scalar_one_or_none()
+        if "@" not in email_address:
+            return templates.TemplateResponse("setup.html", {
+                "request": request, "current_user": user,
+                "mode": "B", "step": 4, "vps": vps,
+                "alias_domain": alias_domain, "vps_id": vps_id,
+                "smtp_host": smtp_host, "smtp_port": smtp_port,
+                "smtp_user": smtp_user, "smtp_password": smtp_password,
+                "smtp_use_tls": smtp_use_tls,
+                "error": "Bitte eine gültige E-Mail-Adresse eingeben.",
+            })
+        # Nochmals auf Duplikat prüfen
+        existing = (await db.execute(
+            select(AliasDomainConfig).where(AliasDomainConfig.alias_domain == alias_domain)
+        )).scalar_one_or_none()
+        if existing:
+            return templates.TemplateResponse("setup.html", {
+                "request": request, "current_user": user,
+                "mode": "B", "step": 1, "vps": vps,
+                "error": f"Die Domain '{alias_domain}' wurde inzwischen anderweitig vergeben.",
+            })
+        # AliasDomainConfig anlegen
+        cfg = AliasDomainConfig(
+            alias_domain=alias_domain,
+            smtp_host=smtp_host,
+            smtp_port=int(smtp_port or 587),
+            smtp_user=smtp_user,
+            smtp_password=smtp_password,
+            smtp_use_tls=smtp_use_tls != "false",
+            vps_config_id=int(vps_id) if vps_id else None,
         )
-        db.add(domain)
+        db.add(cfg)
         await db.flush()
+        db.add(AliasDomainAccess(user_id=user.id, alias_domain_config_id=cfg.id))
+        await db.flush()
+        await _create_domain_and_address(db, user, email_address, cfg.id)
+        await db.commit()
+        if cfg.vps_config_id:
+            asyncio.create_task(_auto_vps_setup(cfg.vps_config_id))
+        request.session["setup_skipped"] = True
+        return RedirectResponse("/aliases", status_code=302)
 
-    # E-Mail-Adresse anlegen falls noch nicht vorhanden
-    existing_addr = (await db.execute(
-        select(EmailAddress).where(EmailAddress.address == email_address)
-    )).scalar_one_or_none()
-    if not existing_addr:
-        db.add(EmailAddress(address=email_address, domain_id=domain.id))
-
-    await db.commit()
-    request.session["setup_skipped"] = True
-    return RedirectResponse("/aliases", status_code=302)
+    return RedirectResponse("/setup", status_code=302)
 
 
 # ── System-SMTP-Einstellungen (nur Admin) ──────────────────────────────────────
