@@ -250,7 +250,7 @@ async def get_user_alias_configs(db: AsyncSession, user: User) -> list[AliasDoma
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
-    if request.session.get("user_id"):
+    if await get_any_user(request, db):
         return RedirectResponse("/", status_code=302)
     has_users = bool((await db.execute(select(User))).scalars().first())
     is_upgrade = not has_users and bool(await get_setting(db, "ui_password_hash"))
