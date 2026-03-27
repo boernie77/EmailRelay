@@ -188,6 +188,68 @@ router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
 
 
+# ── Auto-VPS-Setup ─────────────────────────────────────────────────────────────
+
+async def _auto_vps_setup(vps_id: int):
+    """Führt VPS-Setup automatisch im Hintergrund aus wenn eine Alias-Domain geändert wird."""
+    import paramiko
+    from database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        vps = (await db.execute(
+            select(VpsConfig)
+            .options(selectinload(VpsConfig.alias_domain_configs))
+            .where(VpsConfig.id == vps_id)
+        )).scalar_one_or_none()
+        if not vps or not vps.host or not vps.ssh_key or not vps.api_url:
+            return
+        alias_domains = [
+            cfg.alias_domain for cfg in vps.alias_domain_configs if cfg.active and cfg.alias_domain
+        ]
+        if not alias_domains:
+            return
+        api_secret = os.getenv("API_SECRET", "")
+        domains_postfix = ", ".join(alias_domains)
+        domains_regex = "\n".join(f"/@{d.replace('.', r'\.')}$/  OK" for d in alias_domains)
+        script = (
+            _VPS_SETUP_SCRIPT
+            .replace("__ALIAS_DOMAINS_POSTFIX__", domains_postfix)
+            .replace("__ALIAS_DOMAINS_REGEX__", domains_regex)
+            .replace("__API_URL__", vps.api_url)
+            .replace("__API_SECRET__", api_secret)
+        )
+
+        def _run_ssh():
+            key = None
+            for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+                try:
+                    key = cls.from_private_key(io.StringIO(vps.ssh_key))
+                    break
+                except Exception:
+                    pass
+            if key is None:
+                return
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(vps.host, port=vps.port, username=vps.user, pkey=key, timeout=15)
+            try:
+                sftp = client.open_sftp()
+                with sftp.open("/tmp/_emailrelay_setup.sh", "w") as f:
+                    f.write(script)
+                sftp.close()
+                _, stdout, _ = client.exec_command(
+                    "bash /tmp/_emailrelay_setup.sh; rm -f /tmp/_emailrelay_setup.sh"
+                )
+                stdout.channel.recv_exit_status()
+            finally:
+                client.close()
+
+        try:
+            await asyncio.get_event_loop().run_in_executor(None, _run_ssh)
+        except Exception:
+            pass
+
+
 # ── Auth-Helpers ───────────────────────────────────────────────────────────────
 
 async def get_current_user(request: Request, db: AsyncSession) -> User | None:
