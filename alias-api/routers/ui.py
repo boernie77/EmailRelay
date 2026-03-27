@@ -286,14 +286,25 @@ async def login_submit(
         return RedirectResponse("/", status_code=302)
 
     user = (await db.execute(
-        select(User).where(User.username == username.strip(), User.active == True)
+        select(User).where(User.username == username.strip())
     )).scalar_one_or_none()
 
     if not user or not _bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
         return templates.TemplateResponse("login.html", {
             "request": request,
             "error": "Falscher Benutzername oder Passwort",
             "has_users": has_users, "is_upgrade": False,
+            "registration_enabled": registration_enabled,
+        })
+
+    if not user.active:
+        registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Dein Account wartet noch auf Freischaltung durch den Administrator.",
+            "has_users": has_users, "is_upgrade": False,
+            "registration_enabled": registration_enabled,
         })
 
     request.session["user_id"] = user.id
