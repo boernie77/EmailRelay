@@ -1331,15 +1331,21 @@ async def register_submit(
     email: str = Form(...),
     password: str = Form(...),
     password2: str = Form(...),
+    invite_code: str = Form(""),
 ):
     if await get_setting(db, "registration_enabled", "false") != "true":
         return RedirectResponse("/login", status_code=302)
 
     username = username.strip()
     email = email.strip().lower()
+    invite_code = invite_code.strip()
     error = None
 
-    if password != password2:
+    # Einladungscode prüfen (falls konfiguriert)
+    required_code = await get_setting(db, "registration_invite_code", "")
+    if required_code and invite_code != required_code:
+        error = "Ungültiger Einladungscode."
+    elif password != password2:
         error = "Passwörter stimmen nicht überein."
     elif len(password) < 8:
         error = "Passwort muss mindestens 8 Zeichen lang sein."
