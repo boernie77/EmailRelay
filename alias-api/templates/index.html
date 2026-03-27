@@ -68,3 +68,38 @@
   {% endif %}
 </div>
 {% endblock %}
+
+{% block scripts %}
+{% if needs_setup %}
+<!-- Setup-Wizard Popup -->
+<div id="setup-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" style="max-height: 92vh">
+    <div class="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100">
+      <h2 class="font-bold text-gray-800">Einrichtung</h2>
+      <button onclick="skipSetup()" class="text-gray-400 hover:text-gray-600 text-sm transition">Überspringen</button>
+    </div>
+    <iframe id="setup-iframe" src="/setup"
+            class="w-full flex-1 border-none"
+            style="min-height: 520px"
+            onload="onIframeLoad(this)">
+    </iframe>
+  </div>
+</div>
+<script>
+function onIframeLoad(iframe) {
+  try {
+    const path = iframe.contentWindow.location.pathname;
+    if (path === '/aliases' || (path === '/' && iframe.dataset.started)) {
+      document.getElementById('setup-modal').remove();
+      window.location.href = '/aliases';
+    }
+    iframe.dataset.started = '1';
+  } catch(e) {}
+}
+async function skipSetup() {
+  await fetch('/setup/skip', { method: 'POST' });
+  document.getElementById('setup-modal').remove();
+}
+</script>
+{% endif %}
+{% endblock %}
