@@ -80,6 +80,20 @@
     </div>
 
     <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">Registrierung</h3>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" name="is_default" value="true" id="is_default"
+               {% if cfg.is_default %}checked{% endif %} class="rounded">
+        <label for="is_default" class="text-sm text-gray-700">
+          Standard-Domain für neue Benutzer
+        </label>
+      </div>
+      <p class="text-xs text-gray-400 mt-1">
+        Neu registrierte Benutzer erhalten automatisch Zugriff auf diese Alias-Domain.
+      </p>
+    </div>
+
+    <div class="border-t pt-4">
       <h3 class="text-sm font-semibold text-gray-600 mb-3">Catch-all</h3>
       <p class="text-xs text-gray-500 mb-3">
         Wenn aktiviert, werden Mails an beliebige Adressen dieser Alias-Domain akzeptiert.
