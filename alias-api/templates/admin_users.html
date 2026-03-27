@@ -68,29 +68,35 @@
 <!-- Benutzerliste -->
 <div class="space-y-4">
   {% for u in users %}
-  <div class="bg-white rounded-xl shadow p-5">
+  <div class="bg-white rounded-xl shadow p-5 {% if not u.active and not u.is_admin %}border-2 border-amber-300{% endif %}">
     <div class="flex items-center justify-between mb-3">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <span class="font-semibold text-gray-800">{{ u.username }}</span>
         {% if u.email %}<span class="text-gray-400 text-xs">{{ u.email }}</span>{% endif %}
         {% if u.is_admin %}<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">Admin</span>{% endif %}
         {% if u.active %}
         <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Aktiv</span>
         {% else %}
-        <span class="bg-red-100 text-red-500 text-xs px-2 py-0.5 rounded-full">Gesperrt</span>
+        <span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">⏳ Wartet auf Freischaltung</span>
         {% endif %}
         {% if u.id == current_user.id %}<span class="text-gray-400 text-xs">(du)</span>{% endif %}
       </div>
       {% if u.id != current_user.id %}
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
+        {% if not u.active %}
         <form method="post" action="/admin/users/{{ u.id }}/toggle">
-          <button class="text-xs text-blue-600 hover:underline">
-            {{ 'Sperren' if u.active else 'Entsperren' }}
+          <button class="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg transition">
+            Freischalten
           </button>
         </form>
+        {% else %}
+        <form method="post" action="/admin/users/{{ u.id }}/toggle">
+          <button class="text-xs text-gray-400 hover:text-red-500 hover:underline">Sperren</button>
+        </form>
+        {% endif %}
         <form method="post" action="/admin/users/{{ u.id }}/delete"
               onsubmit="return confirm('Benutzer {{ u.username }} löschen? Domains und Aliases bleiben erhalten.')">
-          <button class="text-xs text-red-500 hover:underline">Löschen</button>
+          <button class="text-xs text-red-400 hover:underline">Löschen</button>
         </form>
       </div>
       {% endif %}
