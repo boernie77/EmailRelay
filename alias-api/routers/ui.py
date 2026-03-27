@@ -472,8 +472,12 @@ async def admin_users_page(request: Request, db: AsyncSession = Depends(get_db))
     all_configs = (await db.execute(
         select(AliasDomainConfig).where(AliasDomainConfig.active == True).order_by(AliasDomainConfig.created_at)
     )).scalars().all()
+    registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
+    registration_invite_code = await get_setting(db, "registration_invite_code", "")
     return templates.TemplateResponse("admin_users.html", {
         "request": request, "current_user": user, "users": users, "all_configs": all_configs,
+        "registration_enabled": registration_enabled,
+        "registration_invite_code": registration_invite_code,
     })
 
 
