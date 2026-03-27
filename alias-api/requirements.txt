@@ -9,3 +9,4 @@ aiosmtplib==3.0.2
 paramiko==3.5.0
 itsdangerous==2.2.0
 bcrypt==4.2.1
+dnspython==2.7.0
