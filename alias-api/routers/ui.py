@@ -1376,8 +1376,8 @@ async def register_submit(
             try:
                 await client.post(
                     ntfy,
-                    content=f"Neuer Benutzer registriert: {username} ({email})".encode(),
-                    headers={"Title": "E-Mail Relay: Neue Registrierung", "Priority": "default"},
+                    content=f"Neuer Benutzer wartet auf Freischaltung: {username} ({email})".encode(),
+                    headers={"Title": "E-Mail Relay: Freischaltung erforderlich", "Priority": "high"},
                     timeout=5,
                 )
             except Exception:
