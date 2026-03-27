@@ -206,6 +206,16 @@ async def get_current_user(request: Request, db: AsyncSession) -> User | None:
     )).scalar_one_or_none()
 
 
+async def get_any_user(request: Request, db: AsyncSession) -> User | None:
+    """Gibt auch inaktive Benutzer zurück (für Dashboard/Login-Redirect)."""
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    return (await db.execute(
+        select(User).where(User.id == user_id)
+    )).scalar_one_or_none()
+
+
 def redirect_login():
     return RedirectResponse("/login", status_code=302)
 
