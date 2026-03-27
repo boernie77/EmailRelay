@@ -1718,3 +1718,15 @@ async def settings_system_smtp(
         await save_setting(db, "system_smtp_password", system_smtp_password)
     await db.commit()
     return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+@router.post("/settings/legal")
+async def settings_legal(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    form = await request.form()
+    impressum_text = (form.get("impressum_text") or "").strip()
+    await save_setting(db, "impressum_text", impressum_text)
+    await db.commit()
+    return RedirectResponse("/settings?saved=1", status_code=303)
