@@ -144,3 +144,13 @@
   {% endfor %}
 </div>
 {% endblock %}
+{% block scripts %}
+<script>
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  document.querySelector('input[name="registration_invite_code"]').value = code;
+}
+</script>
+{% endblock %}
