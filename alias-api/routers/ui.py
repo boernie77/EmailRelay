@@ -1310,3 +1310,278 @@ async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/privacy", response_class=HTMLResponse)
 async def privacy_page():
     return HTMLResponse(content=PRIVACY_POLICY_HTML)
+
+
+# ── Registrierung ──────────────────────────────────────────────────────────────
+
+@router.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if await get_setting(db, "registration_enabled", "false") != "true":
+        return RedirectResponse("/login", status_code=302)
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@router.post("/register")
+async def register_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    password2: str = Form(...),
+):
+    if await get_setting(db, "registration_enabled", "false") != "true":
+        return RedirectResponse("/login", status_code=302)
+
+    username = username.strip()
+    email = email.strip().lower()
+    error = None
+
+    if password != password2:
+        error = "Passwörter stimmen nicht überein."
+    elif len(password) < 8:
+        error = "Passwort muss mindestens 8 Zeichen lang sein."
+    elif not username:
+        error = "Benutzername darf nicht leer sein."
+    else:
+        existing = (await db.execute(
+            select(User).where(User.username == username)
+        )).scalar_one_or_none()
+        if existing:
+            error = "Benutzername bereits vergeben."
+
+    if error:
+        return templates.TemplateResponse("register.html", {
+            "request": request, "error": error, "username": username, "email": email,
+        })
+
+    pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+    new_user = User(username=username, password_hash=pw_hash, email=email, is_admin=False)
+    db.add(new_user)
+    await db.flush()
+
+    # Zugriff auf alle Standard-Alias-Domains automatisch gewähren
+    default_configs = (await db.execute(
+        select(AliasDomainConfig)
+        .where(AliasDomainConfig.is_default == True, AliasDomainConfig.active == True)
+    )).scalars().all()
+    for cfg in default_configs:
+        db.add(AliasDomainAccess(user_id=new_user.id, alias_domain_config_id=cfg.id))
+
+    await db.commit()
+
+    # Admin per ntfy benachrichtigen
+    ntfy = await get_setting(db, "ntfy_url")
+    if ntfy:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.post(
+                    ntfy,
+                    content=f"Neuer Benutzer registriert: {username} ({email})".encode(),
+                    headers={"Title": "E-Mail Relay: Neue Registrierung", "Priority": "default"},
+                    timeout=5,
+                )
+            except Exception:
+                pass
+
+    return templates.TemplateResponse("register.html", {"request": request, "success": True})
+
+
+# ── Passwort vergessen ─────────────────────────────────────────────────────────
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_page(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {"request": request})
+
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    email: str = Form(...),
+):
+    from datetime import datetime, timezone, timedelta
+    from email_utils import send_system_email
+
+    email = email.strip().lower()
+    user = (await db.execute(
+        select(User).where(User.email == email, User.active == True)
+    )).scalar_one_or_none()
+
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+        await db.commit()
+        base_url = str(request.base_url).rstrip("/")
+        reset_link = f"{base_url}/reset-password/{token}"
+        html = (
+            f"<p>Hallo {user.username},</p>"
+            f"<p>du hast ein neues Passwort für dein E-Mail Relay Konto angefordert.</p>"
+            f"<p><a href='{reset_link}'>Passwort jetzt zurücksetzen</a></p>"
+            f"<p>Der Link ist 1 Stunde gültig.</p>"
+            f"<p>Falls du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail.</p>"
+        )
+        await send_system_email(email, "E-Mail Relay – Passwort zurücksetzen", html, db)
+
+    # Immer dieselbe Meldung (verhindert User-Enumeration)
+    return templates.TemplateResponse("forgot_password.html", {"request": request, "sent": True})
+
+
+@router.get("/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password_page(token: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from datetime import datetime, timezone
+    user = (await db.execute(
+        select(User).where(User.reset_token == token)
+    )).scalar_one_or_none()
+    valid = bool(
+        user and user.token_expiry
+        and user.token_expiry.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
+    )
+    return templates.TemplateResponse("reset_password.html", {
+        "request": request, "token": token, "valid": valid,
+    })
+
+
+@router.post("/reset-password/{token}")
+async def reset_password_submit(
+    token: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    new_password: str = Form(...),
+    new_password2: str = Form(...),
+):
+    from datetime import datetime, timezone
+    user = (await db.execute(
+        select(User).where(User.reset_token == token)
+    )).scalar_one_or_none()
+    valid = bool(
+        user and user.token_expiry
+        and user.token_expiry.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
+    )
+    if not valid:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request, "token": token, "valid": False,
+        })
+    if new_password != new_password2 or len(new_password) < 8:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request, "token": token, "valid": True,
+            "error": "Passwörter stimmen nicht überein oder zu kurz (min. 8 Zeichen).",
+        })
+    user.password_hash = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt()).decode()
+    user.reset_token = None
+    user.token_expiry = None
+    await db.commit()
+    return templates.TemplateResponse("reset_password.html", {
+        "request": request, "token": token, "valid": True, "done": True,
+    })
+
+
+# ── Setup-Wizard ───────────────────────────────────────────────────────────────
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_wizard(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    alias_configs = await get_user_alias_configs(db, user)
+    if not alias_configs:
+        request.session["setup_skipped"] = True
+        return RedirectResponse("/", status_code=302)
+    return templates.TemplateResponse("setup.html", {
+        "request": request, "current_user": user, "alias_configs": alias_configs,
+    })
+
+
+@router.post("/setup/skip")
+async def setup_skip(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    request.session["setup_skipped"] = True
+    return RedirectResponse("/", status_code=302)
+
+
+@router.post("/setup")
+async def setup_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    email_address: str = Form(...),
+    alias_domain_config_id: int = Form(...),
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+
+    email_address = email_address.strip().lower()
+    alias_configs = await get_user_alias_configs(db, user)
+
+    # Sicherstellen dass der User Zugriff auf die gewählte Alias-Domain hat
+    alias_cfg = next((c for c in alias_configs if c.id == alias_domain_config_id), None)
+
+    if not alias_cfg or "@" not in email_address:
+        return templates.TemplateResponse("setup.html", {
+            "request": request, "current_user": user,
+            "alias_configs": alias_configs,
+            "error": "Bitte eine gültige E-Mail-Adresse eingeben.",
+        })
+
+    domain_name = email_address.split("@", 1)[1]
+
+    # Domain anlegen falls noch nicht vorhanden
+    domain = (await db.execute(
+        select(Domain).where(Domain.domain == domain_name, Domain.user_id == user.id)
+    )).scalar_one_or_none()
+    if not domain:
+        domain = Domain(
+            domain=domain_name,
+            alias_domain_config_id=alias_domain_config_id,
+            user_id=user.id,
+        )
+        db.add(domain)
+        await db.flush()
+
+    # E-Mail-Adresse anlegen falls noch nicht vorhanden
+    existing_addr = (await db.execute(
+        select(EmailAddress).where(EmailAddress.address == email_address)
+    )).scalar_one_or_none()
+    if not existing_addr:
+        db.add(EmailAddress(address=email_address, domain_id=domain.id))
+
+    await db.commit()
+    request.session["setup_skipped"] = True
+    return RedirectResponse("/aliases", status_code=302)
+
+
+# ── System-SMTP-Einstellungen (nur Admin) ──────────────────────────────────────
+
+@router.post("/settings/system-smtp")
+async def settings_system_smtp(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    system_smtp_host: str = Form(""),
+    system_smtp_port: str = Form("587"),
+    system_smtp_user: str = Form(""),
+    system_smtp_password: str = Form(""),
+    system_smtp_from: str = Form(""),
+    system_smtp_use_tls: str = Form("true"),
+    registration_enabled: str = Form("false"),
+):
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    for key, val in [
+        ("system_smtp_host", system_smtp_host.strip()),
+        ("system_smtp_port", system_smtp_port.strip() or "587"),
+        ("system_smtp_user", system_smtp_user.strip()),
+        ("system_smtp_from", system_smtp_from.strip()),
+        ("system_smtp_use_tls", system_smtp_use_tls),
+        ("registration_enabled", registration_enabled),
+    ]:
+        await save_setting(db, key, val)
+    # Passwort nur überschreiben wenn neu eingegeben
+    if system_smtp_password:
+        await save_setting(db, "system_smtp_password", system_smtp_password)
+    await db.commit()
+    return RedirectResponse("/settings?saved=1", status_code=303)
