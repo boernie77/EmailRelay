@@ -92,24 +92,30 @@ async def log_message_alias(message_id: str, alias_address: str):
             log.warning(f"Message-ID konnte nicht geloggt werden: {e}")
 
 
-async def validate_credentials(username: str, password: str) -> bool:
-    """Prüft Benutzername/Passwort gegen die alias-api."""
-    async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.post(
+def validate_credentials_sync(username: str, password: str) -> bool:
+    """Prüft Benutzername/Passwort gegen die alias-api (synchron).
+
+    Hinweis: aiosmtpd ruft den Authenticator synchron auf (_authenticate ist nicht async),
+    daher muss hier httpx.Client (sync) statt AsyncClient verwendet werden.
+    """
+    try:
+        with httpx.Client() as client:
+            resp = client.post(
                 f"{API_URL}/api/auth/validate",
                 json={"username": username, "password": password},
                 headers={"x-api-secret": API_SECRET},
                 timeout=10,
             )
             return resp.status_code == 200
-        except Exception as e:
-            log.warning(f"Auth-Validierung fehlgeschlagen: {e}")
-            return False
+    except Exception as e:
+        log.warning(f"Auth-Validierung fehlgeschlagen: {e}")
+        return False
 
 
 class ProxyAuthenticator:
-    async def __call__(self, server, session, envelope, mechanism, auth_data):
+    def __call__(self, server, session, envelope, mechanism, auth_data):
+        # Muss synchron sein: aiosmtpd's _authenticate() ist nicht async und
+        # würde einen async __call__ nie awaiten → Coroutine-Objekt statt AuthResult
         log.info(f"Auth: mechanism={mechanism}, type={type(auth_data).__name__}")
         try:
             if isinstance(auth_data, LoginPassword):
@@ -134,7 +140,7 @@ class ProxyAuthenticator:
             log.warning(f"Auth: Fehler beim Parsen: {e}")
             return AuthResult(success=False)
 
-        ok = await validate_credentials(username, password)
+        ok = validate_credentials_sync(username, password)
         if ok:
             log.info(f"SMTP-Auth erfolgreich: {username}")
             return AuthResult(success=True)
