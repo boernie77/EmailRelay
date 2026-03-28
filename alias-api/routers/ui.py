@@ -75,12 +75,11 @@ fi
 echo "Installiere Forward-Script..."
 cat > /usr/local/bin/emailrelay-forward.py << 'PYEOF'
 #!/usr/bin/env python3
-"""Postfix pipe: Leitet eingehende Mails an echte Adressen weiter."""
+"""Postfix pipe: Leitet eingehende Mails an die alias-api weiter.
+Die gesamte Forward-Logik (Reply-To, From, To, SMTP) liegt in der API –
+dieses Script ist nur ein dünner HTTP-Client. Kein VPS-Neusetup nötig bei Logikänderungen."""
 import sys
 import httpx
-import smtplib
-from email.parser import BytesParser
-from email import policy
 
 API_URL = "__API_URL__"
 API_SECRET = "__API_SECRET__"
@@ -90,51 +89,24 @@ if len(sys.argv) < 2:
 
 alias_address = sys.argv[1].lower()
 raw = sys.stdin.buffer.read()
-headers = {"x-api-secret": API_SECRET}
 
 try:
-    resp = httpx.get(f"{API_URL}/api/alias/incoming/{alias_address}",
-                     headers=headers, timeout=10)
+    resp = httpx.post(
+        f"{API_URL}/api/forward-email/{alias_address}",
+        content=raw,
+        headers={"x-api-secret": API_SECRET, "Content-Type": "message/rfc822"},
+        timeout=30,
+    )
+    if resp.status_code == 200:
+        sys.exit(0)
     if resp.status_code == 410:
         sys.exit(0)   # blockiert: still verwerfen
-    if resp.status_code != 200:
+    if resp.status_code == 404:
         sys.exit(67)  # nicht gefunden: bounce (User unknown)
-    real_address = resp.json()["real_address"]
-except Exception as e:
-    print(f"API-Fehler: {e}", file=sys.stderr)
+    print(f"API-Fehler: {resp.status_code} {resp.text[:200]}", file=sys.stderr)
     sys.exit(75)
-
-try:
-    cfg = httpx.get(f"{API_URL}/api/smtp-config/{real_address}",
-                    headers=headers, timeout=10).json()
 except Exception as e:
-    print(f"SMTP-Config-Fehler: {e}", file=sys.stderr)
-    sys.exit(75)
-
-msg = BytesParser(policy=policy.default).parsebytes(raw)
-
-original_from = msg.get("From", "")
-if original_from and not msg.get("Reply-To"):
-    del msg["Reply-To"]
-    msg["Reply-To"] = original_from
-del msg["From"]
-msg["From"] = cfg.get("smtp_user", real_address)
-del msg["To"]
-# WICHTIG: To-Header NUR mit Alias setzen, NICHT formataddr((alias, real_address))!
-# formataddr würde die echte Adresse im To-Header sichtbar machen (Gmail zeigt sie,
-# Thunderbird Reply-All würde sie mitsenden). Die tatsächliche Zustellung läuft über
-# den Envelope-Empfänger in smtp.sendmail() – der To-Header ist nur zur Anzeige.
-msg["To"] = alias_address
-
-try:
-    use_tls = cfg.get("smtp_use_tls", "true") != "false"
-    with smtplib.SMTP(cfg["smtp_host"], int(cfg.get("smtp_port", 587))) as smtp:
-        if use_tls:
-            smtp.starttls()
-        smtp.login(cfg["smtp_user"], cfg["smtp_password"])
-        smtp.sendmail(cfg["smtp_user"], [real_address], msg.as_bytes(policy=policy.SMTP))
-except Exception as e:
-    print(f"SMTP-Fehler: {e}", file=sys.stderr)
+    print(f"Verbindungsfehler: {e}", file=sys.stderr)
     sys.exit(75)
 PYEOF
 
