@@ -74,8 +74,9 @@ class AliasDomainConfig(Base):
 
 class Domain(Base):
     __tablename__ = "domains"
+    __table_args__ = (UniqueConstraint("domain", "user_id", name="uq_domain_user"),)
     id = Column(Integer, primary_key=True)
-    domain = Column(String, unique=True, nullable=False)
+    domain = Column(String, nullable=False)
     alias_domain = Column(String, nullable=True)  # Legacy-Spalte
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
