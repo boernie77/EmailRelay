@@ -1106,7 +1106,9 @@ async def domain_add(
         return redirect_login()
     domain = domain.strip().lower()
     config_id = int(alias_domain_config_id) if alias_domain_config_id.strip() else None
-    existing = (await db.execute(select(Domain).where(Domain.domain == domain))).scalar_one_or_none()
+    existing = (await db.execute(
+        select(Domain).where(Domain.domain == domain, Domain.user_id == user.id)
+    )).scalar_one_or_none()
     if not existing:
         db.add(Domain(domain=domain, alias_domain_config_id=config_id, user_id=user.id))
         await db.commit()
