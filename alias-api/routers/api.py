@@ -365,6 +365,91 @@ async def forward_email(
     return Response(status_code=200)
 
 
+@router.post("/forward-reply/{token}")
+async def forward_reply(
+    token: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_incoming_secret),
+):
+    """Empfängt Antworten an reply-TOKEN@alias_domain und leitet sie mit Alias als From weiter.
+    So bleibt die echte Adresse des Users auch beim Antworten aus Gmail/GMX/etc. verborgen."""
+    import logging as _logging
+    from email.parser import BytesParser
+    from email import policy as _ep
+    import aiosmtplib
+
+    reply_token = (await db.execute(
+        select(ReplyToken).where(ReplyToken.token == token)
+    )).scalar_one_or_none()
+
+    if not reply_token:
+        return Response(status_code=404)
+
+    alias_address = reply_token.alias_address
+    original_sender = reply_token.original_sender
+
+    # SMTP-Config über AliasDomainConfig der Alias-Domain laden
+    alias_domain_part = alias_address.split("@")[1] if "@" in alias_address else ""
+    smtp_cfg = None
+    if alias_domain_part:
+        cfg = (await db.execute(
+            select(AliasDomainConfig).where(
+                AliasDomainConfig.alias_domain == alias_domain_part,
+                AliasDomainConfig.active == True,
+            )
+        )).scalar_one_or_none()
+        if cfg and cfg.smtp_host:
+            smtp_cfg = {
+                "host": cfg.smtp_host,
+                "port": int(cfg.smtp_port or 587),
+                "user": cfg.smtp_user,
+                "password": cfg.smtp_password,
+                "use_tls": cfg.smtp_use_tls,
+            }
+    if not smtp_cfg:
+        smtp_cfg = {
+            "host": await get_setting(db, "smtp_host") or "",
+            "port": int(await get_setting(db, "smtp_port") or 587),
+            "user": await get_setting(db, "smtp_user") or "",
+            "password": await get_setting(db, "smtp_password") or "",
+            "use_tls": (await get_setting(db, "smtp_use_tls") or "true") != "false",
+        }
+    if not smtp_cfg["host"]:
+        return Response(status_code=500, content=b"SMTP nicht konfiguriert")
+
+    raw = await request.body()
+    msg = BytesParser(policy=_ep.default).parsebytes(raw)
+
+    # From = Alias (verbirgt echte Adresse des Users)
+    del msg["From"]
+    msg["From"] = alias_address
+
+    # To = Original-Absender (wer die Antwort bekommt)
+    del msg["To"]
+    msg["To"] = original_sender
+
+    # Reply-To nicht setzen: weitere Antworten gehen an From (= Alias) → normaler Forward-Pfad
+
+    try:
+        from email.utils import parseaddr
+        _, original_sender_addr = parseaddr(original_sender)
+        smtp = aiosmtplib.SMTP(
+            hostname=smtp_cfg["host"],
+            port=smtp_cfg["port"],
+            start_tls=smtp_cfg["use_tls"],
+        )
+        await smtp.connect()
+        await smtp.login(smtp_cfg["user"], smtp_cfg["password"])
+        await smtp.sendmail(smtp_cfg["user"], [original_sender_addr], msg.as_bytes(policy=_ep.SMTP))
+        await smtp.quit()
+    except Exception as e:
+        _logging.getLogger("api").error(f"SMTP-Fehler beim Reply-Forward an {original_sender}: {e}")
+        return Response(status_code=500, content=str(e).encode())
+
+    return Response(status_code=200)
+
+
 @router.post("/auth/validate")
 async def auth_validate(
     payload: dict,
