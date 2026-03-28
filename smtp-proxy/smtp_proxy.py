@@ -110,10 +110,30 @@ async def validate_credentials(username: str, password: str) -> bool:
 
 class ProxyAuthenticator:
     async def __call__(self, server, session, envelope, mechanism, auth_data):
-        if not isinstance(auth_data, LoginPassword):
+        log.info(f"Auth: mechanism={mechanism}, type={type(auth_data).__name__}")
+        try:
+            if isinstance(auth_data, LoginPassword):
+                username = auth_data.login.decode(errors="replace")
+                password = auth_data.password.decode(errors="replace")
+            elif isinstance(auth_data, bytes):
+                # PLAIN: \0username\0password
+                parts = auth_data.split(b"\x00")
+                if len(parts) == 3:
+                    username = parts[1].decode(errors="replace")
+                    password = parts[2].decode(errors="replace")
+                elif len(parts) == 2:
+                    username = parts[0].decode(errors="replace")
+                    password = parts[1].decode(errors="replace")
+                else:
+                    log.warning(f"Auth: unbekanntes PLAIN-Format: {len(parts)} Teile")
+                    return AuthResult(success=False)
+            else:
+                log.warning(f"Auth: unbekannter auth_data-Typ: {type(auth_data)}")
+                return AuthResult(success=False)
+        except Exception as e:
+            log.warning(f"Auth: Fehler beim Parsen: {e}")
             return AuthResult(success=False)
-        username = auth_data.login.decode(errors="replace")
-        password = auth_data.password.decode(errors="replace")
+
         ok = await validate_credentials(username, password)
         if ok:
             log.info(f"SMTP-Auth erfolgreich: {username}")
