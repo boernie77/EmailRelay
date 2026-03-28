@@ -87,12 +87,21 @@ API_SECRET = "__API_SECRET__"
 if len(sys.argv) < 2:
     sys.exit(1)
 
-alias_address = sys.argv[1].lower()
+address = sys.argv[1].lower()
 raw = sys.stdin.buffer.read()
+
+# Reply-Gateway: reply-TOKEN@domain → /api/forward-reply/TOKEN
+# Normale Alias-Adresse        → /api/forward-email/ADDRESS
+local_part = address.split("@")[0] if "@" in address else address
+if local_part.startswith("reply-"):
+    token = local_part[6:]  # "reply-" Präfix entfernen
+    endpoint = f"{API_URL}/api/forward-reply/{token}"
+else:
+    endpoint = f"{API_URL}/api/forward-email/{address}"
 
 try:
     resp = httpx.post(
-        f"{API_URL}/api/forward-email/{alias_address}",
+        endpoint,
         content=raw,
         headers={"x-api-secret": API_SECRET, "Content-Type": "message/rfc822"},
         timeout=30,
