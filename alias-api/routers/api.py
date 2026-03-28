@@ -303,12 +303,23 @@ async def forward_email(
     from email import policy as _ep
     msg = BytesParser(policy=_ep.default).parsebytes(raw)
 
-    # WICHTIG: Reply-To auf Original-Absender setzen, BEVOR From überschrieben wird.
-    # Ohne das landet die Antwort beim SMTP-Relay-Account statt beim echten Absender.
+    # Reply-Gateway: Reply-To auf reply-TOKEN@alias_domain setzen.
+    # Wenn der Empfänger antwortet (egal ob Gmail, GMX, Thunderbird, ...), landet die
+    # Antwort beim VPS → forward_reply-Endpoint → From wird durch Alias ersetzt.
+    # So bleibt die echte Adresse des Users auch beim Antworten verborgen.
     original_from = msg.get("From", "")
-    if original_from and not msg.get("Reply-To"):
+    if original_from:
+        token = secrets.token_urlsafe(24)
+        alias_domain_part = alias_address.split("@")[1] if "@" in alias_address else ""
+        reply_token_obj = ReplyToken(
+            token=token,
+            alias_address=alias_address,
+            original_sender=original_from,
+        )
+        db.add(reply_token_obj)
+        await db.commit()
         del msg["Reply-To"]
-        msg["Reply-To"] = original_from
+        msg["Reply-To"] = f"reply-{token}@{alias_domain_part}"
 
     # ╔══════════════════════════════════════════════════════════════════════════╗
     # ║ ACHTUNG: From = alias_address, NIEMALS smtp_cfg["user"]!               ║
