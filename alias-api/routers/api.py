@@ -310,8 +310,14 @@ async def forward_email(
         del msg["Reply-To"]
         msg["Reply-To"] = original_from
 
+    # WICHTIG: From auf Alias-Adresse setzen, NICHT auf smtp_cfg["user"].
+    # Wenn From = echtes Postfach (z.B. alias@nosearch.de) und das ist auch eine
+    # Thunderbird-Identität, erkennt Thunderbird die Mail als "selbst gesendet" und
+    # benutzt beim Antworten das To-Feld statt Reply-To → Mail landet in eigener Inbox.
+    # Alias-Adresse als From: zeigt welcher Alias die Mail empfangen hat, ist keine
+    # eigene Thunderbird-Identität → Thunderbird verwendet korrekt Reply-To beim Antworten.
     del msg["From"]
-    msg["From"] = smtp_cfg["user"]
+    msg["From"] = alias_address
 
     # WICHTIG: To-Header NUR mit Alias, NICHT formataddr((alias, real_address)).
     # formataddr würde die echte Adresse für Empfänger sichtbar machen und bei
