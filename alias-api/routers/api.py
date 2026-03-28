@@ -310,12 +310,21 @@ async def forward_email(
         del msg["Reply-To"]
         msg["Reply-To"] = original_from
 
-    # WICHTIG: From auf Alias-Adresse setzen, NICHT auf smtp_cfg["user"].
-    # Wenn From = echtes Postfach (z.B. alias@nosearch.de) und das ist auch eine
-    # Thunderbird-Identität, erkennt Thunderbird die Mail als "selbst gesendet" und
-    # benutzt beim Antworten das To-Feld statt Reply-To → Mail landet in eigener Inbox.
-    # Alias-Adresse als From: zeigt welcher Alias die Mail empfangen hat, ist keine
-    # eigene Thunderbird-Identität → Thunderbird verwendet korrekt Reply-To beim Antworten.
+    # ╔══════════════════════════════════════════════════════════════════════════╗
+    # ║ ACHTUNG: From = alias_address, NIEMALS smtp_cfg["user"]!               ║
+    # ║                                                                          ║
+    # ║ Wenn From = echtes Postfach (smtp_cfg["user"], z.B. user@strato.de)     ║
+    # ║ und das ist eine Thunderbird-Identität des Empfängers:                  ║
+    # ║   → Thunderbird erkennt Mail als "selbst gesendet"                      ║
+    # ║   → Reply nutzt To-Feld statt Reply-To                                  ║
+    # ║   → Antwort geht an Alias → Alias löst zu echter Adresse → Loop        ║
+    # ║   → Mail landet wieder in eigener Inbox (endloser Kreis)                ║
+    # ║                                                                          ║
+    # ║ Alias-Adresse als From:                                                  ║
+    # ║   ✓ Zeigt dem User welcher Alias die Mail empfangen hat                  ║
+    # ║   ✓ Ist keine Thunderbird-Eigenidentität → Reply-To wird korrekt genutzt ║
+    # ║   ✓ DMARC: subdomain sp=NONE → kein Enforcement für Alias-Subdomains    ║
+    # ╚══════════════════════════════════════════════════════════════════════════╝
     del msg["From"]
     msg["From"] = alias_address
 
