@@ -87,17 +87,17 @@ API_SECRET = "__API_SECRET__"
 if len(sys.argv) < 2:
     sys.exit(1)
 
-address = sys.argv[1].lower()
+address = sys.argv[1]  # Originalschreibweise beibehalten (Reply-Token ist case-sensitiv!)
 raw = sys.stdin.buffer.read()
 
 # Reply-Gateway: reply-TOKEN@domain → /api/forward-reply/TOKEN
 # Normale Alias-Adresse        → /api/forward-email/ADDRESS
 local_part = address.split("@")[0] if "@" in address else address
-if local_part.startswith("reply-"):
-    token = local_part[6:]  # "reply-" Präfix entfernen
+if local_part.lower().startswith("reply-"):
+    token = local_part[6:]  # "reply-" Präfix entfernen, Groß-/Kleinschreibung des Tokens erhalten
     endpoint = f"{API_URL}/api/forward-reply/{token}"
 else:
-    endpoint = f"{API_URL}/api/forward-email/{address}"
+    endpoint = f"{API_URL}/api/forward-email/{address.lower()}"
 
 try:
     resp = httpx.post(
