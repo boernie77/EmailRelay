@@ -319,7 +319,9 @@ async def forward_email(
         db.add(reply_token_obj)
         await db.commit()
         del msg["Reply-To"]
-        msg["Reply-To"] = f"reply-{token}@{alias_domain_part}"
+        from email.utils import parseaddr, formataddr
+        sender_display, _ = parseaddr(original_from)
+        msg["Reply-To"] = formataddr((sender_display, f"reply-{token}@{alias_domain_part}"))
 
     # ╔══════════════════════════════════════════════════════════════════════════╗
     # ║ ACHTUNG: From = alias_address, NIEMALS smtp_cfg["user"]!               ║
