@@ -120,8 +120,7 @@ if original_from and not msg.get("Reply-To"):
 del msg["From"]
 msg["From"] = cfg.get("smtp_user", real_address)
 del msg["To"]
-import email.utils as _eu
-msg["To"] = _eu.formataddr((alias_address, real_address))
+msg["To"] = alias_address
 
 try:
     use_tls = cfg.get("smtp_use_tls", "true") != "false"
