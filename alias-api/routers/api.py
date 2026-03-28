@@ -344,6 +344,12 @@ async def forward_email(
     del msg["Sender"]
     msg["Sender"] = smtp_cfg["user"]
 
+    # Alte DKIM-Signaturen entfernen: Wir ändern From/Reply-To/To → original DKIM bricht.
+    # Eine ungültige DKIM-Signatur ist schlimmer als keine → wird von Gmail als Spam gewertet.
+    # Strato signiert die Mail beim Senden neu (d=nosearch.de), das reicht für DMARC-Alignment.
+    while "DKIM-Signature" in msg:
+        del msg["DKIM-Signature"]
+
     # WICHTIG: To-Header NUR mit Alias, NICHT formataddr((alias, real_address)).
     # formataddr würde die echte Adresse für Empfänger sichtbar machen und bei
     # Reply-All leaken. Zustellung läuft über Envelope (sendmail), nicht To-Header.
