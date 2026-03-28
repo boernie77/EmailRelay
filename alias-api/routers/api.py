@@ -339,6 +339,26 @@ async def forward_email(
     return Response(status_code=200)
 
 
+@router.post("/auth/validate")
+async def auth_validate(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_secret),
+):
+    """Prüft Benutzername/Passwort für SMTP-Auth (smtp-proxy → alias-api)."""
+    import bcrypt as _bcrypt
+    username = (payload.get("username") or "").strip()
+    password = payload.get("password") or ""
+    if not username or not password:
+        raise HTTPException(status_code=401, detail="Credentials fehlen")
+    user = (await db.execute(
+        select(User).where(User.username == username, User.active == True)
+    )).scalar_one_or_none()
+    if not user or not _bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        raise HTTPException(status_code=401, detail="Ungültige Zugangsdaten")
+    return {"ok": True, "user_id": user.id}
+
+
 @router.get("/settings/smtp")
 async def get_smtp_settings(
     db: AsyncSession = Depends(get_db),
