@@ -338,6 +338,11 @@ async def forward_email(
     # ╚══════════════════════════════════════════════════════════════════════════╝
     del msg["From"]
     msg["From"] = alias_address
+    # Sender-Header: SMTP-Absender (für DMARC-Alignment bei Gmail/GMX).
+    # Mailing-List-Muster: From = Alias (sichtbar), Sender = smtp_cfg["user"] (authentifiziert).
+    # → Gmail akzeptiert Sender als DMARC-Alignment-Quelle → kein Spam.
+    del msg["Sender"]
+    msg["Sender"] = smtp_cfg["user"]
 
     # WICHTIG: To-Header NUR mit Alias, NICHT formataddr((alias, real_address)).
     # formataddr würde die echte Adresse für Empfänger sichtbar machen und bei
