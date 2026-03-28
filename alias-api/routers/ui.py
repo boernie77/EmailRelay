@@ -120,6 +120,10 @@ if original_from and not msg.get("Reply-To"):
 del msg["From"]
 msg["From"] = cfg.get("smtp_user", real_address)
 del msg["To"]
+# WICHTIG: To-Header NUR mit Alias setzen, NICHT formataddr((alias, real_address))!
+# formataddr würde die echte Adresse im To-Header sichtbar machen (Gmail zeigt sie,
+# Thunderbird Reply-All würde sie mitsenden). Die tatsächliche Zustellung läuft über
+# den Envelope-Empfänger in smtp.sendmail() – der To-Header ist nur zur Anzeige.
 msg["To"] = alias_address
 
 try:
