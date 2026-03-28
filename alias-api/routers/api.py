@@ -246,7 +246,7 @@ async def get_smtp_config(
             select(Domain)
             .options(selectinload(Domain.alias_domain_config))
             .where(Domain.domain == domain_str, Domain.active == True)
-        )).scalar_one_or_none()
+        )).scalars().first()
 
         if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
             cfg = domain_obj.alias_domain_config
