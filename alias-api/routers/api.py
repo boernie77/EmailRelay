@@ -218,6 +218,127 @@ async def resolve_alias(
     return {"alias_address": alias_address, "real_address": cfg.catchall_target_address}
 
 
+@router.post("/forward-email/{alias_address}")
+async def forward_email(
+    alias_address: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_incoming_secret),
+):
+    """Empfängt eingehende Mail vom VPS und leitet sie weiter. Enthält die komplette Forward-Logik."""
+    global _last_vps_ok_written
+    now = datetime.now(timezone.utc)
+    if _last_vps_ok_written is None or (now - _last_vps_ok_written) > _VPS_OK_WRITE_COOLDOWN:
+        _last_vps_ok_written = now
+        asyncio.create_task(_record_vps_event("last_vps_ok"))
+
+    alias_address = alias_address.lower().strip()
+    raw = await request.body()
+
+    # Alias auflösen (inkl. Catch-all)
+    alias = (await db.execute(
+        select(Alias).where(Alias.alias_address == alias_address)
+    )).scalar_one_or_none()
+
+    if alias:
+        if not alias.active:
+            return Response(status_code=410)
+        alias.last_used = func.now()
+        await db.commit()
+        real_address = alias.real_address
+    else:
+        domain_part = alias_address.split("@")[1].lower() if "@" in alias_address else ""
+        if not domain_part:
+            return Response(status_code=404)
+        cfg_catchall = (await db.execute(
+            select(AliasDomainConfig).where(
+                AliasDomainConfig.alias_domain == domain_part,
+                AliasDomainConfig.active == True,
+                AliasDomainConfig.catchall_enabled == True,
+            )
+        )).scalar_one_or_none()
+        if not cfg_catchall or not cfg_catchall.catchall_target_address:
+            return Response(status_code=404)
+        new_alias = Alias(
+            alias_address=alias_address,
+            real_address=cfg_catchall.catchall_target_address,
+            label="(catch-all)",
+            last_used=func.now(),
+        )
+        db.add(new_alias)
+        await db.commit()
+        real_address = cfg_catchall.catchall_target_address
+
+    # SMTP-Config laden (Domain → AliasDomainConfig, Fallback auf globale Settings)
+    domain_str = real_address.split("@")[1] if "@" in real_address else ""
+    smtp_cfg = None
+    if domain_str:
+        domain_obj = (await db.execute(
+            select(Domain)
+            .options(selectinload(Domain.alias_domain_config))
+            .where(Domain.domain == domain_str, Domain.active == True)
+        )).scalars().first()
+        if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
+            c = domain_obj.alias_domain_config
+            smtp_cfg = {
+                "host": c.smtp_host,
+                "port": int(c.smtp_port or 587),
+                "user": c.smtp_user,
+                "password": c.smtp_password,
+                "use_tls": c.smtp_use_tls,
+            }
+    if not smtp_cfg:
+        smtp_cfg = {
+            "host": await get_setting(db, "smtp_host") or "",
+            "port": int(await get_setting(db, "smtp_port") or 587),
+            "user": await get_setting(db, "smtp_user") or "",
+            "password": await get_setting(db, "smtp_password") or "",
+            "use_tls": (await get_setting(db, "smtp_use_tls") or "true") != "false",
+        }
+    if not smtp_cfg["host"]:
+        return Response(status_code=500, content=b"SMTP nicht konfiguriert")
+
+    # Mail-Header anpassen
+    from email.parser import BytesParser
+    from email import policy as _ep
+    msg = BytesParser(policy=_ep.default).parsebytes(raw)
+
+    # WICHTIG: Reply-To auf Original-Absender setzen, BEVOR From überschrieben wird.
+    # Ohne das landet die Antwort beim SMTP-Relay-Account statt beim echten Absender.
+    original_from = msg.get("From", "")
+    if original_from and not msg.get("Reply-To"):
+        del msg["Reply-To"]
+        msg["Reply-To"] = original_from
+
+    del msg["From"]
+    msg["From"] = smtp_cfg["user"]
+
+    # WICHTIG: To-Header NUR mit Alias, NICHT formataddr((alias, real_address)).
+    # formataddr würde die echte Adresse für Empfänger sichtbar machen und bei
+    # Reply-All leaken. Zustellung läuft über Envelope (sendmail), nicht To-Header.
+    del msg["To"]
+    msg["To"] = alias_address
+
+    # Senden via SMTP
+    try:
+        import aiosmtplib
+        smtp = aiosmtplib.SMTP(
+            hostname=smtp_cfg["host"],
+            port=smtp_cfg["port"],
+            start_tls=smtp_cfg["use_tls"],
+        )
+        await smtp.connect()
+        await smtp.login(smtp_cfg["user"], smtp_cfg["password"])
+        await smtp.sendmail(smtp_cfg["user"], [real_address], msg.as_bytes(policy=_ep.SMTP))
+        await smtp.quit()
+    except Exception as e:
+        import logging
+        logging.getLogger("api").error(f"SMTP-Fehler beim Forwarden an {real_address}: {e}")
+        return Response(status_code=500, content=str(e).encode())
+
+    return Response(status_code=200)
+
+
 @router.get("/settings/smtp")
 async def get_smtp_settings(
     db: AsyncSession = Depends(get_db),
