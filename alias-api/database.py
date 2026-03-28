@@ -111,13 +111,16 @@ async def _migrate_to_vps_configs():
             await session.commit()
             return
 
-        # Alte VPS-Daten aus DB lesen (Felder existieren in DB, aber nicht mehr im Modell)
-        rows = (await session.execute(text(
-            "SELECT id, vps_host, vps_port, vps_user, vps_ssh_key, api_url_for_vps "
-            "FROM alias_domain_configs "
-            "WHERE vps_host IS NOT NULL AND vps_host != '' "
-            "LIMIT 1"
-        ))).fetchall()
+        # Alte VPS-Daten aus DB lesen (Felder nur in alten DBs vorhanden, bei Neuinstallation nicht)
+        try:
+            rows = (await session.execute(text(
+                "SELECT id, vps_host, vps_port, vps_user, vps_ssh_key, api_url_for_vps "
+                "FROM alias_domain_configs "
+                "WHERE vps_host IS NOT NULL AND vps_host != '' "
+                "LIMIT 1"
+            ))).fetchall()
+        except Exception:
+            return  # Spalten existieren nicht (Neuinstallation) – nichts zu migrieren
 
         if not rows:
             return
