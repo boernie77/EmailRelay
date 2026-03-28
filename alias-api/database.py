@@ -39,6 +39,9 @@ async def init_db():
         "ALTER TABLE alias_domain_configs ADD COLUMN is_default BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN invite_code_used VARCHAR",
         "ALTER TABLE users ADD COLUMN preset_alias_domain VARCHAR",
+        # Unique-Constraint auf Domain.domain von global auf (domain, user_id) umstellen
+        "ALTER TABLE domains DROP CONSTRAINT IF EXISTS domains_domain_key",
+        "ALTER TABLE domains ADD CONSTRAINT uq_domain_user UNIQUE (domain, user_id)",
     ]:
         try:
             async with engine.begin() as conn:
