@@ -117,3 +117,19 @@ class AliasMessageLog(Base):
     message_id = Column(String, unique=True, nullable=False, index=True)
     alias_address = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ReplyToken(Base):
+    """Reply-Gateway: Token → (alias_address, original_sender).
+
+    Wird beim Weiterleiten eingehender Mails erstellt.
+    Reply-To wird auf reply-TOKEN@alias_domain gesetzt statt auf den echten Absender.
+    So bleibt die echte Adresse des Users auch beim Antworten aus Gmail/GMX/etc. verborgen.
+    Tokens laufen nicht ab — bei 1000 Usern × 1 Reply/Tag ≈ 105 MB/Jahr.
+    """
+    __tablename__ = "reply_tokens"
+    id = Column(Integer, primary_key=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    alias_address = Column(String, nullable=False)   # z.B. abc123@no.nosearch.de
+    original_sender = Column(String, nullable=False)  # vollständiger From-Header des Absenders
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
