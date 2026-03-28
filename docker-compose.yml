@@ -35,6 +35,7 @@ services:
     environment:
       API_URL: http://alias-api:8080
       API_SECRET: ${API_SECRET}
+      SMTP_AUTH_REQUIRED: ${SMTP_AUTH_REQUIRED:-false}
       TZ: Europe/Berlin
     depends_on:
       - alias-api
