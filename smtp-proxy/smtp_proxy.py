@@ -4,6 +4,7 @@ E-Mail Relay SMTP-Proxy
 Lauscht auf Port 1587. Thunderbird verbindet sich hier.
 - Ausgehende Mails: From-Adresse wird durch Alias ersetzt
 - Weiterleitung über den konfigurierten echten SMTP-Server
+- SMTP-Auth: optional (SMTP_AUTH_REQUIRED=true aktiviert Pflicht-Auth gegen alias-api)
 """
 import asyncio
 import logging
@@ -17,6 +18,7 @@ import httpx
 import aiosmtplib
 from aiosmtpd.controller import Controller
 from aiosmtpd.handlers import AsyncMessage
+from aiosmtpd.smtp import AuthResult, LoginPassword
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("smtp-proxy")
@@ -24,6 +26,7 @@ log = logging.getLogger("smtp-proxy")
 API_URL = os.getenv("API_URL", "http://alias-api:8080")
 API_SECRET = os.getenv("API_SECRET", "")
 PROXY_PORT = int(os.getenv("PROXY_PORT", "1587"))
+SMTP_AUTH_REQUIRED = os.getenv("SMTP_AUTH_REQUIRED", "false").lower() == "true"
 RETRY_DELAY = 5  # Sekunden zwischen API-Verbindungsversuchen
 
 
@@ -87,6 +90,36 @@ async def log_message_alias(message_id: str, alias_address: str):
             )
         except Exception as e:
             log.warning(f"Message-ID konnte nicht geloggt werden: {e}")
+
+
+async def validate_credentials(username: str, password: str) -> bool:
+    """Prüft Benutzername/Passwort gegen die alias-api."""
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(
+                f"{API_URL}/api/auth/validate",
+                json={"username": username, "password": password},
+                headers={"x-api-secret": API_SECRET},
+                timeout=10,
+            )
+            return resp.status_code == 200
+        except Exception as e:
+            log.warning(f"Auth-Validierung fehlgeschlagen: {e}")
+            return False
+
+
+class ProxyAuthenticator:
+    async def __call__(self, server, session, envelope, mechanism, auth_data):
+        if not isinstance(auth_data, LoginPassword):
+            return AuthResult(success=False)
+        username = auth_data.login.decode(errors="replace")
+        password = auth_data.password.decode(errors="replace")
+        ok = await validate_credentials(username, password)
+        if ok:
+            log.info(f"SMTP-Auth erfolgreich: {username}")
+            return AuthResult(success=True)
+        log.warning(f"SMTP-Auth fehlgeschlagen: {username}")
+        return AuthResult(success=False)
 
 
 class AliasHandler(AsyncMessage):
@@ -184,9 +217,23 @@ async def wait_for_api():
 async def main():
     await wait_for_api()
     handler = AliasHandler()
-    controller = Controller(handler, hostname="0.0.0.0", port=PROXY_PORT)
+
+    if SMTP_AUTH_REQUIRED:
+        log.info("SMTP-Auth aktiviert (SMTP_AUTH_REQUIRED=true)")
+        controller = Controller(
+            handler,
+            hostname="0.0.0.0",
+            port=PROXY_PORT,
+            authenticator=ProxyAuthenticator(),
+            auth_required=True,
+            auth_require_tls=False,  # Kein TLS-Zwang (Thunderbird kann STARTTLS nutzen)
+        )
+    else:
+        log.info("SMTP-Auth deaktiviert (lokal/intern)")
+        controller = Controller(handler, hostname="0.0.0.0", port=PROXY_PORT)
+
     controller.start()
-    log.info(f"SMTP-Proxy gestartet auf Port {PROXY_PORT}")
+    log.info(f"SMTP-Proxy gestartet auf Port {PROXY_PORT} (Auth={SMTP_AUTH_REQUIRED})")
     try:
         while True:
             await asyncio.sleep(3600)
