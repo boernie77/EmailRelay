@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Alias, Domain, EmailAddress, User, Setting
+from models import Alias, Domain, EmailAddress, User, Setting, AliasDomainConfig, VpsConfig
 
 
 async def _get_setting(db: AsyncSession, key: str, default: str = "") -> str:
