@@ -383,19 +383,40 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     ntfy_url = ntfy_setting.value if ntfy_setting else ""
     random_suffix = secrets.token_hex(4)
     saved = request.query_params.get("saved") == "1"
+    success = request.query_params.get("success") or None
+    error = request.query_params.get("error") or None
     system_smtp = {}
+    backup_ssh = {}
+    backup_schedule_val = "disabled"
+    backup_last_run = ""
+    backup_last_status = ""
     if user.is_admin:
         for key in ["system_smtp_host", "system_smtp_port", "system_smtp_user",
                     "system_smtp_from", "system_smtp_use_tls", "registration_enabled",
                     "registration_invite_code"]:
             system_smtp[key] = await get_setting(db, key)
         system_smtp["has_password"] = bool(await get_setting(db, "system_smtp_password"))
+        backup_ssh = {
+            "host": await get_setting(db, "backup_ssh_host"),
+            "port": await get_setting(db, "backup_ssh_port") or "22",
+            "user": await get_setting(db, "backup_ssh_user"),
+            "remote_path": await get_setting(db, "backup_ssh_remote_path"),
+            "has_key": bool(await get_setting(db, "backup_ssh_key_pem")),
+        }
+        backup_schedule_val = await get_setting(db, "backup_schedule") or "disabled"
+        backup_last_run = await get_setting(db, "backup_last_run")
+        backup_last_status = await get_setting(db, "backup_last_status")
     impressum_text = await get_setting(db, "impressum_text") if user.is_admin else ""
     return templates.TemplateResponse("settings.html", {
         "request": request, "current_user": user,
         "ntfy_url": ntfy_url, "random_suffix": random_suffix,
         "system_smtp": system_smtp, "saved": saved,
+        "success": success, "error": error,
         "impressum_text": impressum_text,
+        "backup_ssh": backup_ssh,
+        "backup_schedule": backup_schedule_val,
+        "backup_last_run": backup_last_run,
+        "backup_last_status": backup_last_status,
     })
 
 
