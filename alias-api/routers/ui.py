@@ -402,6 +402,7 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
             "user": await get_setting(db, "backup_ssh_user"),
             "remote_path": await get_setting(db, "backup_ssh_remote_path"),
             "has_key": bool(await get_setting(db, "backup_ssh_key_pem")),
+            "keep": await get_setting(db, "backup_keep") or "7",
         }
         backup_schedule_val = await get_setting(db, "backup_schedule") or "disabled"
         backup_last_run = await get_setting(db, "backup_last_run")
