@@ -25,6 +25,92 @@
 </div>
 
 {% if current_user.is_admin %}
+<!-- SSH-Backup-Konfiguration (nur Admin) -->
+<div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6" id="ssh-backup">
+  <h2 class="text-lg font-semibold mb-1">Automatische SSH-Sicherung</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    Erstellt regelmäßig ein vollständiges Backup aller Aliases, Benutzer und Domains als ZIP
+    und überträgt es per SFTP auf einen entfernten Server (z.&nbsp;B. Heimserver, NAS, Raspberry Pi).
+  </p>
+
+  {% if backup_last_run %}
+  <div class="mb-4 p-3 rounded-lg text-sm {% if backup_last_status == 'ok' %}bg-green-50 border border-green-200 text-green-700{% else %}bg-red-50 border border-red-200 text-red-700{% endif %}">
+    Letztes Backup: <strong>{{ backup_last_run }}</strong>
+    {% if backup_last_status == 'ok' %}&nbsp;✓{% else %}&nbsp;– {{ backup_last_status }}{% endif %}
+  </div>
+  {% else %}
+  <div class="mb-4 text-sm text-gray-400 italic">Noch kein automatisches Backup durchgeführt.</div>
+  {% endif %}
+
+  <form method="post" action="/settings/backup/ssh-config" class="space-y-3">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Zeitplan</label>
+      <select name="backup_schedule"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <option value="disabled" {% if backup_schedule == 'disabled' or not backup_schedule %}selected{% endif %}>Deaktiviert (nur manuell)</option>
+        <option value="daily" {% if backup_schedule == 'daily' %}selected{% endif %}>Täglich</option>
+        <option value="weekly" {% if backup_schedule == 'weekly' %}selected{% endif %}>Wöchentlich</option>
+      </select>
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Host</label>
+        <input type="text" name="backup_ssh_host" value="{{ backup_ssh.host or '' }}"
+               placeholder="192.168.1.100 oder backup.meine-domain.de"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+        <input type="number" name="backup_ssh_port" value="{{ backup_ssh.port or '22' }}"
+               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
+      <input type="text" name="backup_ssh_user" value="{{ backup_ssh.user or '' }}"
+             placeholder="pi, backup, root …"
+             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">SSH-Schlüssel (privater Schlüssel, PEM-Format)</label>
+      <textarea name="backup_ssh_key_pem" rows="4"
+                placeholder="{{ '(gespeichert – leer lassen um zu behalten)' if backup_ssh.has_key else '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----' }}"
+                class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+      <p class="text-xs text-gray-400 mt-1">
+        Schlüssel erzeugen (einmalig, auf deinem Computer):
+        <code class="bg-gray-100 px-1 rounded">ssh-keygen -t ed25519 -f ~/.ssh/backup_key</code><br>
+        Danach <code class="bg-gray-100 px-1 rounded">~/.ssh/backup_key.pub</code> auf dem Backup-Server
+        in <code class="bg-gray-100 px-1 rounded">~/.ssh/authorized_keys</code> eintragen,
+        und den Inhalt von <code class="bg-gray-100 px-1 rounded">~/.ssh/backup_key</code> (privater Schlüssel) hier einfügen.
+      </p>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Ziel-Verzeichnis auf dem Backup-Server</label>
+      <input type="text" name="backup_ssh_remote_path" value="{{ backup_ssh.remote_path or '' }}"
+             placeholder="/home/pi/backups"
+             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <p class="text-xs text-gray-400 mt-1">Das Verzeichnis muss bereits existieren und beschreibbar sein.</p>
+    </div>
+    <div class="flex flex-wrap gap-3 items-center pt-1">
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+        Speichern
+      </button>
+      {% if backup_ssh.host %}
+      <button type="button" onclick="testSshBackup(this)"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-5 py-2 rounded-lg transition text-sm">
+        Verbindung testen
+      </button>
+      <button type="button" onclick="runBackupNow(this)"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-5 py-2 rounded-lg transition text-sm">
+        Backup jetzt ausführen
+      </button>
+      {% endif %}
+      <span id="ssh-backup-status" class="text-sm"></span>
+    </div>
+  </form>
+</div>
+
 <!-- Impressum -->
 <div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6">
   <h2 class="text-lg font-semibold mb-1">Impressum</h2>
