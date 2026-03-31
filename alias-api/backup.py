@@ -170,8 +170,8 @@ def _ssh_test_sync(host: str, port: int, username: str, key_pem: str, remote_pat
 
 
 def _ssh_upload_sync(host: str, port: int, username: str, key_pem: str,
-                     remote_path: str, data: bytes, filename: str):
-    """Synchron: ZIP-Backup per SFTP hochladen."""
+                     remote_path: str, data: bytes, filename: str, keep: int = 0):
+    """Synchron: ZIP-Backup per SFTP hochladen und ältere Backups rotieren."""
     import paramiko
     key = None
     for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
@@ -190,6 +190,15 @@ def _ssh_upload_sync(host: str, port: int, username: str, key_pem: str,
         remote_file = remote_path.rstrip("/") + "/" + filename
         with sftp.open(remote_file, "wb") as f:
             f.write(data)
+        # Alte Backups löschen wenn keep > 0
+        if keep > 0:
+            try:
+                all_files = sftp.listdir(remote_path)
+                backup_files = sorted(f for f in all_files if f.startswith("emailrelay-backup-") and f.endswith(".zip"))
+                for old_file in backup_files[:-keep]:
+                    sftp.remove(remote_path.rstrip("/") + "/" + old_file)
+            except Exception:
+                pass  # Rotation-Fehler sind nicht kritisch
         sftp.close()
     finally:
         client.close()
