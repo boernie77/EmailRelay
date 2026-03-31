@@ -78,15 +78,15 @@
                 class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
       <div class="text-xs text-gray-500 mt-2 space-y-1 bg-gray-50 rounded-lg p-3 leading-relaxed">
         <p class="font-semibold text-gray-600">Einmalige Einrichtung – Schritt für Schritt:</p>
-        <p><span class="font-medium">1.</span> Auf dem Server, auf dem E-Mail Relay läuft, ein Schlüsselpaar erzeugen:</p>
+        <p><span class="font-medium">1.</span> <strong>Auf dem E-Mail Relay Server:</strong> Schlüsselpaar erzeugen:</p>
         <code class="block bg-white border rounded px-2 py-1 font-mono">ssh-keygen -t ed25519 -f /tmp/backup_key -N ""</code>
-        <p><span class="font-medium">2.</span> Public Key anzeigen und kopieren:</p>
+        <p><span class="font-medium">2.</span> <strong>Auf dem E-Mail Relay Server:</strong> Public Key anzeigen und kopieren:</p>
         <code class="block bg-white border rounded px-2 py-1 font-mono">cat /tmp/backup_key.pub</code>
-        <p><span class="font-medium">3.</span> Auf dem Backup-Server (z.&nbsp;B. Heimserver) den kopierten Public Key eintragen:</p>
+        <p><span class="font-medium">3.</span> <strong>Auf dem Backup-Server</strong> (z.&nbsp;B. Heimserver) den kopierten Public Key eintragen:</p>
         <code class="block bg-white border rounded px-2 py-1 font-mono whitespace-pre">mkdir -p ~/.ssh && chmod 700 ~/.ssh
 echo "HIER_PUBLIC_KEY_EINFÜGEN" &gt;&gt; ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys</code>
-        <p><span class="font-medium">4.</span> Privaten Schlüssel anzeigen, kopieren und oben einfügen:</p>
+        <p><span class="font-medium">4.</span> <strong>Wieder auf dem E-Mail Relay Server:</strong> Privaten Schlüssel anzeigen und hier einfügen:</p>
         <code class="block bg-white border rounded px-2 py-1 font-mono">cat /tmp/backup_key</code>
         <p class="text-gray-400">Den gesamten Text von <code class="bg-white px-1 rounded border">-----BEGIN</code> bis <code class="bg-white px-1 rounded border">-----END</code> kopieren.</p>
       </div>
