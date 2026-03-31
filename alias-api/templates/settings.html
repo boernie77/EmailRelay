@@ -98,6 +98,12 @@ chmod 600 ~/.ssh/authorized_keys</code>
              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
       <p class="text-xs text-gray-400 mt-1">Das Verzeichnis muss bereits existieren und beschreibbar sein.</p>
     </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Aufzubewahrende Backups</label>
+      <input type="number" name="backup_keep" value="{{ backup_ssh.keep or '7' }}" min="1" max="365"
+             class="w-32 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <p class="text-xs text-gray-400 mt-1">Ältere Backups werden automatisch gelöscht. 7 = eine Woche, 30 = ein Monat.</p>
+    </div>
     <div class="flex flex-wrap gap-3 items-center pt-1">
       <button type="submit"
               class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
