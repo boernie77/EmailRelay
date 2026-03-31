@@ -1885,3 +1885,101 @@ async def settings_legal(request: Request, db: AsyncSession = Depends(get_db)):
     await save_setting(db, "impressum_text", impressum_text)
     await db.commit()
     return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+# ── Datensicherung ────────────────────────────────────────────────────────────
+
+@router.get("/settings/backup/export")
+async def backup_export_csv(request: Request, db: AsyncSession = Depends(get_db)):
+    """Alle eigenen Aliases als CSV herunterladen."""
+    from backup import generate_user_aliases_csv
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    csv_content = await generate_user_aliases_csv(db, user.id)
+    today = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
+    return Response(
+        content=csv_content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="aliases-{today}.csv"'},
+    )
+
+
+@router.post("/settings/backup/import", response_class=HTMLResponse)
+async def backup_import_csv(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    csv_file: UploadFile = File(...),
+):
+    """Aliases aus CSV-Datei importieren."""
+    from backup import import_user_aliases_csv
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    content = await csv_file.read()
+    csv_text = content.decode("utf-8-sig", errors="replace")
+    result = await import_user_aliases_csv(db, user.id, csv_text)
+    if result["errors"] and result["created"] == 0:
+        err_msg = "; ".join(result["errors"][:3])
+        return RedirectResponse(f"/settings?error={quote(err_msg)}#backup", status_code=303)
+    msg = f"{result['created']} Alias{'es' if result['created'] != 1 else ''} importiert"
+    if result["skipped"]:
+        msg += f", {result['skipped']} bereits vorhanden (übersprungen)"
+    if result["errors"]:
+        msg += f" – {len(result['errors'])} Zeile(n) mit Fehlern"
+    return RedirectResponse(f"/settings?success={quote(msg)}#backup", status_code=303)
+
+
+@router.post("/settings/backup/ssh-config", response_class=HTMLResponse)
+async def backup_ssh_config(request: Request, db: AsyncSession = Depends(get_db)):
+    """SSH-Backup-Konfiguration speichern (Admin)."""
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return redirect_login()
+    form = await request.form()
+    for key in ("backup_ssh_host", "backup_ssh_port", "backup_ssh_user",
+                "backup_ssh_remote_path", "backup_schedule"):
+        await save_setting(db, key, (form.get(key) or "").strip())
+    key_pem = (form.get("backup_ssh_key_pem") or "").strip()
+    if key_pem:
+        await save_setting(db, "backup_ssh_key_pem", key_pem)
+    await db.commit()
+    return RedirectResponse("/settings?saved=1#backup", status_code=303)
+
+
+@router.post("/settings/backup/test-ssh")
+async def backup_test_ssh(request: Request, db: AsyncSession = Depends(get_db)):
+    """SSH-Verbindung für Backup testen (Admin)."""
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return JSONResponse({"ok": False, "error": "Nicht angemeldet"})
+    try:
+        from backup import _ssh_test_sync
+        host = await get_setting(db, "backup_ssh_host")
+        port_str = await get_setting(db, "backup_ssh_port")
+        port = int(port_str) if port_str and port_str.isdigit() else 22
+        ssh_user = await get_setting(db, "backup_ssh_user")
+        key_pem = await get_setting(db, "backup_ssh_key_pem")
+        remote_path = await get_setting(db, "backup_ssh_remote_path")
+        if not host or not ssh_user or not key_pem:
+            return JSONResponse({"ok": False, "error": "SSH-Konfiguration unvollständig (zuerst speichern)"})
+        await asyncio.get_event_loop().run_in_executor(
+            None, _ssh_test_sync, host, port, ssh_user, key_pem, remote_path
+        )
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})
+
+
+@router.post("/settings/backup/run")
+async def backup_run_now(request: Request, db: AsyncSession = Depends(get_db)):
+    """Backup sofort ausführen und per SFTP hochladen (Admin)."""
+    user = await get_current_user(request, db)
+    if not user or not user.is_admin:
+        return JSONResponse({"ok": False, "error": "Nicht angemeldet"})
+    try:
+        from backup import run_ssh_backup
+        await run_ssh_backup(db)
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})
