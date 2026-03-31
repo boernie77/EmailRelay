@@ -312,6 +312,50 @@ async function testSystemSmtp(btn) {
   btn.disabled = false;
   btn.textContent = 'Verbindung testen';
 }
+async function testSshBackup(btn) {
+  const status = document.getElementById('ssh-backup-status');
+  btn.disabled = true;
+  btn.textContent = 'Teste…';
+  status.textContent = '';
+  try {
+    const resp = await fetch('/settings/backup/test-ssh', { method: 'POST' });
+    const data = await resp.json();
+    if (data.ok) {
+      status.textContent = '✓ Verbindung OK – Schreibrechte geprüft';
+      status.className = 'text-sm text-green-600 font-medium';
+    } else {
+      status.textContent = '✗ ' + (data.error || 'Fehler');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch {
+    status.textContent = '✗ Netzwerkfehler';
+    status.className = 'text-sm text-red-600';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Verbindung testen';
+}
+async function runBackupNow(btn) {
+  const status = document.getElementById('ssh-backup-status');
+  btn.disabled = true;
+  btn.textContent = 'Backup läuft…';
+  status.textContent = '';
+  try {
+    const resp = await fetch('/settings/backup/run', { method: 'POST' });
+    const data = await resp.json();
+    if (data.ok) {
+      status.textContent = '✓ Backup erfolgreich übertragen';
+      status.className = 'text-sm text-green-600 font-medium';
+    } else {
+      status.textContent = '✗ ' + (data.error || 'Fehler');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch {
+    status.textContent = '✗ Netzwerkfehler';
+    status.className = 'text-sm text-red-600';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Backup jetzt ausführen';
+}
 async function testNtfy() {
   const btn = event.target;
   btn.disabled = true;
