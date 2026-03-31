@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -6,12 +7,19 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from database import init_db
 from routers import api, ui
+from backup import backup_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    task = asyncio.create_task(backup_scheduler())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(title="E-Mail Relay", lifespan=lifespan)
