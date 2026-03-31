@@ -1938,7 +1938,7 @@ async def backup_ssh_config(request: Request, db: AsyncSession = Depends(get_db)
         return redirect_login()
     form = await request.form()
     for key in ("backup_ssh_host", "backup_ssh_port", "backup_ssh_user",
-                "backup_ssh_remote_path", "backup_schedule"):
+                "backup_ssh_remote_path", "backup_schedule", "backup_keep"):
         await save_setting(db, key, (form.get(key) or "").strip())
     key_pem = (form.get("backup_ssh_key_pem") or "").strip()
     if key_pem:
