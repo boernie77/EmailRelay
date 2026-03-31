@@ -114,7 +114,7 @@ else
         | grep "docker-compose-linux-x86_64\"" \
         | cut -d'"' -f4)
     if [ -z "$COMPOSE_URL" ]; then
-        COMPOSE_URL="https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64"
+        COMPOSE_URL="https://github.com/docker/compose/releases/download/v5.1.1/docker-compose-linux-x86_64"
     fi
     curl -fsSL "$COMPOSE_URL" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
