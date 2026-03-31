@@ -219,8 +219,10 @@ async def run_ssh_backup(db: AsyncSession):
     data = await generate_full_backup_zip(db)
     filename = f"emailrelay-backup-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.zip"
 
+    keep_str = await _get_setting(db, "backup_keep")
+    keep = int(keep_str) if keep_str and keep_str.isdigit() else 0
     await asyncio.get_event_loop().run_in_executor(
-        None, _ssh_upload_sync, host, port, ssh_user, key_pem, remote_path, data, filename
+        None, _ssh_upload_sync, host, port, ssh_user, key_pem, remote_path, data, filename, keep
     )
 
     await _save_setting(db, "backup_last_run", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
