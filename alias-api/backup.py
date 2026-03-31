@@ -132,11 +132,66 @@ async def generate_full_backup_zip(db: AsyncSession) -> bytes:
             adw.writerow([a.address, "ja" if a.active else "nein"])
         zf.writestr("addresses.csv", addr_out.getvalue())
 
+        # Einstellungen (Settings-Tabelle: SMTP, ntfy, Impressum usw.)
+        settings = (await db.execute(select(Setting).order_by(Setting.key))).scalars().all()
+        set_out = io.StringIO()
+        sw = csv.writer(set_out)
+        sw.writerow(["key", "value"])
+        for s in settings:
+            sw.writerow([s.key, s.value])
+        zf.writestr("settings.csv", set_out.getvalue())
+
+        # VPS-Konfigurationen (inkl. SSH-Keys)
+        vpss = (await db.execute(select(VpsConfig).order_by(VpsConfig.id))).scalars().all()
+        vps_out = io.StringIO()
+        vw = csv.writer(vps_out)
+        vw.writerow(["label", "host", "port", "user", "api_url", "active", "ssh_key"])
+        for v in vpss:
+            vw.writerow([v.label, v.host, v.port, v.user, v.api_url,
+                         "ja" if v.active else "nein", v.ssh_key or ""])
+        zf.writestr("vps_configs.csv", vps_out.getvalue())
+
+        # Alias-Domain-Konfigurationen (inkl. SMTP-Passwörter)
+        cfgs = (await db.execute(select(AliasDomainConfig).order_by(AliasDomainConfig.id))).scalars().all()
+        cfg_out = io.StringIO()
+        cw = csv.writer(cfg_out)
+        cw.writerow(["label", "alias_domain", "smtp_host", "smtp_port", "smtp_user",
+                     "smtp_password", "smtp_use_tls", "active", "catchall_enabled",
+                     "catchall_target_address"])
+        for c in cfgs:
+            cw.writerow([c.label, c.alias_domain, c.smtp_host, c.smtp_port, c.smtp_user,
+                         c.smtp_password, "ja" if c.smtp_use_tls else "nein",
+                         "ja" if c.active else "nein",
+                         "ja" if c.catchall_enabled else "nein",
+                         c.catchall_target_address or ""])
+        zf.writestr("alias_domains.csv", cfg_out.getvalue())
+
+        # Umgebungsvariablen (Schlüsselnamen, keine Werte für Secrets)
+        import os
+        env_info = (
+            f"E-Mail Relay – Umgebungsvariablen zum Wiederherstellen\n"
+            f"(Werte aus der .env-Datei auf dem Server übernehmen)\n\n"
+            f"API_SECRET=<aus .env>\n"
+            f"DATABASE_URL=<aus .env>\n"
+            f"SMTP_AUTH_REQUIRED={os.getenv('SMTP_AUTH_REQUIRED', '')}\n"
+            f"SMTP_USERNAME={os.getenv('SMTP_USERNAME', '')}\n"
+        )
+        zf.writestr("env_vorlage.txt", env_info)
+
         # Metadaten
         zf.writestr("backup_info.txt", (
             f"E-Mail Relay Backup\n"
             f"Datum: {ts.strftime('%Y-%m-%d %H:%M UTC')}\n"
             f"Benutzer: {len(users)}, Aliases: {len(aliases)}\n"
+            f"\nDieses Backup enthält alle Daten für eine vollständige Wiederherstellung:\n"
+            f"- aliases.csv       → Aliases importieren (Einstellungen → Datensicherung)\n"
+            f"- users.csv         → Benutzer manuell neu anlegen (Passwörter müssen neu gesetzt werden)\n"
+            f"- domains.csv       → Domains manuell neu anlegen\n"
+            f"- addresses.csv     → E-Mail-Adressen manuell neu anlegen\n"
+            f"- settings.csv      → Einstellungen (System-SMTP, ntfy usw.) manuell übertragen\n"
+            f"- vps_configs.csv   → VPS-Konfiguration manuell neu anlegen\n"
+            f"- alias_domains.csv → Alias-Domains manuell neu anlegen\n"
+            f"- env_vorlage.txt   → Hinweise zur .env-Datei\n"
         ))
 
     return buf.getvalue()
