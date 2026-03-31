@@ -78,7 +78,7 @@
                 class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
       <div class="text-xs text-gray-500 mt-2 space-y-1 bg-gray-50 rounded-lg p-3 leading-relaxed">
         <p class="font-semibold text-gray-600">Einmalige Einrichtung – Schritt für Schritt:</p>
-        <p><span class="font-medium">1.</span> Auf dem Hetzner VPS einloggen und Schlüsselpaar erzeugen:</p>
+        <p><span class="font-medium">1.</span> Auf dem Server, auf dem E-Mail Relay läuft, ein Schlüsselpaar erzeugen:</p>
         <code class="block bg-white border rounded px-2 py-1 font-mono">ssh-keygen -t ed25519 -f /tmp/backup_key -N ""</code>
         <p><span class="font-medium">2.</span> Public Key anzeigen und kopieren:</p>
         <code class="block bg-white border rounded px-2 py-1 font-mono">cat /tmp/backup_key.pub</code>
