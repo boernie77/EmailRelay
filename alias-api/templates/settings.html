@@ -224,6 +224,39 @@
 </div>
 {% endif %}
 
+<!-- Datensicherung (alle Benutzer) -->
+<div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6" id="backup">
+  <h2 class="text-lg font-semibold mb-3">Datensicherung</h2>
+  <div class="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded-lg mb-5 text-sm font-semibold">
+    ⚠️ Keine Sicherung, kein Mitleid!
+  </div>
+
+  <h3 class="text-sm font-semibold text-gray-700 mb-1">Aliases exportieren</h3>
+  <p class="text-sm text-gray-500 mb-3">Speichert alle deine Aliases als CSV-Datei auf deinem Computer.</p>
+  <a href="/settings/backup/export"
+     class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg text-sm mb-6 transition">
+    ↓ CSV herunterladen
+  </a>
+
+  <h3 class="text-sm font-semibold text-gray-700 mb-1">Aliases importieren</h3>
+  <p class="text-sm text-gray-500 mb-3">
+    Stellt Aliases aus einer CSV-Datei wieder her. Bereits vorhandene Aliases werden übersprungen.<br>
+    Die Datei muss mindestens die Spalten
+    <code class="bg-gray-100 px-1 rounded text-xs">alias_address</code> und
+    <code class="bg-gray-100 px-1 rounded text-xs">real_address</code> enthalten.
+  </p>
+  <form method="post" action="/settings/backup/import" enctype="multipart/form-data"
+        class="flex flex-wrap items-center gap-3">
+    <input type="file" name="csv_file" accept=".csv" required
+           class="text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
+                  file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+    <button type="submit"
+            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg text-sm transition">
+      Importieren
+    </button>
+  </form>
+</div>
+
 <div class="bg-white rounded-xl shadow p-6 max-w-md">
   <h2 class="text-lg font-semibold mb-4">Passwort ändern</h2>
   <form method="post" action="/settings" class="space-y-4">
