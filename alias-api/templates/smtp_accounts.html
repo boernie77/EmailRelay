@@ -1,4 +1,4 @@
-{ % extends "base.html" %} { % block title %} – SMTP-Konten { % endblock %} { %
+{% extends "base.html" %} {% block title %} – SMTP-Konten {% endblock %} {%
 block content %}
 <h1 class="text-2xl font-bold mb-2">SMTP-Konten</h1>
 <p class="text-gray-500 text-sm mb-6">
@@ -103,7 +103,7 @@ block content %}
     </div>
   </form>
 </div>
-{ % if accounts %}
+{% if accounts %}
 <div class="bg-white rounded-xl shadow overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
@@ -117,12 +117,12 @@ block content %}
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
-      { % for a in accounts %}
+      {% for a in accounts %}
       <tr class="{% if not a.active %}opacity-50{% endif %}">
         <td class="px-4 py-3">
-          { % if a.label %}
+          {% if a.label %}
           <div class="font-medium">{{ a.label }}</div>
-          { % endif %}
+          {% endif %}
           <code class="text-xs text-gray-500">{{ a.pattern }}</code>
         </td>
         <td class="px-4 py-3 text-gray-600">
@@ -130,13 +130,13 @@ block content %}
         </td>
         <td class="px-4 py-3 text-gray-600">{{ a.smtp_user }}</td>
         <td class="px-4 py-3">
-          { % if a.smtp_use_tls %}✓ { % else %}– { % endif %}
+          {% if a.smtp_use_tls %}✓ {% else %}– {% endif %}
         </td>
         <td class="px-4 py-3">
           <span
             class="px-2 py-0.5 rounded-full text-xs {% if a.active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}"
           >
-            { % if a.active %}aktiv { % else %}inaktiv { % endif %}
+            {% if a.active %}aktiv {% else %}inaktiv {% endif %}
           </span>
         </td>
         <td class="px-4 py-3 text-right space-x-2">
@@ -146,7 +146,7 @@ block content %}
             class="inline"
           >
             <button class="text-xs text-blue-500 hover:underline">
-              { % if a.active %}deaktivieren { % else %}aktivieren { % endif %}
+              {% if a.active %}deaktivieren {% else %}aktivieren {% endif %}
             </button>
           </form>
           <form
@@ -161,13 +161,13 @@ block content %}
           </form>
         </td>
       </tr>
-      { % endfor %}
+      {% endfor %}
     </tbody>
   </table>
 </div>
-{ % else %}
+{% else %}
 <div class="bg-white rounded-xl shadow p-6 text-gray-400 text-sm">
   Noch keine SMTP-Konten. Der globale SMTP aus den Einstellungen wird als
   Fallback verwendet.
 </div>
-{ % endif %} { % endblock %}
+{% endif %} {% endblock %}
