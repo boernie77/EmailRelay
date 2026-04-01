@@ -11,20 +11,6 @@ repos:
       - id: jinja2-syntax
         name: Jinja2 template syntax check
         language: python
-        entry: python -c "
-import sys, re
-from jinja2 import Environment
-env = Environment()
-errors = []
-for path in sys.argv[1:]:
-    try:
-        src = open(path).read()
-        env.parse(src)
-    except Exception as e:
-        errors.append(f'{path}: {e}')
-if errors:
-    print('\\n'.join(errors))
-    sys.exit(1)
-"
+        entry: python check_templates.py
         files: alias-api/templates/.*\.html$
         additional_dependencies: [jinja2]

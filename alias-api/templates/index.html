@@ -1,17 +1,17 @@
-{% extends "base.html" %} {% block title %} – Dashboard {% endblock %} {%
+{ % extends "base.html" %} { % block title %} – Dashboard { % endblock %} { %
 block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-bold">Dashboard</h1>
-  {% if not current_user.is_admin %}
+  { % if not current_user.is_admin %}
   <button
     onclick="openSetupModal()"
     class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
   >
     Einrichtungs-Wizard
   </button>
-  {% endif %}
+  { % endif %}
 </div>
-{% if vps_warning %}
+{ % if vps_warning %}
 <div
   class="bg-red-50 border border-red-300 rounded-xl px-5 py-4 mb-6 flex items-start gap-3"
 >
@@ -27,7 +27,7 @@ block content %}
     </p>
   </div>
 </div>
-{% endif %}
+{ % endif %}
 
 <div class="grid grid-cols-3 gap-4 mb-8">
   <div class="bg-white rounded-xl shadow p-6 text-center">
@@ -46,7 +46,7 @@ block content %}
 
 <div class="bg-white rounded-xl shadow p-6">
   <h2 class="text-lg font-semibold mb-4">Zuletzt erstellte Aliases</h2>
-  {% if recent_aliases %}
+  { % if recent_aliases %}
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
@@ -58,7 +58,7 @@ block content %}
       </tr>
     </thead>
     <tbody>
-      {% for alias in recent_aliases %}
+      { % for alias in recent_aliases %}
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2 font-mono text-blue-700">{{ alias.alias_address }}</td>
         <td class="py-2 text-gray-600">{{ alias.real_address }}</td>
@@ -69,31 +69,31 @@ block content %}
           {{ alias.last_used.strftime('%d.%m.%Y') if alias.last_used else '–' }}
         </td>
         <td class="py-2">
-          {% if alias.active %}
+          { % if alias.active %}
           <span
             class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
             >Aktiv</span
           >
-          {% else %}
+          { % else %}
           <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs"
             >Deaktiviert</span
           >
-          {% endif %}
+          { % endif %}
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
-  {% else %}
+  { % else %}
   <p class="text-gray-400">
     Noch keine Aliases vorhanden.
     <a href="/addresses" class="text-blue-600 hover:underline"
       >Adressen konfigurieren →</a
     >
   </p>
-  {% endif %}
+  { % endif %}
 </div>
-{% endblock %} {% block scripts %} {% if not current_user.is_admin %}
+{ % endblock %} { % block scripts %} { % if not current_user.is_admin %}
 <!-- Setup-Wizard Popup -->
 <div
   id="setup-modal"
@@ -146,9 +146,9 @@ async function skipSetup() {
   await fetch("/setup/skip", { method: "POST" });
   document.getElementById("setup-modal").classList.add("hidden");
 }
-{% if needs_setup %}
-openSetupModal();
-{% endif %}
+%
+if needs_setup %
+openSetupModal() {}
+% endif %
 </script>
-{% endif %}
-{% endblock %}
+{ % endif %} { % endblock %}

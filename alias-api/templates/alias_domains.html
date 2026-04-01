@@ -1,23 +1,24 @@
-{% extends "base.html" %} {% block title %} – Alias-Domains {% endblock %} {% block content %}
+{ % extends "base.html" %} { % block title %} – Alias-Domains { % endblock %} {
+% block content %}
 <h1 class="text-2xl font-bold mb-2">Alias-Domains</h1>
 <p class="text-gray-500 mb-6 text-sm">
   Eine Alias-Domain empfängt E-Mails über den VPS und leitet sie weiter. Jede
   Alias-Domain hat eigene SMTP-Daten. Den VPS konfigurierst du einmalig unter
   <a href="/vps" class="text-blue-600 hover:underline">VPS-Konfiguration</a>.
 </p>
-{% if test_success %}
+{ % if test_success %}
 <div
   class="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded-xl mb-4"
 >
   <span class="font-semibold">Test erfolgreich:</span> {{ test_success }}
 </div>
-{% endif %} {% if test_error %}
+{ % endif %} { % if test_error %}
 <div
   class="bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-xl mb-4"
 >
   <span class="font-semibold">Testfehler:</span> {{ test_error }}
 </div>
-{% endif %}
+{ % endif %}
 
 <!-- Neue Alias-Domain hinzufügen -->
 <div class="bg-white rounded-xl shadow p-6 mb-8">
@@ -116,9 +117,9 @@
             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             <option value="">(keiner)</option>
-            {% for vps in vpss %}
+            { % for vps in vpss %}
             <option value="{{ vps.id }}">{{ vps.label or vps.host }}</option>
-            {% endfor %}
+            { % endfor %}
           </select>
         </div>
       </div>
@@ -136,7 +137,7 @@
 <!-- Liste -->
 <div class="space-y-4">
   <h2 class="text-lg font-semibold">Konfigurierte Alias-Domains</h2>
-  {% if configs %} {% for cfg in configs %}
+  { % if configs %} { % for cfg in configs %}
   <div class="bg-white rounded-xl shadow p-5">
     <div class="flex items-start justify-between gap-4">
       <div>
@@ -144,41 +145,41 @@
           <span class="font-semibold text-gray-900"
             >{{ cfg.label or cfg.alias_domain }}</span
           >
-          {% if cfg.label %}<span class="text-sm text-gray-500"
+          { % if cfg.label %}<span class="text-sm text-gray-500"
             >{{ cfg.alias_domain }}</span
-          >{% endif %} {% if cfg.active %}
+          >{ % endif %} { % if cfg.active %}
           <span
             class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
             >Aktiv</span
           >
-          {% else %}
+          { % else %}
           <span
             class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs"
             >Inaktiv</span
           >
-          {% endif %}
+          { % endif %}
         </div>
         <div class="text-sm text-gray-500">
-          SMTP: {% if cfg.smtp_host %}{{ cfg.smtp_host }}:{{ cfg.smtp_port }}
+          SMTP: { % if cfg.smtp_host %}{{ cfg.smtp_host }}:{{ cfg.smtp_port }}
           als {{ cfg.smtp_user or '(kein Benutzer)' }}
-          {% else %}nicht konfiguriert {% endif %} &nbsp;·&nbsp; VPS: {% if
-          cfg.vps_config %}{{ cfg.vps_config.label or cfg.vps_config.host }}{%
-          else %}<span class="text-amber-600">nicht zugewiesen</span>{% endif
+          { % else %}nicht konfiguriert { % endif %} &nbsp;·&nbsp; VPS: { % if
+          cfg.vps_config %}{{ cfg.vps_config.label or cfg.vps_config.host }}{ %
+          else %}<span class="text-amber-600">nicht zugewiesen</span>{ % endif
           %}
         </div>
-        {% if tested_id == cfg.id and test_success %}
+        { % if tested_id == cfg.id and test_success %}
         <div
           class="mt-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1"
         >
           Test erfolgreich: {{ test_success }}
         </div>
-        {% endif %} {% if tested_id == cfg.id and test_error %}
+        { % endif %} { % if tested_id == cfg.id and test_error %}
         <div
           class="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1"
         >
           Testfehler: {{ test_error }}
         </div>
-        {% endif %}
+        { % endif %}
       </div>
       <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
         <a
@@ -218,10 +219,10 @@
       </div>
     </div>
   </div>
-  {% endfor %} {% else %}
+  { % endfor %} { % else %}
   <div class="bg-white rounded-xl shadow p-6 text-gray-400">
     Noch keine Alias-Domains konfiguriert.
   </div>
-  {% endif %}
+  { % endif %}
 </div>
-{% endblock %}
+{ % endblock %}

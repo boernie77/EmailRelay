@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %} – Domains {% endblock %} {%
+{ % extends "base.html" %} { % block title %} – Domains { % endblock %} { %
 block content %}
 <h1 class="text-2xl font-bold mb-6">Domains</h1>
 
@@ -26,12 +26,12 @@ block content %}
         class="border rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-400"
       >
         <option value="">(keine / automatisch)</option>
-        {% for cfg in alias_configs %}
+        { % for cfg in alias_configs %}
         <option value="{{ cfg.id }}">
           {{ cfg.label or cfg.alias_domain }}
           – {{ cfg.alias_domain }}
         </option>
-        {% endfor %}
+        { % endfor %}
       </select>
     </div>
     <button
@@ -41,14 +41,14 @@ block content %}
       Hinzufügen
     </button>
   </form>
-  {% if not alias_configs %}
+  { % if not alias_configs %}
   <p
     class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3"
   >
     Noch keine Alias-Domains konfiguriert.
     <a href="/alias-domains" class="underline">Jetzt einrichten</a>
   </p>
-  {% endif %}
+  { % endif %}
   <p
     class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3"
   >
@@ -59,7 +59,7 @@ block content %}
 
 <div class="bg-white rounded-xl shadow p-6">
   <h2 class="text-lg font-semibold mb-4">Konfigurierte Domains</h2>
-  {% if domains %}
+  { % if domains %}
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
@@ -71,36 +71,36 @@ block content %}
       </tr>
     </thead>
     <tbody>
-      {% for d in domains %}
+      { % for d in domains %}
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2 font-medium">{{ d.domain }}</td>
         <td class="py-2 text-gray-500">
-          {% if d.alias_domain_config %}
+          { % if d.alias_domain_config %}
           <span class="font-medium text-gray-700"
             >{{ d.alias_domain_config.label or d.alias_domain_config.alias_domain }}</span
           >
           <span class="text-xs text-gray-400 ml-1"
             >{{ d.alias_domain_config.alias_domain }}</span
           >
-          {% else %}
+          { % else %}
           <span class="text-gray-400">(keine)</span>
-          {% endif %}
+          { % endif %}
         </td>
         <td class="py-2 text-gray-400">
           {{ d.created_at.strftime('%d.%m.%Y') }}
         </td>
         <td class="py-2">
-          {% if d.active %}
+          { % if d.active %}
           <span
             class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
             >Aktiv</span
           >
-          {% else %}
+          { % else %}
           <span
             class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs"
             >Inaktiv</span
           >
-          {% endif %}
+          { % endif %}
         </td>
         <td class="py-2 flex gap-2">
           <form method="post" action="/domains/{{ d.id }}/toggle">
@@ -119,11 +119,11 @@ block content %}
           </form>
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
-  {% else %}
+  { % else %}
   <p class="text-gray-400">Noch keine Domains konfiguriert.</p>
-  {% endif %}
+  { % endif %}
 </div>
-{% endblock %}
+{ % endblock %}

@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["ultracite/biome/core"],
   "files": {
-    "includes": ["!node_modules", "!**/__pycache__", "!*.py"]
+    "includes": ["chrome-extension/**", "firefox-extension/**"]
   },
   "javascript": {
     "globals": ["chrome", "browser"]

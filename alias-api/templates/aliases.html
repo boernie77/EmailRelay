@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %} – Aliases {% endblock %} {%
+{ % extends "base.html" %} { % block title %} – Aliases { % endblock %} { %
 block content %}
 <h1 class="text-2xl font-bold mb-2">Aliases</h1>
 <p class="text-gray-500 mb-6 text-sm">
@@ -8,7 +8,7 @@ block content %}
 <!-- Neuen Alias manuell erstellen -->
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-base font-semibold mb-4">Neuen Alias erstellen</h2>
-  {% if email_addresses %}
+  { % if email_addresses %}
   <form
     method="post"
     action="/aliases/create"
@@ -24,9 +24,9 @@ block content %}
         required
         class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
       >
-        {% for a in email_addresses %}
+        { % for a in email_addresses %}
         <option value="{{ a.address }}">{{ a.address }}</option>
-        {% endfor %}
+        { % endfor %}
       </select>
     </div>
     <div>
@@ -38,9 +38,9 @@ block content %}
         required
         class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
       >
-        {% for d in alias_domain_configs %}
+        { % for d in alias_domain_configs %}
         <option value="{{ d.id }}">{{ d.alias_domain }}</option>
-        {% endfor %}
+        { % endfor %}
       </select>
     </div>
     <div>
@@ -62,13 +62,13 @@ block content %}
       Alias erstellen
     </button>
   </form>
-  {% else %}
+  { % else %}
   <p class="text-sm text-gray-400">
     Keine aktiven E-Mail-Adressen konfiguriert. Bitte zuerst unter
     <a href="/addresses" class="text-blue-600 hover:underline">Adressen</a>
     eine Adresse anlegen.
   </p>
-  {% endif %}
+  { % endif %}
 </div>
 
 <!-- Legende -->
@@ -98,7 +98,7 @@ block content %}
 
 <!-- Alias-Liste -->
 <div class="bg-white rounded-xl shadow p-6">
-  {% if aliases %}
+  { % if aliases %}
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
@@ -112,7 +112,7 @@ block content %}
       </tr>
     </thead>
     <tbody>
-      {% for a in aliases %}
+      { % for a in aliases %}
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2">
           <span class="font-mono text-blue-700">{{ a.alias_address }}</span>
@@ -146,19 +146,19 @@ block content %}
           {{ a.last_used.strftime('%d.%m.%Y %H:%M') if a.last_used else '–' }}
         </td>
         <td class="py-2">
-          {% if a.active %}
+          { % if a.active %}
           <span
             class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
             >Aktiv</span
           >
-          {% else %}
+          { % else %}
           <span class="bg-red-100 text-red-500 px-2 py-0.5 rounded-full text-xs"
             >Blockiert</span
           >
-          {% endif %}
+          { % endif %}
         </td>
         <td class="py-2 flex gap-2 flex-wrap">
-          {% if a.active %}
+          { % if a.active %}
           <form
             method="post"
             action="/aliases/{{ a.id }}/rotate"
@@ -168,7 +168,7 @@ block content %}
               Rotieren
             </button>
           </form>
-          {% endif %}
+          { % endif %}
           <form method="post" action="/aliases/{{ a.id }}/toggle">
             <button class="text-xs text-blue-600 hover:underline">
               {{ 'Blockieren' if a.active else 'Aktivieren' }}
@@ -185,14 +185,14 @@ block content %}
           </form>
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
-  {% else %}
+  { % else %}
   <p class="text-gray-400">Noch keine Aliases vorhanden.</p>
-  {% endif %}
+  { % endif %}
 </div>
-{% endblock %} {% block scripts %}
+{ % endblock %} { % block scripts %}
 <script>
 "use strict";
 function copyAlias(btn, text) {
@@ -206,4 +206,4 @@ function copyAlias(btn, text) {
   });
 }
 </script>
-{% endblock %}
+{ % endblock %}
