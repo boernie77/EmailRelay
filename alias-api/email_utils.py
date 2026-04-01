@@ -1,4 +1,5 @@
 """Hilfsfunktionen für System-E-Mails (Registrierung, Passwort-Reset etc.)."""
+
 import aiosmtplib
 from email.message import EmailMessage
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,8 +10,14 @@ from models import Setting
 async def get_system_smtp(db: AsyncSession) -> dict | None:
     """Liest System-SMTP-Konfiguration aus Settings. Gibt None zurück wenn nicht konfiguriert."""
     cfg = {}
-    for key in ["system_smtp_host", "system_smtp_port", "system_smtp_user",
-                "system_smtp_password", "system_smtp_from", "system_smtp_use_tls"]:
+    for key in [
+        "system_smtp_host",
+        "system_smtp_port",
+        "system_smtp_user",
+        "system_smtp_password",
+        "system_smtp_from",
+        "system_smtp_use_tls",
+    ]:
         row = (await db.execute(select(Setting).where(Setting.key == key))).scalar_one_or_none()
         cfg[key] = row.value if row else ""
     if not cfg["system_smtp_host"] or not cfg["system_smtp_user"]:

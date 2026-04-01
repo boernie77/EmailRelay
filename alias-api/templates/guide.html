@@ -1,20 +1,24 @@
-{% extends "base.html" %}
-{% block title %} – Hilfe{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – Hilfe { % endblock %} { % block
+content %}
 <h1 class="text-2xl font-bold mb-2">Hilfe & Einrichtungsanleitung</h1>
-<p class="text-gray-500 mb-8 text-sm">Schritt-für-Schritt-Anleitung zur Einrichtung des E-Mail-Relay-Systems.</p>
+<p class="text-gray-500 mb-8 text-sm">
+  Schritt-für-Schritt-Anleitung zur Einrichtung des E-Mail-Relay-Systems.
+</p>
 
 <!-- Was macht E-Mail Relay? -->
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-xl font-semibold mb-3">Was macht E-Mail Relay?</h2>
   <p class="text-gray-700 text-sm leading-relaxed mb-3">
-    Wenn du eine E-Mail sendest, fängt das System deine Absenderadresse ab und ersetzt sie durch einen zufälligen Alias
-    (z.B. <code class="bg-gray-100 px-1 rounded">ab3x7kqprt@alias.deine-domain.de</code>).
-    Der Empfänger sieht nur diesen Alias, nicht deine echte Adresse.
+    Wenn du eine E-Mail sendest, fängt das System deine Absenderadresse ab und
+    ersetzt sie durch einen zufälligen Alias (z.B.
+    <code class="bg-gray-100 px-1 rounded"
+      >ab3x7kqprt@alias.deine-domain.de</code
+    >). Der Empfänger sieht nur diesen Alias, nicht deine echte Adresse.
   </p>
   <p class="text-gray-700 text-sm leading-relaxed">
-    Antwortet jemand auf diesen Alias, empfängt ein VPS-Server die Mail und leitet sie automatisch an deine echte Adresse weiter.
-    Du bleibst anonym, kannst aber trotzdem normal kommunizieren.
+    Antwortet jemand auf diesen Alias, empfängt ein VPS-Server die Mail und
+    leitet sie automatisch an deine echte Adresse weiter. Du bleibst anonym,
+    kannst aber trotzdem normal kommunizieren.
   </p>
 </div>
 
@@ -23,37 +27,86 @@
   <h2 class="text-xl font-semibold mb-4">Voraussetzungen</h2>
   <div class="space-y-4">
     <div class="flex gap-4 items-start">
-      <div class="bg-red-100 text-red-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">!</div>
+      <div
+        class="bg-red-100 text-red-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        !
+      </div>
       <div>
         <p class="font-semibold text-sm">Eigene Domain (Pflicht)</p>
-        <p class="text-gray-600 text-sm">Du benötigst eine eigene Domain (z.B. <code class="bg-gray-100 px-1 rounded">deine-domain.de</code>),
-        für die du einen MX-Record setzen kannst. Ohne eigene Domain kannst du keine Alias-Domain einrichten.</p>
+        <p class="text-gray-600 text-sm">
+          Du benötigst eine eigene Domain (z.B.
+          <code class="bg-gray-100 px-1 rounded">deine-domain.de</code>), für
+          die du einen MX-Record setzen kannst. Ohne eigene Domain kannst du
+          keine Alias-Domain einrichten.
+        </p>
       </div>
     </div>
     <div class="flex gap-4 items-start">
-      <div class="bg-red-100 text-red-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">!</div>
+      <div
+        class="bg-red-100 text-red-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        !
+      </div>
       <div>
-        <p class="font-semibold text-sm">VPS mit Port 25 (Pflicht für eingehende Mails)</p>
-        <p class="text-gray-600 text-sm">Heimanschlüsse blockieren Port 25 (SMTP). Für eingehende E-Mails brauchst du einen
-        VPS (virtuellen Server) bei einem Anbieter wie Hetzner, der Port 25 offen hat.
-        Der VPS empfängt eingehende Mails und leitet sie an deinen Heimserver weiter.
-        <br><strong>Wichtig:</strong> Viele VPS-Anbieter (z.B. Hetzner) blockieren auch <em>ausgehendes</em> Port 25 — das Forward-Script umgeht das, indem es direkt über Port 587 deines SMTP-Anbieters sendet, nicht über den lokalen Postfix.</p>
+        <p class="font-semibold text-sm">
+          VPS mit Port 25 (Pflicht für eingehende Mails)
+        </p>
+        <p class="text-gray-600 text-sm">
+          Heimanschlüsse blockieren Port 25 (SMTP). Für eingehende E-Mails
+          brauchst du einen VPS (virtuellen Server) bei einem Anbieter wie
+          Hetzner, der Port 25 offen hat. Der VPS empfängt eingehende Mails und
+          leitet sie an deinen Heimserver weiter.
+          <br><strong>Wichtig:</strong>
+          Viele VPS-Anbieter (z.B. Hetzner) blockieren auch
+          <em>ausgehendes</em>
+          Port 25 — das Forward-Script umgeht das, indem es direkt über Port 587
+          deines SMTP-Anbieters sendet, nicht über den lokalen Postfix.
+        </p>
       </div>
     </div>
     <div class="flex gap-4 items-start">
-      <div class="bg-amber-100 text-amber-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">!</div>
+      <div
+        class="bg-amber-100 text-amber-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        !
+      </div>
       <div>
-        <p class="font-semibold text-sm">Tailscale VPN (Pflicht bei DS-Lite / kein eingehender IPv6)</p>
-        <p class="text-gray-600 text-sm">Viele Heimanschlüsse (besonders Telekom Glasfaser) nutzen DS-Lite — dabei hat der Router nur IPv6, aber viele Router (z.B. Speedport) blockieren eingehende IPv6-Verbindungen komplett. Ohne erreichbare IP kann der VPS die Alias-API auf deinem Heimserver nicht abfragen.
-        <br><strong>Lösung:</strong> Installiere <a href="https://tailscale.com" class="text-blue-600 underline" target="_blank">Tailscale</a> auf beiden Maschinen (Heimserver + VPS). Tailscale weist stabile private IPs (100.x.x.x) zu, die funktionieren — unabhängig von Router und IPv6-Konfiguration.</p>
+        <p class="font-semibold text-sm">
+          Tailscale VPN (Pflicht bei DS-Lite / kein eingehender IPv6)
+        </p>
+        <p class="text-gray-600 text-sm">
+          Viele Heimanschlüsse (besonders Telekom Glasfaser) nutzen DS-Lite —
+          dabei hat der Router nur IPv6, aber viele Router (z.B. Speedport)
+          blockieren eingehende IPv6-Verbindungen komplett. Ohne erreichbare IP
+          kann der VPS die Alias-API auf deinem Heimserver nicht abfragen.
+          <br><strong>Lösung:</strong>
+          Installiere
+          <a
+            href="https://tailscale.com"
+            class="text-blue-600 underline"
+            target="_blank"
+            >Tailscale</a
+          >
+          auf beiden Maschinen (Heimserver + VPS). Tailscale weist stabile
+          private IPs (100.x.x.x) zu, die funktionieren — unabhängig von Router
+          und IPv6-Konfiguration.
+        </p>
       </div>
     </div>
     <div class="flex gap-4 items-start">
-      <div class="bg-blue-100 text-blue-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">i</div>
+      <div
+        class="bg-blue-100 text-blue-700 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        i
+      </div>
       <div>
         <p class="font-semibold text-sm">E-Mail-Konto mit SMTP-Zugang</p>
-        <p class="text-gray-600 text-sm">Zum Versenden benötigst du Zugangsdaten zu einem SMTP-Server.
-        Das kann ein Strato-, All-Inkl-, oder anderer Hoster sein — oder Gmail mit App-Passwort.</p>
+        <p class="text-gray-600 text-sm">
+          Zum Versenden benötigst du Zugangsdaten zu einem SMTP-Server. Das kann
+          ein Strato-, All-Inkl-, oder anderer Hoster sein — oder Gmail mit
+          App-Passwort.
+        </p>
       </div>
     </div>
   </div>
@@ -64,56 +117,92 @@
   <h2 class="text-xl font-semibold mb-4">Einrichtungsschritte</h2>
   <ol class="space-y-5">
     <li class="flex gap-4 items-start">
-      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">1</div>
+      <div
+        class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        1
+      </div>
       <div>
         <p class="font-semibold">Alias-Domain einrichten</p>
         <p class="text-gray-600 text-sm mt-1">
-          Gehe zu <a href="/alias-domains" class="text-blue-600 underline">Alias-Domains</a> und füge eine neue Konfiguration hinzu.
-          Trage dort deine Subdomain ein (z.B. <code class="bg-gray-100 px-1 rounded">alias.deine-domain.de</code>), die SMTP-Zugangsdaten
-          und die VPS-Verbindungsdaten.<br>
-          Setze anschließend einen MX-Record für diese Subdomain, der auf die IP deines VPS zeigt.
+          Gehe zu
+          <a href="/alias-domains" class="text-blue-600 underline"
+            >Alias-Domains</a
+          >
+          und füge eine neue Konfiguration hinzu. Trage dort deine Subdomain ein
+          (z.B.
+          <code class="bg-gray-100 px-1 rounded">alias.deine-domain.de</code>),
+          die SMTP-Zugangsdaten und die VPS-Verbindungsdaten.<br>
+          Setze anschließend einen MX-Record für diese Subdomain, der auf die IP
+          deines VPS zeigt.
         </p>
       </div>
     </li>
     <li class="flex gap-4 items-start">
-      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">2</div>
+      <div
+        class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        2
+      </div>
       <div>
         <p class="font-semibold">Absender-Domain hinzufügen</p>
         <p class="text-gray-600 text-sm mt-1">
-          Gehe zu <a href="/domains" class="text-blue-600 underline">Domains</a> und füge die Domain hinzu,
-          von der du E-Mails sendest (z.B. <code class="bg-gray-100 px-1 rounded">deine-domain.de</code>).
-          Wähle dabei die passende Alias-Domain-Konfiguration aus Schritt 1.
+          Gehe zu
+          <a href="/domains" class="text-blue-600 underline">Domains</a>
+          und füge die Domain hinzu, von der du E-Mails sendest (z.B.
+          <code class="bg-gray-100 px-1 rounded">deine-domain.de</code>). Wähle
+          dabei die passende Alias-Domain-Konfiguration aus Schritt 1.
         </p>
       </div>
     </li>
     <li class="flex gap-4 items-start">
-      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">3</div>
+      <div
+        class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        3
+      </div>
       <div>
         <p class="font-semibold">E-Mail-Adressen hinzufügen</p>
         <p class="text-gray-600 text-sm mt-1">
-          Gehe zu <a href="/addresses" class="text-blue-600 underline">Adressen</a> und trage alle Absenderadressen ein,
-          für die Aliase erstellt werden sollen (z.B. <code class="bg-gray-100 px-1 rounded">ich@deine-domain.de</code>).
+          Gehe zu
+          <a href="/addresses" class="text-blue-600 underline">Adressen</a>
+          und trage alle Absenderadressen ein, für die Aliase erstellt werden
+          sollen (z.B.
+          <code class="bg-gray-100 px-1 rounded">ich@deine-domain.de</code>).
         </p>
       </div>
     </li>
     <li class="flex gap-4 items-start">
-      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">4</div>
+      <div
+        class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        4
+      </div>
       <div>
         <p class="font-semibold">Thunderbird konfigurieren</p>
         <p class="text-gray-600 text-sm mt-1">
-          Füge in Thunderbird einen neuen Postausgangsserver hinzu (Details siehe unten).
-          Stelle alle E-Mail-Konten so ein, dass sie diesen einen Proxy-Server verwenden.
+          Füge in Thunderbird einen neuen Postausgangsserver hinzu (Details
+          siehe unten). Stelle alle E-Mail-Konten so ein, dass sie diesen einen
+          Proxy-Server verwenden.
         </p>
       </div>
     </li>
     <li class="flex gap-4 items-start">
-      <div class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm">5</div>
+      <div
+        class="bg-blue-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-sm"
+      >
+        5
+      </div>
       <div>
         <p class="font-semibold">VPS Setup ausführen</p>
         <p class="text-gray-600 text-sm mt-1">
-          Gehe zurück zu <a href="/alias-domains" class="text-blue-600 underline">Alias-Domains</a> und klicke auf
-          "VPS Setup" für deine Konfiguration. Das Script installiert Postfix auf dem VPS und richtet die
-          Weiterleitung automatisch ein. Benötigt SSH-Zugang zum VPS.
+          Gehe zurück zu
+          <a href="/alias-domains" class="text-blue-600 underline"
+            >Alias-Domains</a
+          >
+          und klicke auf "VPS Setup" für deine Konfiguration. Das Script
+          installiert Postfix auf dem VPS und richtet die Weiterleitung
+          automatisch ein. Benötigt SSH-Zugang zum VPS.
         </p>
       </div>
     </li>
@@ -124,47 +213,64 @@
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-xl font-semibold mb-4">Thunderbird konfigurieren</h2>
 
-  <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 mb-4 text-sm">
-    <span class="font-semibold">Wichtig:</span> Richte <strong>einen einzigen</strong> Postausgangsserver (den Proxy) für
-    <strong>alle</strong> E-Mail-Konten ein — auch Gmail, Outlook, etc. Der Proxy erledigt den Rest automatisch.
+  <div
+    class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 mb-4 text-sm"
+  >
+    <span class="font-semibold">Wichtig:</span>
+    Richte <strong>einen einzigen</strong> Postausgangsserver (den Proxy) für
+    <strong>alle</strong>
+    E-Mail-Konten ein — auch Gmail, Outlook, etc. Der Proxy erledigt den Rest
+    automatisch.
   </div>
 
   <div class="space-y-3 text-sm">
     <div class="grid grid-cols-3 gap-2 items-center">
       <span class="font-medium text-gray-600">Server</span>
-      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">IP-Adresse deines Heimservers</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded"
+        >IP-Adresse deines Heimservers</span
+      >
     </div>
     <div class="grid grid-cols-3 gap-2 items-center">
       <span class="font-medium text-gray-600">Port</span>
-      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">1587</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded"
+        >1587</span
+      >
     </div>
     <div class="grid grid-cols-3 gap-2 items-center">
       <span class="font-medium text-gray-600">Verschlüsselung</span>
-      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">Keine</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded"
+        >Keine</span
+      >
     </div>
     <div class="grid grid-cols-3 gap-2 items-center">
       <span class="font-medium text-gray-600">Authentifizierung</span>
-      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">Keine</span>
+      <span class="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded"
+        >Keine</span
+      >
     </div>
   </div>
 
   <p class="text-gray-600 text-sm mt-4">
-    Der SMTP-Proxy übernimmt die Authentifizierung gegenüber dem echten Mailserver automatisch,
-    basierend auf der Absenderadresse.
+    Der SMTP-Proxy übernimmt die Authentifizierung gegenüber dem echten
+    Mailserver automatisch, basierend auf der Absenderadresse.
   </p>
 </div>
 
 <!-- Gmail-Hinweis -->
 <div class="bg-amber-50 border border-amber-300 rounded-xl p-6 mb-6">
-  <h2 class="text-lg font-semibold text-amber-900 mb-2">Wichtig: Gmail und andere Anbieter</h2>
+  <h2 class="text-lg font-semibold text-amber-900 mb-2">
+    Wichtig: Gmail und andere Anbieter
+  </h2>
   <p class="text-amber-800 text-sm mb-3">
-    Gmail, Outlook und viele andere Anbieter erzwingen beim Senden, dass die Absenderadresse mit deinem Konto übereinstimmt.
-    Das verhindert die Alias-Ersetzung, wenn du diese Anbieter direkt nutzt.
+    Gmail, Outlook und viele andere Anbieter erzwingen beim Senden, dass die
+    Absenderadresse mit deinem Konto übereinstimmt. Das verhindert die
+    Alias-Ersetzung, wenn du diese Anbieter direkt nutzt.
   </p>
   <p class="text-amber-800 text-sm font-semibold">
-    Lösung: Verwende für alle Konten — auch Gmail — den SMTP-Server der Alias-Domain-Konfiguration.
-    Der Proxy leitet die Mail dann über diesen Server weiter, nicht über Gmail's eigenen Server.
-    Die Absenderadresse kann dann frei gesetzt werden.
+    Lösung: Verwende für alle Konten — auch Gmail — den SMTP-Server der
+    Alias-Domain-Konfiguration. Der Proxy leitet die Mail dann über diesen
+    Server weiter, nicht über Gmail's eigenen Server. Die Absenderadresse kann
+    dann frei gesetzt werden.
   </p>
 </div>
 
@@ -172,29 +278,63 @@
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-xl font-semibold mb-3">Chrome Extension</h2>
   <p class="text-gray-700 text-sm leading-relaxed mb-4">
-    Mit der Chrome Extension kannst du Alias-Adressen direkt beim Surfen erstellen — ohne die Web-UI öffnen zu müssen.
-    Klick auf das Extension-Icon, wähle deine Zieladresse, gib eine Bezeichnung ein (z.B. den Namen der Website) und
-    erstelle den Alias. Er wird automatisch in die Zwischenablage kopiert und ins zuletzt fokussierte Eingabefeld eingefügt.
+    Mit der Chrome Extension kannst du Alias-Adressen direkt beim Surfen
+    erstellen — ohne die Web-UI öffnen zu müssen. Klick auf das Extension-Icon,
+    wähle deine Zieladresse, gib eine Bezeichnung ein (z.B. den Namen der
+    Website) und erstelle den Alias. Er wird automatisch in die Zwischenablage
+    kopiert und ins zuletzt fokussierte Eingabefeld eingefügt.
   </p>
 
   <h3 class="font-semibold text-sm mb-2">Voraussetzungen</h3>
   <ul class="text-gray-600 text-sm space-y-1 list-disc list-inside mb-4">
-    <li>E-Mail Relay muss über eine öffentlich erreichbare HTTPS-URL verfügbar sein (z.B. <code class="bg-gray-100 px-1 rounded">https://api.deine-domain.de</code>)</li>
-    <li>Dafür: Caddy oder nginx als Reverse Proxy auf dem VPS, der Anfragen an den Heimserver (via Tailscale) weiterleitet</li>
+    <li>
+      E-Mail Relay muss über eine öffentlich erreichbare HTTPS-URL verfügbar
+      sein (z.B.
+      <code class="bg-gray-100 px-1 rounded">https://api.deine-domain.de</code>)
+    </li>
+    <li>
+      Dafür: Caddy oder nginx als Reverse Proxy auf dem VPS, der Anfragen an den
+      Heimserver (via Tailscale) weiterleitet
+    </li>
   </ul>
 
   <h3 class="font-semibold text-sm mb-2">Installation</h3>
   <ol class="text-gray-600 text-sm space-y-2 list-decimal list-inside mb-4">
-    <li>Repository klonen oder den Ordner <code class="bg-gray-100 px-1 rounded">chrome-extension/</code> herunterladen</li>
-    <li>Icons generieren: <code class="bg-gray-100 px-1 rounded">python3 generate_icons.py</code> (einmalig, im Ordner ausführen)</li>
-    <li>Chrome öffnen → <code class="bg-gray-100 px-1 rounded">chrome://extensions</code> → <strong>Entwicklermodus</strong> aktivieren</li>
-    <li><strong>„Entpackte Erweiterung laden"</strong> → Ordner <code class="bg-gray-100 px-1 rounded">chrome-extension</code> auswählen</li>
-    <li>Extension-Icon in der Toolbar anklicken → <strong>Einstellungen</strong> → API-URL, API-Secret und ggf. Benutzername/Passwort eintragen</li>
+    <li>
+      Repository klonen oder den Ordner
+      <code class="bg-gray-100 px-1 rounded">chrome-extension/</code>
+      herunterladen
+    </li>
+    <li>
+      Icons generieren:
+      <code class="bg-gray-100 px-1 rounded">python3 generate_icons.py</code>
+      (einmalig, im Ordner ausführen)
+    </li>
+    <li>
+      Chrome öffnen →
+      <code class="bg-gray-100 px-1 rounded">chrome://extensions</code>
+      →
+      <strong>Entwicklermodus</strong>
+      aktivieren
+    </li>
+    <li>
+      <strong>„Entpackte Erweiterung laden"</strong>
+      → Ordner
+      <code class="bg-gray-100 px-1 rounded">chrome-extension</code>
+      auswählen
+    </li>
+    <li>
+      Extension-Icon in der Toolbar anklicken → <strong>Einstellungen</strong> →
+      API-URL, API-Secret und ggf. Benutzername/Passwort eintragen
+    </li>
   </ol>
 
-  <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
-    <strong>Tipp:</strong> Mit Benutzername und Passwort in den Einstellungen werden nur die eigenen Adressen angezeigt —
-    bei mehreren Benutzern empfohlen.
+  <div
+    class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800"
+  >
+    <strong>Tipp:</strong>
+    Mit Benutzername und Passwort in den Einstellungen werden nur die eigenen
+    Adressen angezeigt — bei mehreren Benutzern empfohlen.
   </div>
 </div>
 
@@ -203,61 +343,115 @@
   <h2 class="text-xl font-semibold mb-4">FAQ</h2>
   <div class="space-y-5">
     <div>
-      <p class="font-semibold text-sm">Muss ich für jedes E-Mail-Konto einen anderen Port verwenden?</p>
+      <p class="font-semibold text-sm">
+        Muss ich für jedes E-Mail-Konto einen anderen Port verwenden?
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Nein. Ein einziger Postausgangsserver (Port 1587) reicht für alle Konten.
-        Der Proxy erkennt anhand der Absenderadresse, welche SMTP-Verbindung er verwenden soll.
+        Nein. Ein einziger Postausgangsserver (Port 1587) reicht für alle
+        Konten. Der Proxy erkennt anhand der Absenderadresse, welche
+        SMTP-Verbindung er verwenden soll.
       </p>
     </div>
     <div>
       <p class="font-semibold text-sm">Was ist eine Alias-Domain?</p>
       <p class="text-gray-600 text-sm mt-1">
         Eine Domain (oder Subdomain), deren MX-Record auf deinen VPS zeigt.
-        Alias-Adressen werden unter dieser Domain erstellt (z.B. <code class="bg-gray-100 px-1 rounded">xy3k9@alias.deine-domain.de</code>).
-        Eingehende E-Mails an diese Adressen werden vom VPS an deine echte Adresse weitergeleitet.
+        Alias-Adressen werden unter dieser Domain erstellt (z.B.
+        <code class="bg-gray-100 px-1 rounded"
+          >xy3k9@alias.deine-domain.de</code
+        >). Eingehende E-Mails an diese Adressen werden vom VPS an deine echte
+        Adresse weitergeleitet.
       </p>
     </div>
     <div>
-      <p class="font-semibold text-sm text-red-700">Achtung: Mail-Loop — Alias-Domain und echte Inbox dürfen nicht dieselbe Domain haben</p>
+      <p class="font-semibold text-sm text-red-700">
+        Achtung: Mail-Loop — Alias-Domain und echte Inbox dürfen nicht dieselbe
+        Domain haben
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Wenn die Alias-Domain und die Zieladresse (echte Inbox) auf derselben Domain liegen, entsteht eine Endlosschleife:
-        Der VPS leitet die Mail weiter → der Empfänger-Mailserver schaut den MX nach → MX zeigt wieder auf den VPS → Bounce.
+        Wenn die Alias-Domain und die Zieladresse (echte Inbox) auf derselben
+        Domain liegen, entsteht eine Endlosschleife: Der VPS leitet die Mail
+        weiter → der Empfänger-Mailserver schaut den MX nach → MX zeigt wieder
+        auf den VPS → Bounce.
       </p>
       <p class="text-gray-600 text-sm mt-2 font-semibold">Falsch (Loop!):</p>
-      <p class="text-gray-600 text-sm"><code class="bg-red-50 border border-red-200 px-1 rounded">xy3k9@meine-domain.de</code> → weiterleiten an → <code class="bg-red-50 border border-red-200 px-1 rounded">ich@meine-domain.de</code> — beide auf derselben Domain, MX zeigt auf VPS</p>
-      <p class="text-gray-600 text-sm mt-2 font-semibold">Richtig (kein Loop):</p>
+      <p class="text-gray-600 text-sm">
+        <code class="bg-red-50 border border-red-200 px-1 rounded"
+          >xy3k9@meine-domain.de</code
+        >
+        → weiterleiten an →
+        <code class="bg-red-50 border border-red-200 px-1 rounded"
+          >ich@meine-domain.de</code
+        >
+        — beide auf derselben Domain, MX zeigt auf VPS
+      </p>
+      <p class="text-gray-600 text-sm mt-2 font-semibold">
+        Richtig (kein Loop):
+      </p>
       <ul class="text-gray-600 text-sm mt-1 space-y-1 list-disc list-inside">
-        <li><strong>Andere Domain als Ziel:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@alias-domain.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@andere-domain.de</code> (MX zeigt auf deinen Mailprovider, nicht VPS)</li>
-        <li><strong>Subdomain als Alias-Domain:</strong> <code class="bg-green-50 border border-green-200 px-1 rounded">xy3k9@alias.meine-domain.de</code> → <code class="bg-green-50 border border-green-200 px-1 rounded">ich@meine-domain.de</code> (unterschiedliche MX-Records)</li>
+        <li>
+          <strong>Andere Domain als Ziel:</strong>
+          <code class="bg-green-50 border border-green-200 px-1 rounded"
+            >xy3k9@alias-domain.de</code
+          >
+          →
+          <code class="bg-green-50 border border-green-200 px-1 rounded"
+            >ich@andere-domain.de</code
+          >
+          (MX zeigt auf deinen Mailprovider, nicht VPS)
+        </li>
+        <li>
+          <strong>Subdomain als Alias-Domain:</strong>
+          <code class="bg-green-50 border border-green-200 px-1 rounded"
+            >xy3k9@alias.meine-domain.de</code
+          >
+          →
+          <code class="bg-green-50 border border-green-200 px-1 rounded"
+            >ich@meine-domain.de</code
+          >
+          (unterschiedliche MX-Records)
+        </li>
       </ul>
     </div>
     <div>
       <p class="font-semibold text-sm">Warum brauche ich eine eigene Domain?</p>
       <p class="text-gray-600 text-sm mt-1">
-        Nur wer eine Domain besitzt, kann MX-Records setzen und so eingehende E-Mails an einen eigenen Server umleiten.
-        Ohne eigene Domain ist es nicht möglich, Alias-Adressen zu empfangen.
+        Nur wer eine Domain besitzt, kann MX-Records setzen und so eingehende
+        E-Mails an einen eigenen Server umleiten. Ohne eigene Domain ist es
+        nicht möglich, Alias-Adressen zu empfangen.
       </p>
     </div>
     <div>
-      <p class="font-semibold text-sm">Was passiert, wenn ein Alias nicht existiert?</p>
+      <p class="font-semibold text-sm">
+        Was passiert, wenn ein Alias nicht existiert?
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Der VPS gibt eine Fehlermeldung zurück (Exit 67 / Adresse unbekannt) und die Mail wird nicht zugestellt.
-        Aliase werden automatisch beim ersten Senden erstellt.
+        Der VPS gibt eine Fehlermeldung zurück (Exit 67 / Adresse unbekannt) und
+        die Mail wird nicht zugestellt. Aliase werden automatisch beim ersten
+        Senden erstellt.
       </p>
     </div>
     <div>
-      <p class="font-semibold text-sm">Warum sendet das Forward-Script direkt über SMTP und nicht über Postfix?</p>
+      <p class="font-semibold text-sm">
+        Warum sendet das Forward-Script direkt über SMTP und nicht über Postfix?
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Viele VPS-Anbieter (u.a. Hetzner) sperren ausgehendes Port 25 — auch für lokale Dienste.
-        Das Forward-Script umgeht das, indem es direkt per Python (smtplib) über Port 587 deines SMTP-Anbieters sendet,
-        statt die Mail über den lokalen Postfix weiterzuleiten. Dadurch ist kein Smarthost-Setup in Postfix nötig.
+        Viele VPS-Anbieter (u.a. Hetzner) sperren ausgehendes Port 25 — auch für
+        lokale Dienste. Das Forward-Script umgeht das, indem es direkt per
+        Python (smtplib) über Port 587 deines SMTP-Anbieters sendet, statt die
+        Mail über den lokalen Postfix weiterzuleiten. Dadurch ist kein
+        Smarthost-Setup in Postfix nötig.
       </p>
     </div>
     <div>
-      <p class="font-semibold text-sm">Ändert sich die Tailscale-IP, wenn der Server neu startet?</p>
+      <p class="font-semibold text-sm">
+        Ändert sich die Tailscale-IP, wenn der Server neu startet?
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Nein. Tailscale-IPs (100.x.x.x) sind permanent und ändern sich nie — egal wie oft der Server oder Router neu startet.
-        Das ist ein wesentlicher Vorteil gegenüber IPv6-Adressen, die sich täglich ändern können.
+        Nein. Tailscale-IPs (100.x.x.x) sind permanent und ändern sich nie —
+        egal wie oft der Server oder Router neu startet. Das ist ein
+        wesentlicher Vorteil gegenüber IPv6-Adressen, die sich täglich ändern
+        können.
       </p>
     </div>
   </div>
@@ -267,105 +461,189 @@
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-xl font-semibold mb-4">Fehlerbehebung</h2>
   <div class="space-y-6">
-
     <div>
-      <p class="font-semibold text-sm text-red-700">Fehler: "user unknown" obwohl Alias existiert / Mail-Loop</p>
-      <p class="text-gray-600 text-sm mt-1">
-        Wenn im Mail-Log <code class="bg-gray-100 px-1 rounded">status=bounced (user unknown)</code> steht und der Alias korrekt eingerichtet ist,
-        liegt wahrscheinlich ein Mail-Loop vor: Die Zieladresse (echte Inbox) liegt auf derselben Domain wie die Alias-Domain.
-        Der VPS leitet die Mail weiter, der Mailserver des Empfängers schaut den MX nach — der zeigt wieder auf den VPS — Bounce.
+      <p class="font-semibold text-sm text-red-700">
+        Fehler: "user unknown" obwohl Alias existiert / Mail-Loop
       </p>
       <p class="text-gray-600 text-sm mt-1">
-        <strong>Lösung:</strong> Als Zieladresse eine Adresse auf einer anderen Domain verwenden (z.B. <code class="bg-gray-100 px-1 rounded">ich@andere-domain.de</code>),
-        oder die Alias-Domain als Subdomain einrichten (z.B. <code class="bg-gray-100 px-1 rounded">alias.meine-domain.de</code> statt <code class="bg-gray-100 px-1 rounded">meine-domain.de</code>),
+        Wenn im Mail-Log
+        <code class="bg-gray-100 px-1 rounded"
+          >status=bounced (user unknown)</code
+        >
+        steht und der Alias korrekt eingerichtet ist, liegt wahrscheinlich ein
+        Mail-Loop vor: Die Zieladresse (echte Inbox) liegt auf derselben Domain
+        wie die Alias-Domain. Der VPS leitet die Mail weiter, der Mailserver des
+        Empfängers schaut den MX nach — der zeigt wieder auf den VPS — Bounce.
+      </p>
+      <p class="text-gray-600 text-sm mt-1">
+        <strong>Lösung:</strong>
+        Als Zieladresse eine Adresse auf einer anderen Domain verwenden (z.B.
+        <code class="bg-gray-100 px-1 rounded">ich@andere-domain.de</code>),
+        oder die Alias-Domain als Subdomain einrichten (z.B.
+        <code class="bg-gray-100 px-1 rounded">alias.meine-domain.de</code>
+        statt <code class="bg-gray-100 px-1 rounded">meine-domain.de</code>),
         die einen eigenen MX-Record hat der <em>nicht</em> auf den VPS zeigt.
       </p>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Eingehende Mails kommen nicht an</p>
+      <p class="font-semibold text-sm text-red-700">
+        Eingehende Mails kommen nicht an
+      </p>
       <ol class="text-gray-600 text-sm mt-2 space-y-1 list-decimal list-inside">
-        <li>Prüfe den Postfix-Status auf dem VPS: <code class="bg-gray-100 px-1 rounded">systemctl status postfix</code></li>
-        <li>Überprüfe die Mail-Logs: <code class="bg-gray-100 px-1 rounded">tail -50 /var/log/mail.log</code></li>
-        <li>Prüfe, ob der VPS die Heimserver-API erreicht: <code class="bg-gray-100 px-1 rounded">curl http://&lt;HEIMSERVER-IP&gt;:8080/api/settings/smtp</code> (mit Tailscale-IP)</li>
-        <li>Stelle sicher, dass Tailscale auf beiden Maschinen läuft: <code class="bg-gray-100 px-1 rounded">tailscale status</code></li>
-        <li>Prüfe, ob das Forward-Script ausführbar ist: <code class="bg-gray-100 px-1 rounded">ls -la /usr/local/bin/emailrelay-forward.py</code></li>
+        <li>
+          Prüfe den Postfix-Status auf dem VPS:
+          <code class="bg-gray-100 px-1 rounded">systemctl status postfix</code>
+        </li>
+        <li>
+          Überprüfe die Mail-Logs:
+          <code class="bg-gray-100 px-1 rounded"
+            >tail -50 /var/log/mail.log</code
+          >
+        </li>
+        <li>
+          Prüfe, ob der VPS die Heimserver-API erreicht:
+          <code class="bg-gray-100 px-1 rounded"
+            >curl http://&lt;HEIMSERVER-IP&gt;:8080/api/settings/smtp</code
+          >
+          (mit Tailscale-IP)
+        </li>
+        <li>
+          Stelle sicher, dass Tailscale auf beiden Maschinen läuft:
+          <code class="bg-gray-100 px-1 rounded">tailscale status</code>
+        </li>
+        <li>
+          Prüfe, ob das Forward-Script ausführbar ist:
+          <code class="bg-gray-100 px-1 rounded"
+            >ls -la /usr/local/bin/emailrelay-forward.py</code
+          >
+        </li>
       </ol>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Fehler: "API-Fehler: timed out" im Mail-Log</p>
+      <p class="font-semibold text-sm text-red-700">
+        Fehler: "API-Fehler: timed out" im Mail-Log
+      </p>
       <p class="text-gray-600 text-sm mt-1">
         Der VPS kann den Heimserver nicht erreichen. Ursachen:
       </p>
       <ul class="text-gray-600 text-sm mt-1 space-y-1 list-disc list-inside">
-        <li>DS-Lite-Anschluss: Router blockiert eingehende IPv6-Verbindungen (z.B. Speedport)</li>
+        <li>
+          DS-Lite-Anschluss: Router blockiert eingehende IPv6-Verbindungen (z.B.
+          Speedport)
+        </li>
         <li>IPv6-Adresse hat sich geändert</li>
         <li>Tailscale nicht installiert oder nicht verbunden</li>
       </ul>
       <p class="text-gray-600 text-sm mt-2">
-        <strong>Lösung:</strong> Tailscale auf Heimserver und VPS installieren, API-URL in der Alias-Domain-Konfiguration auf die Tailscale-IP (100.x.x.x) setzen.
+        <strong>Lösung:</strong>
+        Tailscale auf Heimserver und VPS installieren, API-URL in der
+        Alias-Domain-Konfiguration auf die Tailscale-IP (100.x.x.x) setzen.
       </p>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Fehler: "550 Die verwendete From: Adresse gehört nicht zu Ihrem Paket" (Strato)</p>
+      <p class="font-semibold text-sm text-red-700">
+        Fehler: "550 Die verwendete From: Adresse gehört nicht zu Ihrem Paket"
+        (Strato)
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Strato (und andere Anbieter) prüfen, ob die From-Adresse mit dem SMTP-Konto übereinstimmt.
-        Das Forward-Script setzt die From-Adresse auf die SMTP-Benutzeradresse und speichert die Original-Adresse im Reply-To-Header.
-        Wenn dieser Fehler auftritt: Prüfe, ob das Forward-Script auf dem VPS aktuell ist (VPS Setup erneut ausführen).
+        Strato (und andere Anbieter) prüfen, ob die From-Adresse mit dem
+        SMTP-Konto übereinstimmt. Das Forward-Script setzt die From-Adresse auf
+        die SMTP-Benutzeradresse und speichert die Original-Adresse im
+        Reply-To-Header. Wenn dieser Fehler auftritt: Prüfe, ob das
+        Forward-Script auf dem VPS aktuell ist (VPS Setup erneut ausführen).
       </p>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Fehler: "554 SMTP protocol violation: A header line must be terminated by CRLF"</p>
+      <p class="font-semibold text-sm text-red-700">
+        Fehler: "554 SMTP protocol violation: A header line must be terminated
+        by CRLF"
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        Das Forward-Script verwendet falsche Zeilenenden. Stelle sicher, dass das Script
-        <code class="bg-gray-100 px-1 rounded">msg.as_bytes(policy=policy.SMTP)</code> verwendet (nicht <code class="bg-gray-100 px-1 rounded">msg.as_bytes()</code>).
-        Führe das VPS Setup erneut aus, um das Script zu aktualisieren.
+        Das Forward-Script verwendet falsche Zeilenenden. Stelle sicher, dass
+        das Script
+        <code class="bg-gray-100 px-1 rounded"
+          >msg.as_bytes(policy=policy.SMTP)</code
+        >
+        verwendet (nicht
+        <code class="bg-gray-100 px-1 rounded">msg.as_bytes()</code>). Führe das
+        VPS Setup erneut aus, um das Script zu aktualisieren.
       </p>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Ausgehende Mails werden nicht gesendet / Thunderbird zeigt Fehler</p>
+      <p class="font-semibold text-sm text-red-700">
+        Ausgehende Mails werden nicht gesendet / Thunderbird zeigt Fehler
+      </p>
       <ol class="text-gray-600 text-sm mt-2 space-y-1 list-decimal list-inside">
-        <li>Prüfe, ob der smtp-proxy Container läuft: <code class="bg-gray-100 px-1 rounded">docker compose ps</code></li>
-        <li>Überprüfe die Logs: <code class="bg-gray-100 px-1 rounded">docker compose logs smtp-proxy</code></li>
-        <li>Stelle sicher, dass die Absenderadresse unter <a href="/addresses" class="text-blue-600 underline">Adressen</a> eingetragen ist</li>
+        <li>
+          Prüfe, ob der smtp-proxy Container läuft:
+          <code class="bg-gray-100 px-1 rounded">docker compose ps</code>
+        </li>
+        <li>
+          Überprüfe die Logs:
+          <code class="bg-gray-100 px-1 rounded"
+            >docker compose logs smtp-proxy</code
+          >
+        </li>
+        <li>
+          Stelle sicher, dass die Absenderadresse unter
+          <a href="/addresses" class="text-blue-600 underline">Adressen</a>
+          eingetragen ist
+        </li>
         <li>Prüfe die SMTP-Zugangsdaten in der Alias-Domain-Konfiguration</li>
       </ol>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Echte E-Mail-Adresse erscheint beim Antworten</p>
+      <p class="font-semibold text-sm text-red-700">
+        Echte E-Mail-Adresse erscheint beim Antworten
+      </p>
       <p class="text-gray-600 text-sm mt-1">
-        In Thunderbird darf kein Reply-To in den Kontoeinstellungen gesetzt sein — der smtp-proxy entfernt es automatisch.
-        Prüfe unter <em>Kontoeinstellungen → [Konto] → Identitäten</em>, ob dort ein Reply-To eingetragen ist, und lösche ihn.
+        In Thunderbird darf kein Reply-To in den Kontoeinstellungen gesetzt sein
+        — der smtp-proxy entfernt es automatisch. Prüfe unter
+        <em>Kontoeinstellungen → [Konto] → Identitäten</em>, ob dort ein
+        Reply-To eingetragen ist, und lösche ihn.
       </p>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-red-700">Postfix startet nicht nach dem VPS Setup</p>
-      <p class="text-gray-600 text-sm mt-1">
-        Oft liegt es an Syntaxfehlern in der <code class="bg-gray-100 px-1 rounded">main.cf</code>. Prüfe mit:
+      <p class="font-semibold text-sm text-red-700">
+        Postfix startet nicht nach dem VPS Setup
       </p>
-      <pre class="bg-gray-100 rounded p-2 text-xs mt-1 overflow-x-auto">postfix check
+      <p class="text-gray-600 text-sm mt-1">
+        Oft liegt es an Syntaxfehlern in der
+        <code class="bg-gray-100 px-1 rounded">main.cf</code>. Prüfe mit:
+      </p>
+      <pre
+        class="bg-gray-100 rounded p-2 text-xs mt-1 overflow-x-auto"
+      >postfix check
 journalctl -u postfix -n 50</pre>
       <p class="text-gray-600 text-sm mt-1">
-        Häufige Ursache: Zeilen mit führenden Leerzeichen werden von Postfix als Fortsetzungszeilen behandelt.
-        Beheben mit: <code class="bg-gray-100 px-1 rounded">sed -i 's/^[[:space:]]*//' /etc/postfix/main.cf</code>
+        Häufige Ursache: Zeilen mit führenden Leerzeichen werden von Postfix als
+        Fortsetzungszeilen behandelt. Beheben mit:
+        <code class="bg-gray-100 px-1 rounded"
+          >sed -i 's/^[[:space:]]*//' /etc/postfix/main.cf</code
+        >
       </p>
     </div>
 
     <div>
-      <p class="font-semibold text-sm text-amber-700">Tailscale: Automatischer Start nach Neustart</p>
-      <p class="text-gray-600 text-sm mt-1">
-        Tailscale startet automatisch beim Systemstart, wenn der Dienst aktiviert ist:
+      <p class="font-semibold text-sm text-amber-700">
+        Tailscale: Automatischer Start nach Neustart
       </p>
-      <pre class="bg-gray-100 rounded p-2 text-xs mt-1 overflow-x-auto">systemctl enable tailscaled   # auf Heimserver und VPS ausführen
+      <p class="text-gray-600 text-sm mt-1">
+        Tailscale startet automatisch beim Systemstart, wenn der Dienst
+        aktiviert ist:
+      </p>
+      <pre
+        class="bg-gray-100 rounded p-2 text-xs mt-1 overflow-x-auto"
+      >systemctl enable tailscaled   # auf Heimserver und VPS ausführen
 systemctl is-enabled tailscaled  # Status prüfen</pre>
     </div>
-
   </div>
 </div>
-{% endblock %}
+{ % endblock %}

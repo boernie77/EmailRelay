@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -26,7 +35,11 @@ class User(Base):
 class AliasDomainAccess(Base):
     __tablename__ = "alias_domain_access"
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    alias_domain_config_id = Column(Integer, ForeignKey("alias_domain_configs.id", ondelete="CASCADE"), primary_key=True)
+    alias_domain_config_id = Column(
+        Integer,
+        ForeignKey("alias_domain_configs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
     user = relationship("User", back_populates="alias_domain_access")
     config = relationship("AliasDomainConfig", back_populates="user_access")
 
@@ -81,7 +94,11 @@ class Domain(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    alias_domain_config_id = Column(Integer, ForeignKey("alias_domain_configs.id", ondelete="SET NULL"), nullable=True)
+    alias_domain_config_id = Column(
+        Integer,
+        ForeignKey("alias_domain_configs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     user = relationship("User", back_populates="domains")
     alias_domain_config = relationship("AliasDomainConfig", back_populates="domains")
     email_addresses = relationship("EmailAddress", back_populates="domain", cascade="all, delete-orphan")
@@ -112,6 +129,7 @@ class Alias(Base):
 
 class AliasMessageLog(Base):
     """Speichert Message-ID → Alias-Zuordnung für korrekte Alias-Auswahl bei Antworten."""
+
     __tablename__ = "alias_message_logs"
     id = Column(Integer, primary_key=True)
     message_id = Column(String, unique=True, nullable=False, index=True)
@@ -127,9 +145,10 @@ class ReplyToken(Base):
     So bleibt die echte Adresse des Users auch beim Antworten aus Gmail/GMX/etc. verborgen.
     Tokens laufen nicht ab — bei 1000 Usern × 1 Reply/Tag ≈ 105 MB/Jahr.
     """
+
     __tablename__ = "reply_tokens"
     id = Column(Integer, primary_key=True)
     token = Column(String, unique=True, nullable=False, index=True)
-    alias_address = Column(String, nullable=False)   # z.B. abc123@no.nosearch.de
+    alias_address = Column(String, nullable=False)  # z.B. abc123@no.nosearch.de
     original_sender = Column(String, nullable=False)  # vollständiger From-Header des Absenders
     created_at = Column(DateTime(timezone=True), server_default=func.now())

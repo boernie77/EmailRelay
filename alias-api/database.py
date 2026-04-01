@@ -1,9 +1,12 @@
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://emailrelay:emailrelay@postgres:5432/emailrelay")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://emailrelay:emailrelay@postgres:5432/emailrelay",
+)
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
@@ -60,10 +63,9 @@ async def _migrate_to_alias_domain_configs():
     async with AsyncSessionLocal() as session:
         existing = (await session.execute(select(AliasDomainConfig))).scalars().first()
         if not existing:
+
             async def gs(key):
-                r = (await session.execute(
-                    select(Setting).where(Setting.key == key)
-                )).scalar_one_or_none()
+                r = (await session.execute(select(Setting).where(Setting.key == key))).scalar_one_or_none()
                 return r.value if r else ""
 
             alias_domain = await gs("alias_domain")
@@ -84,13 +86,15 @@ async def _migrate_to_alias_domain_configs():
                     d.alias_domain_config_id = cfg.id
                 await session.commit()
         else:
-            first = (await session.execute(
-                select(AliasDomainConfig).where(AliasDomainConfig.active == True)
-            )).scalars().first()
+            first = (
+                (await session.execute(select(AliasDomainConfig).where(AliasDomainConfig.active == True)))
+                .scalars()
+                .first()
+            )
             if first:
-                for d in (await session.execute(
-                    select(Domain).where(Domain.alias_domain_config_id == None)
-                )).scalars().all():
+                for d in (
+                    (await session.execute(select(Domain).where(Domain.alias_domain_config_id == None))).scalars().all()
+                ):
                     d.alias_domain_config_id = first.id
                 await session.commit()
 
@@ -104,21 +108,27 @@ async def _migrate_to_vps_configs():
         existing_vps = (await session.execute(select(VpsConfig))).scalars().first()
         if existing_vps:
             # Bereits migriert – alle AliasDomainConfigs ohne VPS dem ersten zuweisen
-            for cfg in (await session.execute(
-                select(AliasDomainConfig).where(AliasDomainConfig.vps_config_id == None)
-            )).scalars().all():
+            for cfg in (
+                (await session.execute(select(AliasDomainConfig).where(AliasDomainConfig.vps_config_id == None)))
+                .scalars()
+                .all()
+            ):
                 cfg.vps_config_id = existing_vps.id
             await session.commit()
             return
 
         # Alte VPS-Daten aus DB lesen (Felder nur in alten DBs vorhanden, bei Neuinstallation nicht)
         try:
-            rows = (await session.execute(text(
-                "SELECT id, vps_host, vps_port, vps_user, vps_ssh_key, api_url_for_vps "
-                "FROM alias_domain_configs "
-                "WHERE vps_host IS NOT NULL AND vps_host != '' "
-                "LIMIT 1"
-            ))).fetchall()
+            rows = (
+                await session.execute(
+                    text(
+                        "SELECT id, vps_host, vps_port, vps_user, vps_ssh_key, api_url_for_vps "
+                        "FROM alias_domain_configs "
+                        "WHERE vps_host IS NOT NULL AND vps_host != '' "
+                        "LIMIT 1"
+                    )
+                )
+            ).fetchall()
         except Exception:
             return  # Spalten existieren nicht (Neuinstallation) – nichts zu migrieren
 

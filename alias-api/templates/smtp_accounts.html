@@ -1,11 +1,11 @@
-{% extends "base.html" %}
-{% block title %} – SMTP-Konten{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – SMTP-Konten { % endblock %} { %
+block content %}
 <h1 class="text-2xl font-bold mb-2">SMTP-Konten</h1>
 <p class="text-gray-500 text-sm mb-6">
-  Pro Absenderadresse oder Domain einen eigenen SMTP-Server konfigurieren.
-  Beim Senden wird erst nach einem exakten Adress-Match gesucht, dann nach einem Domain-Match
-  (<code class="bg-gray-100 px-1 rounded">@gmail.com</code>), dann greift der globale SMTP aus den Einstellungen.
+  Pro Absenderadresse oder Domain einen eigenen SMTP-Server konfigurieren. Beim
+  Senden wird erst nach einem exakten Adress-Match gesucht, dann nach einem
+  Domain-Match (<code class="bg-gray-100 px-1 rounded">@gmail.com</code>), dann
+  greift der globale SMTP aus den Einstellungen.
 </p>
 
 <div class="bg-white rounded-xl shadow p-6 mb-6">
@@ -15,54 +15,95 @@
       <label class="block text-sm font-medium text-gray-700 mb-1">
         Bezeichnung <span class="text-gray-400 font-normal">(optional)</span>
       </label>
-      <input type="text" name="label" placeholder="z.B. Gmail privat"
-             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input
+        type="text"
+        name="label"
+        placeholder="z.B. Gmail privat"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">
-        Muster <span class="text-gray-400 font-normal">(Adresse oder @domain.com)</span>
+        Muster
+        <span class="text-gray-400 font-normal"
+          >(Adresse oder @domain.com)</span
+        >
       </label>
-      <input type="text" name="pattern" required placeholder="user@gmail.com oder @gmx.de"
-             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input
+        type="text"
+        name="pattern"
+        required
+        placeholder="user@gmail.com oder @gmx.de"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">SMTP-Server</label>
-      <input type="text" name="smtp_host" required placeholder="smtp.gmail.com"
-             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >SMTP-Server</label
+      >
+      <input
+        type="text"
+        name="smtp_host"
+        required
+        placeholder="smtp.gmail.com"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
-      <input type="number" name="smtp_port" value="587"
-             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input
+        type="number"
+        name="smtp_port"
+        value="587"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
-      <input type="text" name="smtp_user" required placeholder="user@gmail.com"
-             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Benutzername</label
+      >
+      <input
+        type="text"
+        name="smtp_user"
+        required
+        placeholder="user@gmail.com"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
-      <input type="password" name="smtp_password" required
-             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Passwort</label
+      >
+      <input
+        type="password"
+        name="smtp_password"
+        required
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Verschlüsselung</label>
-      <select name="smtp_use_tls"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Verschlüsselung</label
+      >
+      <select
+        name="smtp_use_tls"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
         <option value="true">STARTTLS / TLS</option>
         <option value="false">Keine</option>
       </select>
     </div>
     <div class="flex items-end">
-      <button type="submit"
-              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition">
+      <button
+        type="submit"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition"
+      >
         Hinzufügen
       </button>
     </div>
   </form>
 </div>
-
-{% if accounts %}
+{ % if accounts %}
 <div class="bg-white rounded-xl shadow overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
@@ -76,39 +117,57 @@
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
-      {% for a in accounts %}
+      { % for a in accounts %}
       <tr class="{% if not a.active %}opacity-50{% endif %}">
         <td class="px-4 py-3">
-          {% if a.label %}<div class="font-medium">{{ a.label }}</div>{% endif %}
+          { % if a.label %}
+          <div class="font-medium">{{ a.label }}</div>
+          { % endif %}
           <code class="text-xs text-gray-500">{{ a.pattern }}</code>
         </td>
-        <td class="px-4 py-3 text-gray-600">{{ a.smtp_host }}:{{ a.smtp_port }}</td>
+        <td class="px-4 py-3 text-gray-600">
+          {{ a.smtp_host }}:{{ a.smtp_port }}
+        </td>
         <td class="px-4 py-3 text-gray-600">{{ a.smtp_user }}</td>
-        <td class="px-4 py-3">{% if a.smtp_use_tls %}✓{% else %}–{% endif %}</td>
         <td class="px-4 py-3">
-          <span class="px-2 py-0.5 rounded-full text-xs {% if a.active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
-            {% if a.active %}aktiv{% else %}inaktiv{% endif %}
+          { % if a.smtp_use_tls %}✓ { % else %}– { % endif %}
+        </td>
+        <td class="px-4 py-3">
+          <span
+            class="px-2 py-0.5 rounded-full text-xs {% if a.active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}"
+          >
+            { % if a.active %}aktiv { % else %}inaktiv { % endif %}
           </span>
         </td>
         <td class="px-4 py-3 text-right space-x-2">
-          <form method="post" action="/smtp-accounts/{{ a.id }}/toggle" class="inline">
+          <form
+            method="post"
+            action="/smtp-accounts/{{ a.id }}/toggle"
+            class="inline"
+          >
             <button class="text-xs text-blue-500 hover:underline">
-              {% if a.active %}deaktivieren{% else %}aktivieren{% endif %}
+              { % if a.active %}deaktivieren { % else %}aktivieren { % endif %}
             </button>
           </form>
-          <form method="post" action="/smtp-accounts/{{ a.id }}/delete" class="inline"
-                onsubmit="return confirm('SMTP-Konto löschen?')">
-            <button class="text-xs text-red-500 hover:underline">löschen</button>
+          <form
+            method="post"
+            action="/smtp-accounts/{{ a.id }}/delete"
+            class="inline"
+            onsubmit="return confirm('SMTP-Konto löschen?')"
+          >
+            <button class="text-xs text-red-500 hover:underline">
+              löschen
+            </button>
           </form>
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
 </div>
-{% else %}
+{ % else %}
 <div class="bg-white rounded-xl shadow p-6 text-gray-400 text-sm">
-  Noch keine SMTP-Konten. Der globale SMTP aus den Einstellungen wird als Fallback verwendet.
+  Noch keine SMTP-Konten. Der globale SMTP aus den Einstellungen wird als
+  Fallback verwendet.
 </div>
-{% endif %}
-{% endblock %}
+{ % endif %} { % endblock %}

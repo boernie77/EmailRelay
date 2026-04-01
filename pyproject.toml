@@ -1,0 +1,7 @@
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# E711/E712 deaktiviert: In SQLAlchemy-Queries sind == None und == True korrekt
+# (generieren IS NULL bzw. = true in SQL; Python-Alternativen würden die Queries brechen)
+ignore = ["E711", "E712"]

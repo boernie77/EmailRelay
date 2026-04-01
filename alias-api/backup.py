@@ -1,4 +1,5 @@
 """Datensicherung: CSV-Export/Import, SSH-Backup, automatischer Backup-Scheduler."""
+
 import asyncio
 import csv
 import io
@@ -8,7 +9,15 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Alias, Domain, EmailAddress, User, Setting, AliasDomainConfig, VpsConfig
+from models import (
+    Alias,
+    Domain,
+    EmailAddress,
+    User,
+    Setting,
+    AliasDomainConfig,
+    VpsConfig,
+)
 
 
 async def _get_setting(db: AsyncSession, key: str, default: str = "") -> str:
@@ -26,14 +35,21 @@ async def _save_setting(db: AsyncSession, key: str, value: str):
 
 async def generate_user_aliases_csv(db: AsyncSession, user_id: int) -> str:
     """Alle Aliases eines Benutzers als CSV-String."""
-    aliases = (await db.execute(
-        select(Alias).where(Alias.user_id == user_id).order_by(Alias.created_at)
-    )).scalars().all()
+    aliases = (
+        (await db.execute(select(Alias).where(Alias.user_id == user_id).order_by(Alias.created_at))).scalars().all()
+    )
     out = io.StringIO()
     w = csv.writer(out)
     w.writerow(["alias_address", "real_address", "label", "active"])
     for a in aliases:
-        w.writerow([a.alias_address, a.real_address, a.label or "", "ja" if a.active else "nein"])
+        w.writerow(
+            [
+                a.alias_address,
+                a.real_address,
+                a.label or "",
+                "ja" if a.active else "nein",
+            ]
+        )
     return out.getvalue()
 
 
@@ -62,15 +78,20 @@ async def import_user_aliases_csv(db: AsyncSession, user_id: int, csv_text: str)
             errors.append(f"Zeile {i}: Ungültige Zieladresse '{real_addr[:40]}'")
             continue
 
-        existing = (await db.execute(
-            select(Alias).where(Alias.alias_address == alias_addr)
-        )).scalar_one_or_none()
+        existing = (await db.execute(select(Alias).where(Alias.alias_address == alias_addr))).scalar_one_or_none()
         if existing:
             skipped += 1
             continue
 
-        db.add(Alias(alias_address=alias_addr, real_address=real_addr,
-                     label=label, active=active, user_id=user_id))
+        db.add(
+            Alias(
+                alias_address=alias_addr,
+                real_address=real_addr,
+                label=label,
+                active=active,
+                user_id=user_id,
+            )
+        )
         created += 1
 
     if created > 0:
@@ -85,19 +106,32 @@ async def generate_full_backup_zip(db: AsyncSession) -> bytes:
 
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         # Aliases (alle Benutzer)
-        aliases = (await db.execute(
-            select(Alias).order_by(Alias.user_id, Alias.created_at)
-        )).scalars().all()
+        aliases = (await db.execute(select(Alias).order_by(Alias.user_id, Alias.created_at))).scalars().all()
         alias_out = io.StringIO()
         aw = csv.writer(alias_out)
-        aw.writerow(["alias_address", "real_address", "label", "active", "user_id", "created_at", "last_used"])
+        aw.writerow(
+            [
+                "alias_address",
+                "real_address",
+                "label",
+                "active",
+                "user_id",
+                "created_at",
+                "last_used",
+            ]
+        )
         for a in aliases:
-            aw.writerow([
-                a.alias_address, a.real_address, a.label or "",
-                "ja" if a.active else "nein", a.user_id or "",
-                a.created_at.isoformat() if a.created_at else "",
-                a.last_used.isoformat() if a.last_used else "",
-            ])
+            aw.writerow(
+                [
+                    a.alias_address,
+                    a.real_address,
+                    a.label or "",
+                    "ja" if a.active else "nein",
+                    a.user_id or "",
+                    a.created_at.isoformat() if a.created_at else "",
+                    a.last_used.isoformat() if a.last_used else "",
+                ]
+            )
         zf.writestr("aliases.csv", alias_out.getvalue())
 
         # Benutzer (ohne Passwort-Hashes)
@@ -106,12 +140,15 @@ async def generate_full_backup_zip(db: AsyncSession) -> bytes:
         uw = csv.writer(user_out)
         uw.writerow(["username", "email", "is_admin", "active", "created_at"])
         for u in users:
-            uw.writerow([
-                u.username, u.email or "",
-                "ja" if u.is_admin else "nein",
-                "ja" if u.active else "nein",
-                u.created_at.isoformat() if u.created_at else "",
-            ])
+            uw.writerow(
+                [
+                    u.username,
+                    u.email or "",
+                    "ja" if u.is_admin else "nein",
+                    "ja" if u.active else "nein",
+                    u.created_at.isoformat() if u.created_at else "",
+                ]
+            )
         zf.writestr("users.csv", user_out.getvalue())
 
         # Domains
@@ -147,27 +184,57 @@ async def generate_full_backup_zip(db: AsyncSession) -> bytes:
         vw = csv.writer(vps_out)
         vw.writerow(["label", "host", "port", "user", "api_url", "active", "ssh_key"])
         for v in vpss:
-            vw.writerow([v.label, v.host, v.port, v.user, v.api_url,
-                         "ja" if v.active else "nein", v.ssh_key or ""])
+            vw.writerow(
+                [
+                    v.label,
+                    v.host,
+                    v.port,
+                    v.user,
+                    v.api_url,
+                    "ja" if v.active else "nein",
+                    v.ssh_key or "",
+                ]
+            )
         zf.writestr("vps_configs.csv", vps_out.getvalue())
 
         # Alias-Domain-Konfigurationen (inkl. SMTP-Passwörter)
         cfgs = (await db.execute(select(AliasDomainConfig).order_by(AliasDomainConfig.id))).scalars().all()
         cfg_out = io.StringIO()
         cw = csv.writer(cfg_out)
-        cw.writerow(["label", "alias_domain", "smtp_host", "smtp_port", "smtp_user",
-                     "smtp_password", "smtp_use_tls", "active", "catchall_enabled",
-                     "catchall_target_address"])
+        cw.writerow(
+            [
+                "label",
+                "alias_domain",
+                "smtp_host",
+                "smtp_port",
+                "smtp_user",
+                "smtp_password",
+                "smtp_use_tls",
+                "active",
+                "catchall_enabled",
+                "catchall_target_address",
+            ]
+        )
         for c in cfgs:
-            cw.writerow([c.label, c.alias_domain, c.smtp_host, c.smtp_port, c.smtp_user,
-                         c.smtp_password, "ja" if c.smtp_use_tls else "nein",
-                         "ja" if c.active else "nein",
-                         "ja" if c.catchall_enabled else "nein",
-                         c.catchall_target_address or ""])
+            cw.writerow(
+                [
+                    c.label,
+                    c.alias_domain,
+                    c.smtp_host,
+                    c.smtp_port,
+                    c.smtp_user,
+                    c.smtp_password,
+                    "ja" if c.smtp_use_tls else "nein",
+                    "ja" if c.active else "nein",
+                    "ja" if c.catchall_enabled else "nein",
+                    c.catchall_target_address or "",
+                ]
+            )
         zf.writestr("alias_domains.csv", cfg_out.getvalue())
 
         # Umgebungsvariablen (Schlüsselnamen, keine Werte für Secrets)
         import os
+
         env_info = (
             f"E-Mail Relay – Umgebungsvariablen zum Wiederherstellen\n"
             f"(Werte aus der .env-Datei auf dem Server übernehmen)\n\n"
@@ -179,20 +246,23 @@ async def generate_full_backup_zip(db: AsyncSession) -> bytes:
         zf.writestr("env_vorlage.txt", env_info)
 
         # Metadaten
-        zf.writestr("backup_info.txt", (
-            f"E-Mail Relay Backup\n"
-            f"Datum: {ts.strftime('%Y-%m-%d %H:%M UTC')}\n"
-            f"Benutzer: {len(users)}, Aliases: {len(aliases)}\n"
-            f"\nDieses Backup enthält alle Daten für eine vollständige Wiederherstellung:\n"
-            f"- aliases.csv       → Aliases importieren (Einstellungen → Datensicherung)\n"
-            f"- users.csv         → Benutzer manuell neu anlegen (Passwörter müssen neu gesetzt werden)\n"
-            f"- domains.csv       → Domains manuell neu anlegen\n"
-            f"- addresses.csv     → E-Mail-Adressen manuell neu anlegen\n"
-            f"- settings.csv      → Einstellungen (System-SMTP, ntfy usw.) manuell übertragen\n"
-            f"- vps_configs.csv   → VPS-Konfiguration manuell neu anlegen\n"
-            f"- alias_domains.csv → Alias-Domains manuell neu anlegen\n"
-            f"- env_vorlage.txt   → Hinweise zur .env-Datei\n"
-        ))
+        zf.writestr(
+            "backup_info.txt",
+            (
+                f"E-Mail Relay Backup\n"
+                f"Datum: {ts.strftime('%Y-%m-%d %H:%M UTC')}\n"
+                f"Benutzer: {len(users)}, Aliases: {len(aliases)}\n"
+                f"\nDieses Backup enthält alle Daten für eine vollständige Wiederherstellung:\n"
+                f"- aliases.csv       → Aliases importieren (Einstellungen → Datensicherung)\n"
+                f"- users.csv         → Benutzer manuell neu anlegen (Passwörter müssen neu gesetzt werden)\n"
+                f"- domains.csv       → Domains manuell neu anlegen\n"
+                f"- addresses.csv     → E-Mail-Adressen manuell neu anlegen\n"
+                f"- settings.csv      → Einstellungen (System-SMTP, ntfy usw.) manuell übertragen\n"
+                f"- vps_configs.csv   → VPS-Konfiguration manuell neu anlegen\n"
+                f"- alias_domains.csv → Alias-Domains manuell neu anlegen\n"
+                f"- env_vorlage.txt   → Hinweise zur .env-Datei\n"
+            ),
+        )
 
     return buf.getvalue()
 
@@ -200,8 +270,14 @@ async def generate_full_backup_zip(db: AsyncSession) -> bytes:
 def _ssh_test_sync(host: str, port: int, username: str, key_pem: str, remote_path: str):
     """Synchron: SSH-Verbindung und Schreibrechte prüfen."""
     import paramiko
+
     key = None
-    for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+    for cls in (
+        paramiko.Ed25519Key,
+        paramiko.RSAKey,
+        paramiko.ECDSAKey,
+        paramiko.DSSKey,
+    ):
         try:
             key = cls.from_private_key(io.StringIO(key_pem))
             break
@@ -224,12 +300,26 @@ def _ssh_test_sync(host: str, port: int, username: str, key_pem: str, remote_pat
         client.close()
 
 
-def _ssh_upload_sync(host: str, port: int, username: str, key_pem: str,
-                     remote_path: str, data: bytes, filename: str, keep: int = 0):
+def _ssh_upload_sync(
+    host: str,
+    port: int,
+    username: str,
+    key_pem: str,
+    remote_path: str,
+    data: bytes,
+    filename: str,
+    keep: int = 0,
+):
     """Synchron: ZIP-Backup per SFTP hochladen und ältere Backups rotieren."""
     import paramiko
+
     key = None
-    for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+    for cls in (
+        paramiko.Ed25519Key,
+        paramiko.RSAKey,
+        paramiko.ECDSAKey,
+        paramiko.DSSKey,
+    ):
         try:
             key = cls.from_private_key(io.StringIO(key_pem))
             break
@@ -277,7 +367,16 @@ async def run_ssh_backup(db: AsyncSession):
     keep_str = await _get_setting(db, "backup_keep")
     keep = int(keep_str) if keep_str and keep_str.isdigit() else 0
     await asyncio.get_event_loop().run_in_executor(
-        None, _ssh_upload_sync, host, port, ssh_user, key_pem, remote_path, data, filename, keep
+        None,
+        _ssh_upload_sync,
+        host,
+        port,
+        ssh_user,
+        key_pem,
+        remote_path,
+        data,
+        filename,
+        keep,
     )
 
     await _save_setting(db, "backup_last_run", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
@@ -288,6 +387,7 @@ async def run_ssh_backup(db: AsyncSession):
 async def backup_scheduler():
     """Hintergrundtask: Prüft stündlich ob ein automatisches Backup fällig ist."""
     from database import AsyncSessionLocal
+
     await asyncio.sleep(300)  # 5 Minuten nach Start warten
     while True:
         try:
@@ -299,7 +399,9 @@ async def backup_scheduler():
                     due = not last_run_str
                     if not due and last_run_str:
                         try:
-                            last_run = datetime.strptime(last_run_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
+                            last_run = datetime.strptime(last_run_str, "%Y-%m-%d %H:%M UTC").replace(
+                                tzinfo=timezone.utc
+                            )
                             delta = now - last_run
                             if schedule == "daily" and delta.total_seconds() >= 86400:
                                 due = True
@@ -311,7 +413,11 @@ async def backup_scheduler():
                         try:
                             await run_ssh_backup(db)
                         except Exception as e:
-                            await _save_setting(db, "backup_last_run", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
+                            await _save_setting(
+                                db,
+                                "backup_last_run",
+                                datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                            )
                             await _save_setting(db, "backup_last_status", f"Fehler: {str(e)[:150]}")
                             await db.commit()
         except asyncio.CancelledError:

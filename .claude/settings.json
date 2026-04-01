@@ -11,6 +11,15 @@
             "timeout": 60
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "npm run fix -- --skip=correctness/noUnusedImports",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
       }
     ]
   }

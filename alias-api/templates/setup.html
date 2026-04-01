@@ -1,6 +1,5 @@
-{% extends "base.html" %}
-{% block title %} – Einrichtung{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – Einrichtung { % endblock %} { %
+block content %}
 <div class="max-w-lg mx-auto">
   <div class="bg-white rounded-xl shadow p-8">
 
@@ -299,7 +298,9 @@
 
   <!-- Erklärungsbox -->
   <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mt-4">
-    <h3 class="font-semibold text-blue-800 mb-2 text-sm">Wie funktioniert E-Mail Relay?</h3>
+    <h3 class="font-semibold text-blue-800 mb-2 text-sm">
+      Wie funktioniert E-Mail Relay?
+    </h3>
     <ul class="text-sm text-blue-700 space-y-1.5">
       <li>📬 Du erstellst Aliases für jede Website/jeden Dienst</li>
       <li>🔒 Die Website kennt nur den Alias, nicht deine echte Adresse</li>
@@ -308,68 +309,76 @@
     </ul>
   </div>
 </div>
-{% endblock %}
-{% block scripts %}
+{ % endblock %} { % block scripts %}
 <script>
+"use strict";
 async function checkDns(domain, expected) {
-  const btn = document.getElementById('dns-check-btn');
-  const result = document.getElementById('dns-result');
+  const btn = document.getElementById("dns-check-btn");
+  const result = document.getElementById("dns-result");
   btn.disabled = true;
-  btn.textContent = 'Prüfe…';
-  result.textContent = '';
+  btn.textContent = "Prüfe…";
+  result.textContent = "";
   try {
-    const resp = await fetch('/setup/check-dns?domain=' + encodeURIComponent(domain) + '&expected=' + encodeURIComponent(expected));
+    const resp = await fetch(
+      "/setup/check-dns?domain=" +
+        encodeURIComponent(domain) +
+        "&expected=" +
+        encodeURIComponent(expected)
+    );
     const data = await resp.json();
     if (data.ok) {
-      result.className = 'text-sm text-green-600 font-medium';
-      result.textContent = '✓ MX-Eintrag korrekt gesetzt';
+      result.className = "text-sm text-green-600 font-medium";
+      result.textContent = "✓ MX-Eintrag korrekt gesetzt";
     } else {
-      result.className = 'text-sm text-red-600';
+      result.className = "text-sm text-red-600";
       if (data.mx && data.mx.length > 0) {
-        result.textContent = '✗ Aktueller MX: ' + data.mx.join(', ');
+        result.textContent = "✗ Aktueller MX: " + data.mx.join(", ");
       } else {
-        result.textContent = '✗ ' + (data.error || 'Kein MX-Eintrag gefunden');
+        result.textContent = "✗ " + (data.error || "Kein MX-Eintrag gefunden");
       }
     }
   } catch {
-    result.className = 'text-sm text-red-600';
-    result.textContent = '✗ Prüfung fehlgeschlagen';
+    result.className = "text-sm text-red-600";
+    result.textContent = "✗ Prüfung fehlgeschlagen";
   }
   btn.disabled = false;
-  btn.textContent = 'MX-Eintrag prüfen';
+  btn.textContent = "MX-Eintrag prüfen";
 }
 
 async function testSmtp() {
-  const btn = document.getElementById('smtp-test-btn');
-  const result = document.getElementById('smtp-result');
+  const btn = document.getElementById("smtp-test-btn");
+  const result = document.getElementById("smtp-result");
   const host = document.querySelector('input[name="smtp_host"]').value;
-  const port = parseInt(document.querySelector('input[name="smtp_port"]').value) || 587;
+  const port =
+    Number.parseInt(document.querySelector('input[name="smtp_port"]').value) ||
+    587;
   const username = document.querySelector('input[name="smtp_user"]').value;
-  const password = document.getElementById('smtp_password_input').value;
-  const useTls = document.querySelector('select[name="smtp_use_tls"]').value !== 'false';
+  const password = document.getElementById("smtp_password_input").value;
+  const useTls =
+    document.querySelector('select[name="smtp_use_tls"]').value !== "false";
   btn.disabled = true;
-  btn.textContent = 'Teste…';
-  result.textContent = '';
+  btn.textContent = "Teste…";
+  result.textContent = "";
   try {
-    const resp = await fetch('/setup/test-smtp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const resp = await fetch("/setup/test-smtp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ host, port, username, password, use_tls: useTls }),
     });
     const data = await resp.json();
     if (data.ok) {
-      result.className = 'text-sm text-green-600 font-medium';
-      result.textContent = '✓ Verbindung erfolgreich';
+      result.className = "text-sm text-green-600 font-medium";
+      result.textContent = "✓ Verbindung erfolgreich";
     } else {
-      result.className = 'text-sm text-red-600';
-      result.textContent = '✗ ' + (data.error || 'Verbindung fehlgeschlagen');
+      result.className = "text-sm text-red-600";
+      result.textContent = "✗ " + (data.error || "Verbindung fehlgeschlagen");
     }
   } catch {
-    result.className = 'text-sm text-red-600';
-    result.textContent = '✗ Test fehlgeschlagen';
+    result.className = "text-sm text-red-600";
+    result.textContent = "✗ Test fehlgeschlagen";
   }
   btn.disabled = false;
-  btn.textContent = 'Verbindung testen';
+  btn.textContent = "Verbindung testen";
 }
 </script>
-{% endblock %}
+{ % endblock %}

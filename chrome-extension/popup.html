@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-  <meta charset="utf-8">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="utf-8">
+    <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
     body {
       width: 340px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -12,56 +16,86 @@
       background: #f9fafb;
     }
     header {
-      background: #1e3a5f;
-      color: white;
-      padding: 12px 16px;
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
+      padding: 12px 16px;
+      color: white;
+      background: #1e3a5f;
     }
-    header h1 { font-size: 15px; font-weight: 600; }
-    header span { font-size: 11px; color: #93c5fd; }
-    .content { padding: 16px; }
-    .field { margin-bottom: 12px; }
-    label { display: block; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-    select, input[type="text"] {
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    header span {
+      font-size: 11px;
+      color: #93c5fd;
+    }
+    .content {
+      padding: 16px;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    select,
+    input[type="text"] {
       width: 100%;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
       padding: 7px 10px;
       font-size: 13px;
-      background: white;
       outline: none;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
     }
-    select:focus, input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+    select:focus,
+    input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
     button.primary {
       width: 100%;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 6px;
       padding: 9px;
+      margin-top: 4px;
       font-size: 13px;
       font-weight: 600;
+      color: white;
       cursor: pointer;
-      margin-top: 4px;
+      background: #2563eb;
+      border: none;
+      border-radius: 6px;
     }
-    button.primary:hover { background: #1d4ed8; }
-    button.primary:disabled { background: #93c5fd; cursor: default; }
-    #result { display: none; }
+    button.primary:hover {
+      background: #1d4ed8;
+    }
+    button.primary:disabled {
+      cursor: default;
+      background: #93c5fd;
+    }
+    #result {
+      display: none;
+    }
     .alias-box {
+      padding: 12px;
+      margin-bottom: 12px;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
       border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
     }
     .alias-box .alias-text {
+      margin-bottom: 8px;
       font-family: monospace;
       font-size: 13px;
       color: #1d4ed8;
       word-break: break-all;
-      margin-bottom: 8px;
     }
     .alias-box .copied-note {
       font-size: 11px;
@@ -69,73 +103,87 @@
     }
     button.secondary {
       width: 100%;
-      background: white;
-      color: #374151;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
       padding: 7px;
       font-size: 13px;
+      color: #374151;
       cursor: pointer;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
     }
-    button.secondary:hover { background: #f3f4f6; }
+    button.secondary:hover {
+      background: #f3f4f6;
+    }
     #error {
       display: none;
+      padding: 10px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #dc2626;
       background: #fef2f2;
       border: 1px solid #fecaca;
       border-radius: 6px;
-      padding: 10px;
-      color: #dc2626;
-      font-size: 12px;
-      margin-bottom: 12px;
     }
-    #loading { color: #6b7280; font-size: 12px; padding: 8px 0; }
+    #loading {
+      padding: 8px 0;
+      font-size: 12px;
+      color: #6b7280;
+    }
     .footer {
-      border-top: 1px solid #e5e7eb;
       padding: 8px 16px;
       text-align: right;
+      border-top: 1px solid #e5e7eb;
     }
-    .footer a { font-size: 11px; color: #9ca3af; text-decoration: none; }
-    .footer a:hover { color: #6b7280; }
-  </style>
-</head>
-<body>
-  <header>
-    <div>
-      <h1>E-Mail Relay</h1>
-      <span id="site-domain"></span>
-    </div>
-  </header>
-
-  <div class="content">
-    <div id="error"></div>
-    <div id="loading">Lädt Adressen…</div>
-
-    <div id="main" style="display:none">
-      <div class="field">
-        <label>Weiterleiten an</label>
-        <select id="address"></select>
+    .footer a {
+      font-size: 11px;
+      color: #9ca3af;
+      text-decoration: none;
+    }
+    .footer a:hover {
+      color: #6b7280;
+    }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>E-Mail Relay</h1>
+        <span id="site-domain"></span>
       </div>
-      <div class="field">
-        <label>Bezeichnung</label>
-        <input type="text" id="label" placeholder="z.B. Amazon, Newsletter …">
+    </header>
+
+    <div class="content">
+      <div id="error"></div>
+      <div id="loading">Lädt Adressen…</div>
+
+      <div id="main" style="display:none">
+        <div class="field">
+          <label>Weiterleiten an</label>
+          <select id="address"></select>
+        </div>
+        <div class="field">
+          <label>Bezeichnung</label>
+          <input type="text" id="label" placeholder="z.B. Amazon, Newsletter …">
+        </div>
+        <button class="primary" id="create">Alias erstellen</button>
       </div>
-      <button class="primary" id="create">Alias erstellen</button>
+
+      <div id="result">
+        <div class="alias-box">
+          <div class="alias-text" id="alias-display"></div>
+          <div class="copied-note" id="copy-note">
+            In Zwischenablage kopiert ✓
+          </div>
+        </div>
+        <button class="secondary" id="copy">Nochmal kopieren</button>
+        <button class="primary" id="new-alias" style="margin-top:8px">
+          Weiteren Alias erstellen
+        </button>
+      </div>
     </div>
 
-    <div id="result">
-      <div class="alias-box">
-        <div class="alias-text" id="alias-display"></div>
-        <div class="copied-note" id="copy-note">In Zwischenablage kopiert ✓</div>
-      </div>
-      <button class="secondary" id="copy">Nochmal kopieren</button>
-      <button class="primary" id="new-alias" style="margin-top:8px">Weiteren Alias erstellen</button>
-    </div>
-  </div>
+    <div class="footer"><a href="#" id="settings-link">Einstellungen</a></div>
 
-  <div class="footer">
-    <a href="#" id="settings-link">Einstellungen</a>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
+    <script src="popup.js"></script>
+  </body>
 </html>

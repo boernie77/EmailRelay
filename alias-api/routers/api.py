@@ -1,4 +1,5 @@
 """Interne API-Endpunkte für smtp-proxy und VPS-Forwarder."""
+
 import os
 import secrets
 import string
@@ -13,7 +14,16 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
 from database import get_db
-from models import Alias, AliasMessageLog, AliasDomainConfig, EmailAddress, Domain, Setting, User, ReplyToken
+from models import (
+    Alias,
+    AliasMessageLog,
+    AliasDomainConfig,
+    EmailAddress,
+    Domain,
+    Setting,
+    User,
+    ReplyToken,
+)
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -45,9 +55,8 @@ async def _get_user_id_from_credentials(
     if not username or not password:
         return None
     import bcrypt as _bcrypt
-    user = (await db.execute(
-        select(User).where(User.username == username, User.active == True)
-    )).scalar_one_or_none()
+
+    user = (await db.execute(select(User).where(User.username == username, User.active == True))).scalar_one_or_none()
     if not user:
         return None
     if not _bcrypt.checkpw(password.encode(), user.password_hash.encode()):
@@ -58,6 +67,7 @@ async def _get_user_id_from_credentials(
 async def _record_vps_event(key: str):
     """Schreibt Zeitstempel eines VPS-Ereignisses in die Settings-Tabelle."""
     from database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as session:
         existing = (await session.execute(select(Setting).where(Setting.key == key))).scalar_one_or_none()
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -71,8 +81,12 @@ async def _record_vps_event(key: str):
 async def _send_ntfy(url: str, message: str, title: str = "E-Mail Relay"):
     async with httpx.AsyncClient() as client:
         try:
-            await client.post(url, content=message.encode(),
-                              headers={"Title": title, "Priority": "high"}, timeout=5)
+            await client.post(
+                url,
+                content=message.encode(),
+                headers={"Title": title, "Priority": "high"},
+                timeout=5,
+            )
         except Exception:
             pass
 
@@ -89,12 +103,14 @@ async def verify_incoming_secret(
             ntfy_url = await _get_ntfy_url(db)
             if ntfy_url:
                 _last_ntfy_sent = now
-                asyncio.create_task(_send_ntfy(
-                    ntfy_url,
-                    "VPS konnte sich nicht authentifizieren (403 Forbidden).\n"
-                    "API-Secret veraltet? → VPS-Setup unter /vps ausführen.",
-                    title="E-Mail Relay: VPS-Fehler",
-                ))
+                asyncio.create_task(
+                    _send_ntfy(
+                        ntfy_url,
+                        "VPS konnte sich nicht authentifizieren (403 Forbidden).\n"
+                        "API-Secret veraltet? → VPS-Setup unter /vps ausführen.",
+                        title="E-Mail Relay: VPS-Fehler",
+                    )
+                )
         asyncio.create_task(_record_vps_event("last_vps_403"))
         raise HTTPException(status_code=403, detail="Ungültiger API-Key")
 
@@ -129,10 +145,12 @@ async def get_or_create_alias(
 
     # Bestehenden Alias suchen – zuletzt genutzten nehmen (mehrere möglich)
     result = await db.execute(
-        select(Alias).where(
+        select(Alias)
+        .where(
             Alias.real_address == real_address,
             Alias.active == True,
-        ).order_by(Alias.last_used.desc().nullslast(), Alias.created_at.desc())
+        )
+        .order_by(Alias.last_used.desc().nullslast(), Alias.created_at.desc())
     )
     alias = result.scalars().first()
 
@@ -180,9 +198,7 @@ async def resolve_alias(
         _last_vps_ok_written = now
         asyncio.create_task(_record_vps_event("last_vps_ok"))
 
-    result = await db.execute(
-        select(Alias).where(Alias.alias_address == alias_address)
-    )
+    result = await db.execute(select(Alias).where(Alias.alias_address == alias_address))
     alias = result.scalar_one_or_none()
     if alias:
         if not alias.active:
@@ -196,13 +212,15 @@ async def resolve_alias(
     if not domain_part:
         raise HTTPException(status_code=404, detail="Alias nicht gefunden")
 
-    cfg = (await db.execute(
-        select(AliasDomainConfig).where(
-            AliasDomainConfig.alias_domain == domain_part,
-            AliasDomainConfig.active == True,
-            AliasDomainConfig.catchall_enabled == True,
+    cfg = (
+        await db.execute(
+            select(AliasDomainConfig).where(
+                AliasDomainConfig.alias_domain == domain_part,
+                AliasDomainConfig.active == True,
+                AliasDomainConfig.catchall_enabled == True,
+            )
         )
-    )).scalar_one_or_none()
+    ).scalar_one_or_none()
 
     if not cfg or not cfg.catchall_target_address:
         raise HTTPException(status_code=404, detail="Alias nicht gefunden")
@@ -236,9 +254,7 @@ async def forward_email(
     raw = await request.body()
 
     # Alias auflösen (inkl. Catch-all)
-    alias = (await db.execute(
-        select(Alias).where(Alias.alias_address == alias_address)
-    )).scalar_one_or_none()
+    alias = (await db.execute(select(Alias).where(Alias.alias_address == alias_address))).scalar_one_or_none()
 
     if alias:
         if not alias.active:
@@ -250,13 +266,15 @@ async def forward_email(
         domain_part = alias_address.split("@")[1].lower() if "@" in alias_address else ""
         if not domain_part:
             return Response(status_code=404)
-        cfg_catchall = (await db.execute(
-            select(AliasDomainConfig).where(
-                AliasDomainConfig.alias_domain == domain_part,
-                AliasDomainConfig.active == True,
-                AliasDomainConfig.catchall_enabled == True,
+        cfg_catchall = (
+            await db.execute(
+                select(AliasDomainConfig).where(
+                    AliasDomainConfig.alias_domain == domain_part,
+                    AliasDomainConfig.active == True,
+                    AliasDomainConfig.catchall_enabled == True,
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
         if not cfg_catchall or not cfg_catchall.catchall_target_address:
             return Response(status_code=404)
         new_alias = Alias(
@@ -273,11 +291,17 @@ async def forward_email(
     domain_str = real_address.split("@")[1] if "@" in real_address else ""
     smtp_cfg = None
     if domain_str:
-        domain_obj = (await db.execute(
-            select(Domain)
-            .options(selectinload(Domain.alias_domain_config))
-            .where(Domain.domain == domain_str, Domain.active == True)
-        )).scalars().first()
+        domain_obj = (
+            (
+                await db.execute(
+                    select(Domain)
+                    .options(selectinload(Domain.alias_domain_config))
+                    .where(Domain.domain == domain_str, Domain.active == True)
+                )
+            )
+            .scalars()
+            .first()
+        )
         if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
             c = domain_obj.alias_domain_config
             smtp_cfg = {
@@ -301,6 +325,7 @@ async def forward_email(
     # Mail-Header anpassen
     from email.parser import BytesParser
     from email import policy as _ep
+
     msg = BytesParser(policy=_ep.default).parsebytes(raw)
 
     # Reply-Gateway: Reply-To auf reply-TOKEN@alias_domain setzen.
@@ -320,6 +345,7 @@ async def forward_email(
         await db.commit()
         del msg["Reply-To"]
         from email.utils import parseaddr, formataddr
+
         sender_display, _ = parseaddr(original_from)
         msg["Reply-To"] = formataddr((sender_display, f"reply-{token}@{alias_domain_part}"))
 
@@ -361,6 +387,7 @@ async def forward_email(
     # Senden via SMTP
     try:
         import aiosmtplib
+
         smtp = aiosmtplib.SMTP(
             hostname=smtp_cfg["host"],
             port=smtp_cfg["port"],
@@ -372,6 +399,7 @@ async def forward_email(
         await smtp.quit()
     except Exception as e:
         import logging
+
         logging.getLogger("api").error(f"SMTP-Fehler beim Forwarden an {real_address}: {e}")
         return Response(status_code=500, content=str(e).encode())
 
@@ -392,9 +420,7 @@ async def forward_reply(
     from email import policy as _ep
     import aiosmtplib
 
-    reply_token = (await db.execute(
-        select(ReplyToken).where(ReplyToken.token == token)
-    )).scalar_one_or_none()
+    reply_token = (await db.execute(select(ReplyToken).where(ReplyToken.token == token))).scalar_one_or_none()
 
     if not reply_token:
         return Response(status_code=404)
@@ -406,12 +432,14 @@ async def forward_reply(
     alias_domain_part = alias_address.split("@")[1] if "@" in alias_address else ""
     smtp_cfg = None
     if alias_domain_part:
-        cfg = (await db.execute(
-            select(AliasDomainConfig).where(
-                AliasDomainConfig.alias_domain == alias_domain_part,
-                AliasDomainConfig.active == True,
+        cfg = (
+            await db.execute(
+                select(AliasDomainConfig).where(
+                    AliasDomainConfig.alias_domain == alias_domain_part,
+                    AliasDomainConfig.active == True,
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
         if cfg and cfg.smtp_host:
             smtp_cfg = {
                 "host": cfg.smtp_host,
@@ -446,6 +474,7 @@ async def forward_reply(
 
     try:
         from email.utils import parseaddr
+
         _, original_sender_addr = parseaddr(original_sender)
         smtp = aiosmtplib.SMTP(
             hostname=smtp_cfg["host"],
@@ -471,13 +500,12 @@ async def auth_validate(
 ):
     """Prüft Benutzername/Passwort für SMTP-Auth (smtp-proxy → alias-api)."""
     import bcrypt as _bcrypt
+
     username = (payload.get("username") or "").strip()
     password = payload.get("password") or ""
     if not username or not password:
         raise HTTPException(status_code=401, detail="Credentials fehlen")
-    user = (await db.execute(
-        select(User).where(User.username == username, User.active == True)
-    )).scalar_one_or_none()
+    user = (await db.execute(select(User).where(User.username == username, User.active == True))).scalar_one_or_none()
     if not user or not _bcrypt.checkpw(password.encode(), user.password_hash.encode()):
         raise HTTPException(status_code=401, detail="Ungültige Zugangsdaten")
     return {"ok": True, "user_id": user.id}
@@ -508,11 +536,17 @@ async def get_smtp_config(
 
     # Domain mit zugehöriger AliasDomainConfig laden
     if domain_str:
-        domain_obj = (await db.execute(
-            select(Domain)
-            .options(selectinload(Domain.alias_domain_config))
-            .where(Domain.domain == domain_str, Domain.active == True)
-        )).scalars().first()
+        domain_obj = (
+            (
+                await db.execute(
+                    select(Domain)
+                    .options(selectinload(Domain.alias_domain_config))
+                    .where(Domain.domain == domain_str, Domain.active == True)
+                )
+            )
+            .scalars()
+            .first()
+        )
 
         if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
             cfg = domain_obj.alias_domain_config
@@ -557,9 +591,7 @@ async def get_alias_for_message(
 ):
     """Gibt den Alias zurück, der für eine bestimmte Message-ID verwendet wurde."""
     clean_id = message_id.strip().strip("<>")
-    result = await db.execute(
-        select(AliasMessageLog).where(AliasMessageLog.message_id == clean_id)
-    )
+    result = await db.execute(select(AliasMessageLog).where(AliasMessageLog.message_id == clean_id))
     entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Kein Alias für diese Message-ID")
@@ -594,11 +626,13 @@ async def create_alias_with_label(
     real_address = payload.get("real_address", "").strip().lower()
     label = payload.get("label", "").strip()
 
-    email_addr = (await db.execute(
-        select(EmailAddress)
-        .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
-        .where(EmailAddress.address == real_address, EmailAddress.active == True)
-    )).scalar_one_or_none()
+    email_addr = (
+        await db.execute(
+            select(EmailAddress)
+            .options(selectinload(EmailAddress.domain).selectinload(Domain.alias_domain_config))
+            .where(EmailAddress.address == real_address, EmailAddress.active == True)
+        )
+    ).scalar_one_or_none()
     if not email_addr:
         raise HTTPException(status_code=404, detail="Adresse nicht konfiguriert")
 

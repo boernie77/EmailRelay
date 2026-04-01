@@ -1,57 +1,104 @@
-{% extends "base.html" %}
-{% block title %} – Aliases{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – Aliases { % endblock %} { %
+block content %}
 <h1 class="text-2xl font-bold mb-2">Aliases</h1>
-<p class="text-gray-500 mb-6 text-sm">Alle generierten Alias-Adressen und ihre echten Empfänger.</p>
+<p class="text-gray-500 mb-6 text-sm">
+  Alle generierten Alias-Adressen und ihre echten Empfänger.
+</p>
 
 <!-- Neuen Alias manuell erstellen -->
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-base font-semibold mb-4">Neuen Alias erstellen</h2>
-  {% if email_addresses %}
-  <form method="post" action="/aliases/create" class="flex flex-wrap gap-3 items-end">
+  { % if email_addresses %}
+  <form
+    method="post"
+    action="/aliases/create"
+    class="flex flex-wrap gap-3 items-end"
+  >
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Weiterleit-Adresse <span class="text-gray-400 font-normal">(echte Inbox)</span></label>
-      <select name="real_address" required
-              class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        {% for a in email_addresses %}
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Weiterleit-Adresse
+        <span class="text-gray-400 font-normal">(echte Inbox)</span></label
+      >
+      <select
+        name="real_address"
+        required
+        class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        { % for a in email_addresses %}
         <option value="{{ a.address }}">{{ a.address }}</option>
-        {% endfor %}
+        { % endfor %}
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Alias-Domain</label>
-      <select name="alias_domain_id" required
-              class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-        {% for d in alias_domain_configs %}
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Alias-Domain</label
+      >
+      <select
+        name="alias_domain_id"
+        required
+        class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        { % for d in alias_domain_configs %}
         <option value="{{ d.id }}">{{ d.alias_domain }}</option>
-        {% endfor %}
+        { % endfor %}
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Bezeichnung <span class="text-gray-400 font-normal">(optional)</span></label>
-      <input type="text" name="label" placeholder="z.B. Amazon, Newsletter …"
-             class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-64">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Bezeichnung
+        <span class="text-gray-400 font-normal">(optional)</span></label
+      >
+      <input
+        type="text"
+        name="label"
+        placeholder="z.B. Amazon, Newsletter …"
+        class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-64"
+      >
     </div>
-    <button type="submit"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition text-sm">
+    <button
+      type="submit"
+      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition text-sm"
+    >
       Alias erstellen
     </button>
   </form>
-  {% else %}
-  <p class="text-sm text-gray-400">Keine aktiven E-Mail-Adressen konfiguriert. Bitte zuerst unter <a href="/addresses" class="text-blue-600 hover:underline">Adressen</a> eine Adresse anlegen.</p>
-  {% endif %}
+  { % else %}
+  <p class="text-sm text-gray-400">
+    Keine aktiven E-Mail-Adressen konfiguriert. Bitte zuerst unter
+    <a href="/addresses" class="text-blue-600 hover:underline">Adressen</a>
+    eine Adresse anlegen.
+  </p>
+  { % endif %}
 </div>
 
 <!-- Legende -->
-<div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-6 text-sm text-blue-900 space-y-1">
-  <p><strong>Blockieren:</strong> Alias bleibt gespeichert, aber deaktiviert. Mails werden still verworfen — der Absender bekommt keine Rückmeldung. Kann jederzeit reaktiviert werden. Auch bei aktiviertem Catch-all wird ein blockierter Alias nicht neu angelegt.</p>
-  <p><strong>Rotieren:</strong> Erstellt einen neuen zufälligen Alias für dieselbe Adresse und deaktiviert den alten. Nützlich wenn ein Alias in Spam-Listen gelandet ist.</p>
-  <p><strong>Löschen:</strong> Entfernt den Alias dauerhaft. Mails an die alte Adresse werden mit "User unknown" abgelehnt — der Absender bekommt eine Bounce-Nachricht. Achtung: Ist Catch-all aktiv, wird der Alias beim nächsten Eingang automatisch neu angelegt — in dem Fall lieber Blockieren verwenden.</p>
+<div
+  class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-6 text-sm text-blue-900 space-y-1"
+>
+  <p>
+    <strong>Blockieren:</strong>
+    Alias bleibt gespeichert, aber deaktiviert. Mails werden still verworfen —
+    der Absender bekommt keine Rückmeldung. Kann jederzeit reaktiviert werden.
+    Auch bei aktiviertem Catch-all wird ein blockierter Alias nicht neu
+    angelegt.
+  </p>
+  <p>
+    <strong>Rotieren:</strong>
+    Erstellt einen neuen zufälligen Alias für dieselbe Adresse und deaktiviert
+    den alten. Nützlich wenn ein Alias in Spam-Listen gelandet ist.
+  </p>
+  <p>
+    <strong>Löschen:</strong>
+    Entfernt den Alias dauerhaft. Mails an die alte Adresse werden mit "User
+    unknown" abgelehnt — der Absender bekommt eine Bounce-Nachricht. Achtung:
+    Ist Catch-all aktiv, wird der Alias beim nächsten Eingang automatisch neu
+    angelegt — in dem Fall lieber Blockieren verwenden.
+  </p>
 </div>
 
 <!-- Alias-Liste -->
 <div class="bg-white rounded-xl shadow p-6">
-  {% if aliases %}
+  { % if aliases %}
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
@@ -65,63 +112,98 @@
       </tr>
     </thead>
     <tbody>
-      {% for a in aliases %}
+      { % for a in aliases %}
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2">
           <span class="font-mono text-blue-700">{{ a.alias_address }}</span>
-          <button onclick="copyAlias(this, '{{ a.alias_address }}')" title="Kopieren"
-                  class="ml-1 text-gray-400 hover:text-gray-600 transition align-middle">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          <button
+            onclick="copyAlias(this, '{{ a.alias_address }}')"
+            title="Kopieren"
+            class="ml-1 text-gray-400 hover:text-gray-600 transition align-middle"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="inline w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
             </svg>
           </button>
         </td>
         <td class="py-2 font-mono text-gray-600">{{ a.real_address }}</td>
         <td class="py-2 text-gray-500">{{ a.label or '–' }}</td>
-        <td class="py-2 text-gray-400">{{ a.created_at.strftime('%d.%m.%Y') }}</td>
-        <td class="py-2 text-gray-400">{{ a.last_used.strftime('%d.%m.%Y %H:%M') if a.last_used else '–' }}</td>
+        <td class="py-2 text-gray-400">
+          {{ a.created_at.strftime('%d.%m.%Y') }}
+        </td>
+        <td class="py-2 text-gray-400">
+          {{ a.last_used.strftime('%d.%m.%Y %H:%M') if a.last_used else '–' }}
+        </td>
         <td class="py-2">
-          {% if a.active %}
-          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
-          {% else %}
-          <span class="bg-red-100 text-red-500 px-2 py-0.5 rounded-full text-xs">Blockiert</span>
-          {% endif %}
+          { % if a.active %}
+          <span
+            class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
+            >Aktiv</span
+          >
+          { % else %}
+          <span class="bg-red-100 text-red-500 px-2 py-0.5 rounded-full text-xs"
+            >Blockiert</span
+          >
+          { % endif %}
         </td>
         <td class="py-2 flex gap-2 flex-wrap">
-          {% if a.active %}
-          <form method="post" action="/aliases/{{ a.id }}/rotate"
-                onsubmit="return confirm('Neuen Alias erstellen? Der alte wird deaktiviert (kann reaktiviert werden).')">
-            <button class="text-xs text-green-600 hover:underline">Rotieren</button>
+          { % if a.active %}
+          <form
+            method="post"
+            action="/aliases/{{ a.id }}/rotate"
+            onsubmit="return confirm('Neuen Alias erstellen? Der alte wird deaktiviert (kann reaktiviert werden).')"
+          >
+            <button class="text-xs text-green-600 hover:underline">
+              Rotieren
+            </button>
           </form>
-          {% endif %}
+          { % endif %}
           <form method="post" action="/aliases/{{ a.id }}/toggle">
             <button class="text-xs text-blue-600 hover:underline">
               {{ 'Blockieren' if a.active else 'Aktivieren' }}
             </button>
           </form>
-          <form method="post" action="/aliases/{{ a.id }}/delete"
-                onsubmit="return confirm('Alias unwiderruflich löschen?')">
-            <button class="text-xs text-red-500 hover:underline">Löschen</button>
+          <form
+            method="post"
+            action="/aliases/{{ a.id }}/delete"
+            onsubmit="return confirm('Alias unwiderruflich löschen?')"
+          >
+            <button class="text-xs text-red-500 hover:underline">
+              Löschen
+            </button>
           </form>
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
-  {% else %}
+  { % else %}
   <p class="text-gray-400">Noch keine Aliases vorhanden.</p>
-  {% endif %}
+  { % endif %}
 </div>
-{% endblock %}
-{% block scripts %}
+{ % endblock %} { % block scripts %}
 <script>
+"use strict";
 function copyAlias(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
-    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="inline w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+    btn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" class="inline w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
     setTimeout(() => {
-      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="inline w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
+      btn.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" class="inline w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
     }, 1500);
   });
 }
 </script>
-{% endblock %}
+{ % endblock %}

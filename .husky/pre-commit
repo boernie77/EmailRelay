@@ -1,0 +1,10 @@
+# ultracite
+#!/bin/sh
+npx lint-staged --config package.json
+
+# Python linting
+STAGED_PY=$(git diff --cached --name-only | grep '\.py$' | tr '\n' ' ')
+if [ -n "$STAGED_PY" ]; then
+  pre-commit run ruff --files $STAGED_PY
+  pre-commit run ruff-format --files $STAGED_PY
+fi

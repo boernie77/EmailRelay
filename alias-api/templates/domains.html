@@ -1,45 +1,65 @@
-{% extends "base.html" %}
-{% block title %} – Domains{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – Domains { % endblock %} { %
+block content %}
 <h1 class="text-2xl font-bold mb-6">Domains</h1>
 
 <div class="bg-white rounded-xl shadow p-6 mb-6">
   <h2 class="text-lg font-semibold mb-4">Domain hinzufügen</h2>
   <form method="post" action="/domains" class="flex gap-3 items-end flex-wrap">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Domain (deine echte Absender-Domain)</label>
-      <input type="text" name="domain" placeholder="deine-domain.de" required
-             class="border rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Domain (deine echte Absender-Domain)</label
+      >
+      <input
+        type="text"
+        name="domain"
+        placeholder="deine-domain.de"
+        required
+        class="border rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
     </div>
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Alias-Domain-Konfiguration</label>
-      <select name="alias_domain_config_id"
-              class="border rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <label class="block text-sm font-medium text-gray-700 mb-1"
+        >Alias-Domain-Konfiguration</label
+      >
+      <select
+        name="alias_domain_config_id"
+        class="border rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
         <option value="">(keine / automatisch)</option>
-        {% for cfg in alias_configs %}
-        <option value="{{ cfg.id }}">{{ cfg.label or cfg.alias_domain }} – {{ cfg.alias_domain }}</option>
-        {% endfor %}
+        { % for cfg in alias_configs %}
+        <option value="{{ cfg.id }}">
+          {{ cfg.label or cfg.alias_domain }}
+          – {{ cfg.alias_domain }}
+        </option>
+        { % endfor %}
       </select>
     </div>
-    <button type="submit"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm">
+    <button
+      type="submit"
+      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition text-sm"
+    >
       Hinzufügen
     </button>
   </form>
-  {% if not alias_configs %}
-  <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+  { % if not alias_configs %}
+  <p
+    class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3"
+  >
     Noch keine Alias-Domains konfiguriert.
     <a href="/alias-domains" class="underline">Jetzt einrichten</a>
   </p>
-  {% endif %}
-  <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-    Hinweis bei Gmail: Ein App-Passwort verwenden (Google-Konto → Sicherheit → App-Passwörter). Das normale Google-Passwort funktioniert nicht.
+  { % endif %}
+  <p
+    class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3"
+  >
+    Hinweis bei Gmail: Ein App-Passwort verwenden (Google-Konto → Sicherheit →
+    App-Passwörter). Das normale Google-Passwort funktioniert nicht.
   </p>
 </div>
 
 <div class="bg-white rounded-xl shadow p-6">
   <h2 class="text-lg font-semibold mb-4">Konfigurierte Domains</h2>
-  {% if domains %}
+  { % if domains %}
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
@@ -51,24 +71,36 @@
       </tr>
     </thead>
     <tbody>
-      {% for d in domains %}
+      { % for d in domains %}
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2 font-medium">{{ d.domain }}</td>
         <td class="py-2 text-gray-500">
-          {% if d.alias_domain_config %}
-            <span class="font-medium text-gray-700">{{ d.alias_domain_config.label or d.alias_domain_config.alias_domain }}</span>
-            <span class="text-xs text-gray-400 ml-1">{{ d.alias_domain_config.alias_domain }}</span>
-          {% else %}
-            <span class="text-gray-400">(keine)</span>
-          {% endif %}
+          { % if d.alias_domain_config %}
+          <span class="font-medium text-gray-700"
+            >{{ d.alias_domain_config.label or d.alias_domain_config.alias_domain }}</span
+          >
+          <span class="text-xs text-gray-400 ml-1"
+            >{{ d.alias_domain_config.alias_domain }}</span
+          >
+          { % else %}
+          <span class="text-gray-400">(keine)</span>
+          { % endif %}
         </td>
-        <td class="py-2 text-gray-400">{{ d.created_at.strftime('%d.%m.%Y') }}</td>
+        <td class="py-2 text-gray-400">
+          {{ d.created_at.strftime('%d.%m.%Y') }}
+        </td>
         <td class="py-2">
-          {% if d.active %}
-          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
-          {% else %}
-          <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs">Inaktiv</span>
-          {% endif %}
+          { % if d.active %}
+          <span
+            class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
+            >Aktiv</span
+          >
+          { % else %}
+          <span
+            class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs"
+            >Inaktiv</span
+          >
+          { % endif %}
         </td>
         <td class="py-2 flex gap-2">
           <form method="post" action="/domains/{{ d.id }}/toggle">
@@ -76,17 +108,22 @@
               {{ 'Deaktivieren' if d.active else 'Aktivieren' }}
             </button>
           </form>
-          <form method="post" action="/domains/{{ d.id }}/delete"
-                onsubmit="return confirm('Domain und alle zugehörigen Adressen löschen?')">
-            <button class="text-xs text-red-500 hover:underline">Löschen</button>
+          <form
+            method="post"
+            action="/domains/{{ d.id }}/delete"
+            onsubmit="return confirm('Domain und alle zugehörigen Adressen löschen?')"
+          >
+            <button class="text-xs text-red-500 hover:underline">
+              Löschen
+            </button>
           </form>
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
-  {% else %}
+  { % else %}
   <p class="text-gray-400">Noch keine Domains konfiguriert.</p>
-  {% endif %}
+  { % endif %}
 </div>
-{% endblock %}
+{ % endblock %}

@@ -1,29 +1,33 @@
-{% extends "base.html" %}
-{% block title %} – Dashboard{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – Dashboard { % endblock %} { %
+block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-bold">Dashboard</h1>
-  {% if not current_user.is_admin %}
-  <button onclick="openSetupModal()"
-          class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+  { % if not current_user.is_admin %}
+  <button
+    onclick="openSetupModal()"
+    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+  >
     Einrichtungs-Wizard
   </button>
-  {% endif %}
+  { % endif %}
 </div>
-
-{% if vps_warning %}
-<div class="bg-red-50 border border-red-300 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
+{ % if vps_warning %}
+<div
+  class="bg-red-50 border border-red-300 rounded-xl px-5 py-4 mb-6 flex items-start gap-3"
+>
   <span class="text-red-500 text-xl">⚠</span>
   <div>
     <p class="font-semibold text-red-700">VPS-Verbindungsproblem</p>
     <p class="text-sm text-red-600 mt-0.5">
       Der VPS konnte sich zuletzt nicht authentifizieren (falsches API-Secret).
       Eingehende Mails werden nicht weitergeleitet.
-      <a href="/vps" class="font-semibold underline hover:text-red-800">→ VPS-Setup ausführen</a>
+      <a href="/vps" class="font-semibold underline hover:text-red-800"
+        >→ VPS-Setup ausführen</a
+      >
     </p>
   </div>
 </div>
-{% endif %}
+{ % endif %}
 
 <div class="grid grid-cols-3 gap-4 mb-8">
   <div class="bg-white rounded-xl shadow p-6 text-center">
@@ -42,7 +46,7 @@
 
 <div class="bg-white rounded-xl shadow p-6">
   <h2 class="text-lg font-semibold mb-4">Zuletzt erstellte Aliases</h2>
-  {% if recent_aliases %}
+  { % if recent_aliases %}
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
@@ -54,71 +58,97 @@
       </tr>
     </thead>
     <tbody>
-      {% for alias in recent_aliases %}
+      { % for alias in recent_aliases %}
       <tr class="border-b last:border-0 hover:bg-gray-50">
         <td class="py-2 font-mono text-blue-700">{{ alias.alias_address }}</td>
         <td class="py-2 text-gray-600">{{ alias.real_address }}</td>
-        <td class="py-2 text-gray-400">{{ alias.created_at.strftime('%d.%m.%Y') }}</td>
-        <td class="py-2 text-gray-400">{{ alias.last_used.strftime('%d.%m.%Y') if alias.last_used else '–' }}</td>
+        <td class="py-2 text-gray-400">
+          {{ alias.created_at.strftime('%d.%m.%Y') }}
+        </td>
+        <td class="py-2 text-gray-400">
+          {{ alias.last_used.strftime('%d.%m.%Y') if alias.last_used else '–' }}
+        </td>
         <td class="py-2">
-          {% if alias.active %}
-          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Aktiv</span>
-          {% else %}
-          <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">Deaktiviert</span>
-          {% endif %}
+          { % if alias.active %}
+          <span
+            class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs"
+            >Aktiv</span
+          >
+          { % else %}
+          <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs"
+            >Deaktiviert</span
+          >
+          { % endif %}
         </td>
       </tr>
-      {% endfor %}
+      { % endfor %}
     </tbody>
   </table>
-  {% else %}
-  <p class="text-gray-400">Noch keine Aliases vorhanden. <a href="/addresses" class="text-blue-600 hover:underline">Adressen konfigurieren →</a></p>
-  {% endif %}
+  { % else %}
+  <p class="text-gray-400">
+    Noch keine Aliases vorhanden.
+    <a href="/addresses" class="text-blue-600 hover:underline"
+      >Adressen konfigurieren →</a
+    >
+  </p>
+  { % endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-{% if not current_user.is_admin %}
+{ % endblock %} { % block scripts %} { % if not current_user.is_admin %}
 <!-- Setup-Wizard Popup -->
-<div id="setup-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" style="max-height: 92vh">
-    <div class="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100">
+<div
+  id="setup-modal"
+  class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden"
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+    style="max-height: 92vh"
+  >
+    <div
+      class="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100"
+    >
       <h2 class="font-bold text-gray-800">Einrichtung</h2>
-      <button onclick="skipSetup()" class="text-gray-400 hover:text-gray-600 text-sm transition">Überspringen</button>
+      <button
+        onclick="skipSetup()"
+        class="text-gray-400 hover:text-gray-600 text-sm transition"
+      >
+        Überspringen
+      </button>
     </div>
-    <iframe id="setup-iframe"
-            class="w-full flex-1 border-none"
-            style="min-height: 520px"
-            onload="onIframeLoad(this)">
-    </iframe>
+    <iframe
+      id="setup-iframe"
+      class="w-full flex-1 border-none"
+      style="min-height: 520px"
+      onload="onIframeLoad(this)"
+    > </iframe>
   </div>
 </div>
 <script>
+"use strict";
 function openSetupModal() {
-  const modal = document.getElementById('setup-modal');
-  const iframe = document.getElementById('setup-iframe');
-  if (!iframe.src || iframe.src === 'about:blank') {
-    iframe.src = '/setup';
+  const modal = document.getElementById("setup-modal");
+  const iframe = document.getElementById("setup-iframe");
+  if (!iframe.src || iframe.src === "about:blank") {
+    iframe.src = "/setup";
   }
-  modal.classList.remove('hidden');
+  modal.classList.remove("hidden");
 }
 function onIframeLoad(iframe) {
   try {
     const path = iframe.contentWindow.location.pathname;
-    if (path === '/aliases' || (path === '/' && iframe.dataset.started)) {
-      document.getElementById('setup-modal').classList.add('hidden');
-      window.location.href = '/aliases';
+    if (path === "/aliases" || (path === "/" && iframe.dataset.started)) {
+      document.getElementById("setup-modal").classList.add("hidden");
+      window.location.href = "/aliases";
     }
-    iframe.dataset.started = '1';
-  } catch(e) {}
+    iframe.dataset.started = "1";
+  } catch (e) {}
 }
 async function skipSetup() {
-  await fetch('/setup/skip', { method: 'POST' });
-  document.getElementById('setup-modal').classList.add('hidden');
+  await fetch("/setup/skip", { method: "POST" });
+  document.getElementById("setup-modal").classList.add("hidden");
 }
-{% if needs_setup %}
-openSetupModal();
-{% endif %}
+%
+if needs_setup %
+openSetupModal() {}
+% endif %
 </script>
-{% endif %}
-{% endblock %}
+{ % endif %} { % endblock %}

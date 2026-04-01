@@ -1,81 +1,149 @@
-{% extends "base.html" %}
-{% block title %} – Alias-Domain bearbeiten{% endblock %}
-{% block content %}
+{ % extends "base.html" %} { % block title %} – Alias-Domain bearbeiten { %
+endblock %} { % block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="/alias-domains" class="text-sm text-blue-600 hover:underline">← Alias-Domains</a>
+  <a href="/alias-domains" class="text-sm text-blue-600 hover:underline"
+    >← Alias-Domains</a
+  >
   <span class="text-gray-400">/</span>
-  <h1 class="text-2xl font-bold">{{ cfg.label or cfg.alias_domain }} bearbeiten</h1>
+  <h1 class="text-2xl font-bold">
+    {{ cfg.label or cfg.alias_domain }}
+    bearbeiten
+  </h1>
 </div>
 
 <div class="bg-white rounded-xl shadow p-6">
-  <form method="post" action="/alias-domains/{{ cfg.id }}/edit" class="space-y-4">
-
+  <form
+    method="post"
+    action="/alias-domains/{{ cfg.id }}/edit"
+    class="space-y-4"
+  >
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Bezeichnung <span class="text-gray-400 font-normal">(optional)</span></label>
-        <input type="text" name="label" value="{{ cfg.label }}" placeholder="z.B. Mein Mailserver"
-               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <label class="block text-sm font-medium text-gray-700 mb-1"
+          >Bezeichnung
+          <span class="text-gray-400 font-normal">(optional)</span></label
+        >
+        <input
+          type="text"
+          name="label"
+          value="{{ cfg.label }}"
+          placeholder="z.B. Mein Mailserver"
+          class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Alias-Domain <span class="text-red-500">*</span></label>
-        <input type="text" name="alias_domain" value="{{ cfg.alias_domain }}" required
-               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <label class="block text-sm font-medium text-gray-700 mb-1"
+          >Alias-Domain <span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          name="alias_domain"
+          value="{{ cfg.alias_domain }}"
+          required
+          class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
       </div>
     </div>
 
     <div class="border-t pt-4">
-      <h3 class="text-sm font-semibold text-gray-600 mb-3">SMTP-Verbindung <span class="font-normal text-gray-400">(zum Senden weitergeleiteter Mails)</span></h3>
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">
+        SMTP-Verbindung
+        <span class="font-normal text-gray-400"
+          >(zum Senden weitergeleiteter Mails)</span
+        >
+      </h3>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">SMTP-Server</label>
-          <input type="text" name="smtp_host" value="{{ cfg.smtp_host }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >SMTP-Server</label
+          >
+          <input
+            type="text"
+            name="smtp_host"
+            value="{{ cfg.smtp_host }}"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
-          <input type="number" name="smtp_port" value="{{ cfg.smtp_port }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Port</label
+          >
+          <input
+            type="number"
+            name="smtp_port"
+            value="{{ cfg.smtp_port }}"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Benutzername</label>
-          <input type="text" name="smtp_user" value="{{ cfg.smtp_user }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Benutzername</label
+          >
+          <input
+            type="text"
+            name="smtp_user"
+            value="{{ cfg.smtp_user }}"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
-          <input type="password" name="smtp_password" value="{{ cfg.smtp_password }}"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Passwort</label
+          >
+          <input
+            type="password"
+            name="smtp_password"
+            value="{{ cfg.smtp_password }}"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Verschlüsselung</label>
-          <select name="smtp_use_tls"
-                  class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Verschlüsselung</label
+          >
+          <select
+            name="smtp_use_tls"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
             <option value="true" {% if cfg.smtp_use_tls %}selected{% endif %}>STARTTLS / TLS</option>
             <option value="false" {% if not cfg.smtp_use_tls %}selected{% endif %}>Keine (nicht empfohlen)</option>
           </select>
         </div>
       </div>
-      <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-        Hinweis bei Gmail: Ein App-Passwort verwenden (Google-Konto → Sicherheit → App-Passwörter).
+      <p
+        class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3"
+      >
+        Hinweis bei Gmail: Ein App-Passwort verwenden (Google-Konto → Sicherheit
+        → App-Passwörter).
       </p>
     </div>
 
     <div class="border-t pt-4">
-      <h3 class="text-sm font-semibold text-gray-600 mb-3">VPS <span class="font-normal text-gray-400">(für eingehende Mails)</span></h3>
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">
+        VPS
+        <span class="font-normal text-gray-400">(für eingehende Mails)</span>
+      </h3>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">VPS-Konfiguration</label>
-        <select name="vps_config_id"
-                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-80">
+        <label class="block text-sm font-medium text-gray-700 mb-1"
+          >VPS-Konfiguration</label
+        >
+        <select
+          name="vps_config_id"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-80"
+        >
           <option value="">(keiner zugewiesen)</option>
-          {% for vps in vpss %}
+          { % for vps in vpss %}
           <option value="{{ vps.id }}" {% if cfg.vps_config_id == vps.id %}selected{% endif %}>
             {{ vps.label or vps.host }} — {{ vps.host }}
           </option>
-          {% endfor %}
+          { % endfor %}
         </select>
-        {% if not vpss %}
-        <p class="text-xs text-amber-700 mt-1">Noch kein VPS konfiguriert. <a href="/vps" class="underline">Jetzt anlegen</a>.</p>
-        {% endif %}
+        { % if not vpss %}
+        <p class="text-xs text-amber-700 mt-1">
+          Noch kein VPS konfiguriert.
+          <a href="/vps" class="underline">Jetzt anlegen</a>.
+        </p>
+        { % endif %}
       </div>
     </div>
 
@@ -89,44 +157,60 @@
         </label>
       </div>
       <p class="text-xs text-gray-400 mt-1">
-        Neu registrierte Benutzer erhalten automatisch Zugriff auf diese Alias-Domain.
+        Neu registrierte Benutzer erhalten automatisch Zugriff auf diese
+        Alias-Domain.
       </p>
     </div>
 
     <div class="border-t pt-4">
       <h3 class="text-sm font-semibold text-gray-600 mb-3">Catch-all</h3>
       <p class="text-xs text-gray-500 mb-3">
-        Wenn aktiviert, werden Mails an beliebige Adressen dieser Alias-Domain akzeptiert.
-        Der Alias wird beim ersten Eingang automatisch angelegt und an die Zieladresse weitergeleitet.
+        Wenn aktiviert, werden Mails an beliebige Adressen dieser Alias-Domain
+        akzeptiert. Der Alias wird beim ersten Eingang automatisch angelegt und
+        an die Zieladresse weitergeleitet.
       </p>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Catch-all aktivieren</label>
-          <select name="catchall_enabled"
-                  class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Catch-all aktivieren</label
+          >
+          <select
+            name="catchall_enabled"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
             <option value="false" {% if not cfg.catchall_enabled %}selected{% endif %}>Deaktiviert</option>
             <option value="true" {% if cfg.catchall_enabled %}selected{% endif %}>Aktiviert</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Zieladresse für Catch-all</label>
-          <input type="text" name="catchall_target_address" value="{{ cfg.catchall_target_address }}"
-                 placeholder="z.B. ich@meine-domain.de"
-                 class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Zieladresse für Catch-all</label
+          >
+          <input
+            type="text"
+            name="catchall_target_address"
+            value="{{ cfg.catchall_target_address }}"
+            placeholder="z.B. ich@meine-domain.de"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
         </div>
       </div>
     </div>
 
     <div class="flex gap-3">
-      <button type="submit"
-              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition text-sm">
+      <button
+        type="submit"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition text-sm"
+      >
         Speichern
       </button>
-      <a href="/alias-domains"
-         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-2 rounded-lg transition text-sm">
+      <a
+        href="/alias-domains"
+        class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-2 rounded-lg transition text-sm"
+      >
         Abbrechen
       </a>
     </div>
   </form>
 </div>
-{% endblock %}
+{ % endblock %}

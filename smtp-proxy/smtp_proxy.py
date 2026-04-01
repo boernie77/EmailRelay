@@ -6,12 +6,11 @@ Lauscht auf Port 1587. Thunderbird verbindet sich hier.
 - Weiterleitung über den konfigurierten echten SMTP-Server
 - SMTP-Auth: optional (SMTP_AUTH_REQUIRED=true aktiviert Pflicht-Auth gegen alias-api)
 """
+
 import asyncio
 import logging
 import os
 import email
-from email import policy
-from email.parser import BytesParser
 from email.utils import parseaddr, formataddr
 
 import httpx
@@ -200,9 +199,7 @@ class AliasHandler(AsyncMessage):
             raise RuntimeError("SMTP-Server nicht konfiguriert")
 
         # Mail weiterleiten
-        recipients = (
-            [message["To"]] if message["To"] else []
-        )
+        recipients = [message["To"]] if message["To"] else []
         if message["Cc"]:
             recipients.append(message["Cc"])
 
@@ -228,10 +225,15 @@ async def wait_for_api():
     while True:
         try:
             async with httpx.AsyncClient() as client:
-                resp = await client.get(f"{API_URL}/api/settings/smtp",
-                                        headers={"x-api-secret": API_SECRET},
-                                        timeout=5)
-                if resp.status_code in (200, 500):  # 500 = API läuft, DB-Fehler ignorieren
+                resp = await client.get(
+                    f"{API_URL}/api/settings/smtp",
+                    headers={"x-api-secret": API_SECRET},
+                    timeout=5,
+                )
+                if resp.status_code in (
+                    200,
+                    500,
+                ):  # 500 = API läuft, DB-Fehler ignorieren
                     log.info("alias-api erreichbar")
                     return
         except Exception:

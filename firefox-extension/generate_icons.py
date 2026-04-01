@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
 """Erstellt die Icons für die Firefox Extension (nur einmal ausführen)."""
-import struct, zlib, math, os
+
+import struct
+import zlib
+import math
+import os
+
 
 def make_png(size):
-    bg = (30, 58, 95)    # #1e3a5f — Dunkelblau
-    fg = (255, 255, 255) # Weiß
+    bg = (30, 58, 95)  # #1e3a5f — Dunkelblau
+    fg = (255, 255, 255)  # Weiß
 
     def in_rounded_rect(x, y, r=0.18):
-        pad = size * 0.0
         r = size * r
-        if x < r or x > size-1-r or y < r or y > size-1-r:
-            corners = [(r, r), (size-1-r, r), (r, size-1-r), (size-1-r, size-1-r)]
-            in_x_zone = x < r or x > size-1-r
-            in_y_zone = y < r or y > size-1-r
+        if x < r or x > size - 1 - r or y < r or y > size - 1 - r:
+            in_x_zone = x < r or x > size - 1 - r
+            in_y_zone = y < r or y > size - 1 - r
             if in_x_zone and in_y_zone:
-                cx = r if x < r else size-1-r
-                cy = r if y < r else size-1-r
-                return math.sqrt((x-cx)**2 + (y-cy)**2) <= r
+                cx = r if x < r else size - 1 - r
+                cy = r if y < r else size - 1 - r
+                return math.sqrt((x - cx) ** 2 + (y - cy) ** 2) <= r
             return True
         return True
 
     # Briefumschlag-Koordinaten (relativ zu size)
-    ex1, ey1 = size*0.13, size*0.26
-    ex2, ey2 = size*0.87, size*0.74
+    ex1, ey1 = size * 0.13, size * 0.26
+    ex2, ey2 = size * 0.87, size * 0.74
     mid_x = size * 0.5
     fold_y = size * 0.52  # V-Spitze
 
@@ -31,8 +34,7 @@ def make_png(size):
     def on_envelope(x, y):
         # Außenrahmen
         if ex1 <= x <= ex2 and ey1 <= y <= ey2:
-            on_border = (x - ex1 < stroke or ex2 - x < stroke or
-                         ey2 - y < stroke)
+            on_border = x - ex1 < stroke or ex2 - x < stroke or ey2 - y < stroke
             # V-Linie oben (Klappe)
             t = (x - ex1) / (ex2 - ex1)
             y_v = ey1 + abs(t - 0.5) * 2 * (fold_y - ey1)
@@ -51,7 +53,7 @@ def make_png(size):
 
     rows = []
     for y in range(size):
-        row = b'\x00'
+        row = b"\x00"
         for x in range(size):
             if in_rounded_rect(x, y):
                 if on_envelope(x, y):
@@ -62,19 +64,20 @@ def make_png(size):
                 row += bytes([0, 0, 0, 0])
         rows.append(row)
 
-    raw = b''.join(rows)
+    raw = b"".join(rows)
     compressed = zlib.compress(raw, 9)
 
     def chunk(t, d):
         c = t + d
-        return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+        return struct.pack(">I", len(d)) + c + struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
 
-    ihdr = struct.pack('>II', size, size) + bytes([8, 6, 0, 0, 0])
-    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', compressed) + chunk(b'IEND', b'')
+    ihdr = struct.pack(">II", size, size) + bytes([8, 6, 0, 0, 0])
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", compressed) + chunk(b"IEND", b"")
 
-os.makedirs('icons', exist_ok=True)
+
+os.makedirs("icons", exist_ok=True)
 for size in [16, 48, 128]:
-    with open(f'icons/icon{size}.png', 'wb') as f:
+    with open(f"icons/icon{size}.png", "wb") as f:
         f.write(make_png(size))
-    print(f'  icons/icon{size}.png erstellt')
-print('Fertig!')
+    print(f"  icons/icon{size}.png erstellt")
+print("Fertig!")
