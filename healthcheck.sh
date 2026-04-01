@@ -27,7 +27,7 @@ echo ""
 check "/login"
 check "/privacy"
 check "/impressum"
-check "/api/addresses"
+check "/api/addresses" "422"  # requires x-api-secret header
 check "/doesnotexist" "404"
 
 echo ""
