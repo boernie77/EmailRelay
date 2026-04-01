@@ -146,9 +146,9 @@ async function skipSetup() {
   await fetch("/setup/skip", { method: "POST" });
   document.getElementById("setup-modal").classList.add("hidden");
 }
-%
-if needs_setup %
-openSetupModal() {}
-% endif %
+{% if needs_setup %}
+openSetupModal();
+{% endif %}
 </script>
-{% endif %} {% endblock %}
+{% endif %}
+{% endblock %}
