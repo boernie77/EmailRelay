@@ -148,11 +148,27 @@ block content %}
             title="Bezeichnung bearbeiten"
             class="ml-1 text-gray-400 hover:text-gray-600 transition align-middle"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="inline w-3 h-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"
+              />
             </svg>
           </button>
-          <form id="label-form-{{ a.id }}" class="hidden mt-1" method="post" action="/aliases/{{ a.id }}/edit">
+          <form
+            id="label-form-{{ a.id }}"
+            class="hidden mt-1"
+            method="post"
+            action="/aliases/{{ a.id }}/edit"
+          >
             <div class="flex gap-1 items-center">
               <input
                 type="text"
@@ -161,8 +177,19 @@ block content %}
                 placeholder="Bezeichnung …"
                 class="border rounded px-2 py-0.5 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
-              <button type="submit" class="text-xs text-blue-600 hover:underline">Speichern</button>
-              <button type="button" onclick="cancelEdit({{ a.id }})" class="text-xs text-gray-400 hover:underline">Abbrechen</button>
+              <button
+                type="submit"
+                class="text-xs text-blue-600 hover:underline"
+              >
+                Speichern
+              </button>
+              <button
+                type="button"
+                onclick="cancelEdit({{ a.id }})"
+                class="text-xs text-gray-400 hover:underline"
+              >
+                Abbrechen
+              </button>
             </div>
           </form>
         </td>
@@ -222,6 +249,21 @@ block content %}
 { % endblock %} { % block scripts %}
 <script>
 "use strict";
+function startEdit(id) {
+  const btn = document.getElementById("label-edit-btn-" + id);
+  document.getElementById("label-text-" + id).classList.add("hidden");
+  btn.classList.add("hidden");
+  document.getElementById("label-form-" + id).classList.remove("hidden");
+  const input = document.getElementById("label-input-" + id);
+  input.value = btn.dataset.label;
+  input.focus();
+  input.select();
+}
+function cancelEdit(id) {
+  document.getElementById("label-text-" + id).classList.remove("hidden");
+  document.getElementById("label-edit-btn-" + id).classList.remove("hidden");
+  document.getElementById("label-form-" + id).classList.add("hidden");
+}
 function copyAlias(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
     btn.innerHTML =
