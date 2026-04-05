@@ -1569,6 +1569,18 @@ async def alias_toggle(alias_id: int, request: Request, db: AsyncSession = Depen
     return RedirectResponse("/aliases", status_code=303)
 
 
+@router.post("/aliases/{alias_id}/edit")
+async def alias_edit(alias_id: int, request: Request, db: AsyncSession = Depends(get_db), label: str = Form("")):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    a = (await db.execute(select(Alias).where(Alias.id == alias_id, Alias.user_id == user.id))).scalar_one_or_none()
+    if a:
+        a.label = label.strip()
+        await db.commit()
+    return RedirectResponse("/aliases", status_code=303)
+
+
 @router.post("/aliases/{alias_id}/delete")
 async def alias_delete(alias_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
