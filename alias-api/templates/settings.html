@@ -1,25 +1,25 @@
-{ % extends "base.html" %} { % block title %} – Einstellungen { % endblock %} {
+{% extends "base.html" %} {% block title %} – Einstellungen {% endblock %} {
 % block content %}
 <h1 class="text-2xl font-bold mb-6">Einstellungen</h1>
-{ % if saved %}
+{% if saved %}
 <div
   class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"
 >
   Einstellungen gespeichert ✓
 </div>
-{ % endif %} { % if success %}
+{% endif %} {% if success %}
 <div
   class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"
 >
   {{ success }}
 </div>
-{ % endif %} { % if error %}
+{% endif %} {% if error %}
 <div
   class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"
 >
   {{ error }}
 </div>
-{ % endif %}
+{% endif %}
 
 <div
   class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl mb-6 text-sm"
@@ -27,7 +27,7 @@
   SMTP- und VPS-Einstellungen findest du unter
   <a href="/alias-domains" class="font-semibold underline">Alias-Domains</a>.
 </div>
-{ % if current_user.is_admin %}
+{% if current_user.is_admin %}
 <!-- SSH-Backup-Konfiguration (nur Admin) -->
 <div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6" id="ssh-backup">
   <h2 class="text-lg font-semibold mb-1">Automatische SSH-Sicherung</h2>
@@ -36,19 +36,19 @@
     Domains als ZIP und überträgt es per SFTP auf einen entfernten Server
     (z.&nbsp;B. Heimserver, NAS, Raspberry Pi).
   </p>
-  { % if backup_last_run %}
+  {% if backup_last_run %}
   <div
     class="mb-4 p-3 rounded-lg text-sm {% if backup_last_status == 'ok' %}bg-green-50 border border-green-200 text-green-700{% else %}bg-red-50 border-red-200 text-red-700{% endif %}"
   >
     Letztes Backup: <strong>{{ backup_last_run }}</strong>
-    { % if backup_last_status == 'ok' %}&nbsp;✓ { % else %}&nbsp;–
-    {{ backup_last_status }}{ % endif %}
+    {% if backup_last_status == 'ok' %}&nbsp;✓ {% else %}&nbsp;–
+    {{ backup_last_status }}{% endif %}
   </div>
-  { % else %}
+  {% else %}
   <div class="mb-4 text-sm text-gray-400 italic">
     Noch kein automatisches Backup durchgeführt.
   </div>
-  { % endif %}
+  {% endif %}
 
   <form method="post" action="/settings/backup/ssh-config" class="space-y-3">
     <div>
@@ -197,7 +197,7 @@
       >
         Speichern
       </button>
-      { % if backup_ssh.host %}
+      {% if backup_ssh.host %}
       <button
         type="button"
         onclick="testSshBackup(this)"
@@ -212,7 +212,7 @@
       >
         Backup jetzt ausführen
       </button>
-      { % endif %}
+      {% endif %}
       <span id="ssh-backup-status" class="text-sm"></span>
     </div>
   </form>
@@ -336,7 +336,7 @@
       >
         Speichern
       </button>
-      { % if system_smtp.system_smtp_host %}
+      {% if system_smtp.system_smtp_host %}
       <button
         type="button"
         onclick="testSystemSmtp(this)"
@@ -344,7 +344,7 @@
       >
         Verbindung testen
       </button>
-      { % endif %}
+      {% endif %}
       <span id="smtp-test-status" class="text-sm"></span>
     </div>
   </form>
@@ -387,7 +387,7 @@
       >
         Speichern
       </button>
-      { % if ntfy_url %}
+      {% if ntfy_url %}
       <button
         type="button"
         onclick="testNtfy()"
@@ -395,11 +395,11 @@
       >
         Test senden
       </button>
-      { % endif %}
+      {% endif %}
     </div>
   </form>
 </div>
-{ % endif %}
+{% endif %}
 
 <!-- Datensicherung (alle Benutzer) -->
 <div class="bg-white rounded-xl shadow p-6 max-w-lg mb-6" id="backup">
@@ -497,7 +497,7 @@
     </button>
   </form>
 </div>
-{ % endblock %} { % block scripts %}
+{% endblock %} {% block scripts %}
 <script>
 "use strict";
 function genCode() {
@@ -591,4 +591,4 @@ async function testNtfy() {
   }, 3000);
 }
 </script>
-{ % endblock %}
+{% endblock %}

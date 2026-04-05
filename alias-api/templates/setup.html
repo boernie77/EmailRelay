@@ -1,4 +1,4 @@
-{ % extends "base.html" %} { % block title %} – Einrichtung { % endblock %} { %
+{% extends "base.html" %} {% block title %} – Einrichtung {% endblock %} {%
 block content %}
 <div class="max-w-lg mx-auto">
   <div class="bg-white rounded-xl shadow p-8">
@@ -309,7 +309,7 @@ block content %}
     </ul>
   </div>
 </div>
-{ % endblock %} { % block scripts %}
+{% endblock %} {% block scripts %}
 <script>
 "use strict";
 async function checkDns(domain, expected) {
@@ -381,4 +381,4 @@ async function testSmtp() {
   btn.textContent = "Verbindung testen";
 }
 </script>
-{ % endblock %}
+{% endblock %}

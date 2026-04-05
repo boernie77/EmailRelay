@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Mail Relay { % block title %} { % endblock %}</title>
+    <title>E-Mail Relay {% block title %} {% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -25,7 +25,7 @@
         >
         <div class="flex gap-6 text-sm font-medium items-center">
           <a href="/" class="hover:text-blue-300 transition">Dashboard</a>
-          { % if current_user and current_user.is_admin %}
+          {% if current_user and current_user.is_admin %}
           <a href="/alias-domains" class="hover:text-blue-300 transition"
             >Alias-Domains</a
           >
@@ -33,7 +33,7 @@
           <a href="/admin/users" class="hover:text-yellow-300 transition"
             >Benutzer</a
           >
-          { % endif %}
+          {% endif %}
           <a href="/domains" class="hover:text-blue-300 transition">Domains</a>
           <a href="/addresses" class="hover:text-blue-300 transition"
             >Adressen</a
@@ -45,9 +45,9 @@
           <a href="/guide" class="hover:text-blue-300 transition">Hilfe</a>
           <span class="text-gray-400 text-xs">|</span>
           <span class="text-gray-300 text-xs"
-            >{{ current_user.username if current_user else '' }}{ % if
+            >{{ current_user.username if current_user else '' }}{% if
             current_user and current_user.is_admin %}
-            <span class="text-yellow-400">(Admin)</span>{ % endif %}</span
+            <span class="text-yellow-400">(Admin)</span>{% endif %}</span
           >
           <a
             href="/logout"
@@ -57,7 +57,7 @@
         </div>
       </div>
     </nav>
-    { % if current_user and not current_user.active %}
+    {% if current_user and not current_user.active %}
     <!-- Sperr-Overlay für nicht freigeschaltete Accounts -->
     <div
       class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
@@ -85,15 +85,15 @@
         </a>
       </div>
     </div>
-    { % endif %}
+    {% endif %}
 
     <main class="max-w-6xl mx-auto px-4 py-8">
-      { % block content %} { % endblock %}
+      {% block content %} {% endblock %}
     </main>
     <footer class="text-center text-xs text-gray-400 py-6 space-x-4">
       <a href="/impressum" class="hover:underline">Impressum</a>
       <a href="/privacy" class="hover:underline">Datenschutz</a>
     </footer>
-    { % block scripts %} { % endblock %}
+    {% block scripts %} {% endblock %}
   </body>
 </html>

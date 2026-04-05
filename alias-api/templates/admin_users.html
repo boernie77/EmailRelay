@@ -1,5 +1,5 @@
-{ % extends "base.html" %} { % block title %} – Benutzerverwaltung { % endblock
-%} { % block content %}
+{% extends "base.html" %} {% block title %} – Benutzerverwaltung {% endblock
+%} {% block content %}
 <h1 class="text-2xl font-bold mb-2">Benutzerverwaltung</h1>
 <p class="text-gray-500 mb-6 text-sm">
   Benutzer verwalten und Alias-Domain-Zugriff steuern.
@@ -26,7 +26,7 @@
           ></div>
         </div>
         <span class="text-sm font-medium text-gray-700">
-          { % if registration_enabled %}Aktiviert { % else %}Deaktiviert { %
+          {% if registration_enabled %}Aktiviert {% else %}Deaktiviert {%
           endif %}
         </span>
       </label>
@@ -59,15 +59,15 @@
         Neu generieren
       </button>
     </div>
-    { % if registration_invite_code %}
+    {% if registration_invite_code %}
     <p class="text-xs text-green-600 mt-2 font-medium">
       ✓ Code aktiv — bereit für eine Registrierung
     </p>
-    { % else %}
+    {% else %}
     <p class="text-xs text-amber-600 mt-2">
       Kein Code gesetzt — Registrierung nicht möglich
     </p>
-    { % endif %}
+    {% endif %}
     <p class="text-xs text-gray-400 mt-1" id="code-save-status"></p>
   </div>
 </div>
@@ -134,8 +134,8 @@
 
 <!-- Benutzerliste -->
 <div class="space-y-4" id="user-list">
-  { % for u in users %} { % set user_config_ids = u.alias_domain_access |
-  map(attribute='alias_domain_config_id') | list %} { % set own_configs =
+  {% for u in users %} {% set user_config_ids = u.alias_domain_access |
+  map(attribute='alias_domain_config_id') | list %} {% set own_configs =
   user_own_domains[u.id] %}
 
   <div
@@ -146,35 +146,35 @@
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="font-semibold text-gray-800">{{ u.username }}</span>
-        { % if u.email %}<span class="text-gray-400 text-xs"
+        {% if u.email %}<span class="text-gray-400 text-xs"
           >{{ u.email }}</span
-        >{ % endif %} { % if u.is_admin %}<span
+        >{% endif %} {% if u.is_admin %}<span
           class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full"
           >Admin</span
-        >{ % endif %} { % if u.active %}
+        >{% endif %} {% if u.active %}
         <span
           class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full"
           >Aktiv</span
         >
-        { % else %}
+        {% else %}
         <span
           class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium"
           >⏳ Wartet auf Freischaltung</span
         >
-        { % endif %} { % if u.invite_code_used %}
+        {% endif %} {% if u.invite_code_used %}
         <span
           class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-mono"
           title="Registriert mit Einladungscode"
           >🎟 {{ u.invite_code_used }}</span
         >
-        { % endif %} { % if u.id == current_user.id %}<span
+        {% endif %} {% if u.id == current_user.id %}<span
           class="text-gray-400 text-xs"
           >(du)</span
-        >{ % endif %}
+        >{% endif %}
       </div>
-      { % if u.id != current_user.id %}
+      {% if u.id != current_user.id %}
       <div class="flex gap-2 items-center">
-        { % if not u.active %}
+        {% if not u.active %}
         <form method="post" action="/admin/users/{{ u.id }}/toggle">
           <button
             class="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg transition"
@@ -182,7 +182,7 @@
             Freischalten
           </button>
         </form>
-        { % else %}
+        {% else %}
         <form method="post" action="/admin/users/{{ u.id }}/toggle">
           <button
             class="text-xs text-gray-400 hover:text-red-500 hover:underline"
@@ -190,7 +190,7 @@
             Sperren
           </button>
         </form>
-        { % endif %}
+        {% endif %}
         <form
           method="post"
           action="/admin/users/{{ u.id }}/delete"
@@ -199,7 +199,7 @@
           <button class="text-xs text-red-400 hover:underline">Löschen</button>
         </form>
       </div>
-      { % endif %}
+      {% endif %}
     </div>
 
     <div class="grid grid-cols-3 gap-4">
@@ -235,20 +235,20 @@
         <p class="text-xs text-gray-400 mb-2">
           Zugewiesen → kurzer Wizard (nur Weiterleitungsadresse)
         </p>
-        { % if all_configs %}
+        {% if all_configs %}
         <form
           method="post"
           action="/admin/users/{{ u.id }}/alias-access"
           class="flex flex-wrap gap-2 items-center"
         >
-          { % for cfg in all_configs %}
+          {% for cfg in all_configs %}
           <label class="flex items-center gap-1.5 text-sm cursor-pointer">
             <input type="checkbox" name="config_ids" value="{{ cfg.id }}"
                    {% if cfg.id in user_config_ids %}checked{% endif %}
                    class="rounded">
             <span>{{ cfg.label or cfg.alias_domain }}</span>
           </label>
-          { % endfor %}
+          {% endfor %}
           <button
             type="submit"
             class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
@@ -256,11 +256,11 @@
             Speichern
           </button>
         </form>
-        { % else %}
+        {% else %}
         <p class="text-xs text-gray-400 italic">
           Keine Admin-Domains vorhanden
         </p>
-        { % endif %}
+        {% endif %}
       </div>
 
       <!-- Alias-Domain (Modus B) -->
@@ -271,15 +271,15 @@
         <p class="text-xs text-gray-400 mb-2">
           Eigene Domain — User richtet sie im Wizard ein
         </p>
-        { % if own_configs %}
+        {% if own_configs %}
         <!-- User hat Wizard bereits abgeschlossen -->
-        { % for cfg in own_configs %} { % if cfg %}
+        {% for cfg in own_configs %} {% if cfg %}
         <span
           class="inline-block bg-blue-50 border border-blue-200 text-blue-800 text-xs font-mono px-2 py-1 rounded"
         >
           {{ cfg.alias_domain }}
         </span>
-        { % endif %} { % endfor %} { % else %}
+        {% endif %} {% endfor %} {% else %}
         <!-- Domain für Wizard vorausfüllen -->
         <div class="flex gap-2 items-center">
           <input
@@ -299,13 +299,13 @@
         <p class="text-xs text-gray-400 mt-1">
           Optional: im Wizard vorausgefüllt
         </p>
-        { % endif %}
+        {% endif %}
       </div>
     </div>
   </div>
-  { % endfor %}
+  {% endfor %}
 </div>
-{ % endblock %} { % block scripts %}
+{% endblock %} {% block scripts %}
 <script>
 "use strict";
 async function generateAndSaveCode() {
@@ -353,4 +353,4 @@ function filterUsers(query) {
   });
 }
 </script>
-{ % endblock %}
+{% endblock %}

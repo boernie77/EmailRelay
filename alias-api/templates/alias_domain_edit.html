@@ -1,5 +1,5 @@
-{ % extends "base.html" %} { % block title %} – Alias-Domain bearbeiten { %
-endblock %} { % block content %}
+{% extends "base.html" %} {% block title %} – Alias-Domain bearbeiten {%
+endblock %} {% block content %}
 <div class="flex items-center gap-3 mb-6">
   <a href="/alias-domains" class="text-sm text-blue-600 hover:underline"
     >← Alias-Domains</a
@@ -132,18 +132,18 @@ endblock %} { % block content %}
           class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-80"
         >
           <option value="">(keiner zugewiesen)</option>
-          { % for vps in vpss %}
+          {% for vps in vpss %}
           <option value="{{ vps.id }}" {% if cfg.vps_config_id == vps.id %}selected{% endif %}>
             {{ vps.label or vps.host }} — {{ vps.host }}
           </option>
-          { % endfor %}
+          {% endfor %}
         </select>
-        { % if not vpss %}
+        {% if not vpss %}
         <p class="text-xs text-amber-700 mt-1">
           Noch kein VPS konfiguriert.
           <a href="/vps" class="underline">Jetzt anlegen</a>.
         </p>
-        { % endif %}
+        {% endif %}
       </div>
     </div>
 
@@ -213,4 +213,4 @@ endblock %} { % block content %}
     </div>
   </form>
 </div>
-{ % endblock %}
+{% endblock %}

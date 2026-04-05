@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["ultracite/biome/core"],
   "files": {
-    "includes": ["chrome-extension/**", "firefox-extension/**"]
+    "includes": ["chrome-extension/**", "firefox-extension/**"],
+    "ignore": ["alias-api/templates/**"]
   },
   "javascript": {
     "globals": ["chrome", "browser"]

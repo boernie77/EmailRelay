@@ -63,16 +63,16 @@
     <a href="/login" class="back">← Zurück zur Anmeldung</a>
     <h1>Impressum</h1>
     <p class="sub">Angaben gemäß § 5 TMG</p>
-    { % if impressum_text %}
+    {% if impressum_text %}
     <div class="content">{{ impressum_text }}</div>
-    { % else %}
+    {% else %}
     <div class="placeholder">
       Das Impressum wurde noch nicht eingerichtet.<br>
       Administratoren können es unter
       <strong>Einstellungen → Impressum</strong>
       konfigurieren.
     </div>
-    { % endif %}
+    {% endif %}
 
     <footer>
       <a href="/privacy">Datenschutzerklärung</a>
