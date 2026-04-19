@@ -282,6 +282,29 @@ function cancelEdit(id) {
   document.getElementById("label-edit-btn-" + id).classList.remove("hidden");
   document.getElementById("label-form-" + id).classList.add("hidden");
 }
+function initAliasSearch() {
+  const input = document.getElementById("alias-search");
+  if (!input) return;
+  const rows = Array.from(
+    document.querySelectorAll("tbody tr[data-search]"),
+  );
+  const empty = document.getElementById("alias-search-empty");
+  const counter = document.getElementById("alias-search-count");
+  const total = rows.length;
+  const apply = () => {
+    const q = input.value.trim().toLowerCase();
+    let visible = 0;
+    for (const row of rows) {
+      const match = q === "" || row.dataset.search.includes(q);
+      row.classList.toggle("hidden", !match);
+      if (match) visible++;
+    }
+    empty.classList.toggle("hidden", visible !== 0);
+    counter.textContent = q === "" ? "" : `${visible} von ${total}`;
+  };
+  input.addEventListener("input", apply);
+}
+document.addEventListener("DOMContentLoaded", initAliasSearch);
 function copyAlias(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
     btn.innerHTML =
