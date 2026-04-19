@@ -123,7 +123,10 @@ block content %}
     </thead>
     <tbody>
       {% for a in aliases %}
-      <tr class="border-b last:border-0 hover:bg-gray-50">
+      <tr
+        class="border-b last:border-0 hover:bg-gray-50"
+        data-search="{{ (a.alias_address ~ ' ' ~ (a.label or '')) | lower }}"
+      >
         <td class="py-2">
           <span class="font-mono text-blue-700">{{ a.alias_address }}</span>
           <button
