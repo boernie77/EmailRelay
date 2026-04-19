@@ -99,6 +99,16 @@ block content %}
 <!-- Alias-Liste -->
 <div class="bg-white rounded-xl shadow p-6">
   {% if aliases %}
+  <div class="mb-4 flex items-center gap-2">
+    <input
+      type="search"
+      id="alias-search"
+      placeholder="Suche nach Alias oder Bezeichnung …"
+      autocomplete="off"
+      class="border rounded-lg px-3 py-2 text-sm w-full sm:w-80 focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
+    <span id="alias-search-count" class="text-xs text-gray-400"></span>
+  </div>
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-500 border-b">
