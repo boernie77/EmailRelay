@@ -260,12 +260,17 @@ async def get_user_alias_configs(db: AsyncSession, user: User) -> list[AliasDoma
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def login_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    sso_error: str | None = None,
+):
     if await get_any_user(request, db):
         return RedirectResponse("/", status_code=302)
     has_users = bool((await db.execute(select(User))).scalars().first())
     is_upgrade = not has_users and bool(await get_setting(db, "ui_password_hash"))
     registration_enabled = await get_setting(db, "registration_enabled", "false") == "true"
+    sso_enabled = bool(os.getenv("OIDC_ISSUER_URL") and os.getenv("OIDC_CLIENT_ID"))
     return templates.TemplateResponse(
         request,
         "login.html",
@@ -273,6 +278,8 @@ async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
             "has_users": has_users,
             "is_upgrade": is_upgrade,
             "registration_enabled": registration_enabled,
+            "sso_enabled": sso_enabled,
+            "error": sso_error if sso_error else None,
         },
     )
 

@@ -23,6 +23,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-emailrelay}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-emailrelay}
       API_SECRET: ${API_SECRET:?API_SECRET required}
       TZ: Europe/Berlin
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
