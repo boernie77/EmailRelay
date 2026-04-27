@@ -49,6 +49,9 @@ async def oidc_login(request: Request):
             status_code=302,
         )
     redirect_uri = str(request.url_for("oidc_callback"))
+    # Caddy terminiert TLS; FastAPI sieht http://. Authentik hat https:// strict registriert.
+    if request.url.hostname not in ("localhost", "127.0.0.1") and redirect_uri.startswith("http://"):
+        redirect_uri = "https://" + redirect_uri[len("http://") :]
     return await oauth.authentik.authorize_redirect(request, redirect_uri)
 
 
