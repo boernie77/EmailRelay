@@ -12,3 +12,6 @@ __pycache__/
 *.jpeg
 *.notepad
 Gitignore/
+
+# Abhaengigkeiten werden mit npm install erzeugt, nicht eingecheckt
+node_modules/
