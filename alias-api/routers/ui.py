@@ -26,7 +26,14 @@ from models import (
     User,
     HeldMessage,
 )
-from held import describe_error, load_smtp_cfg, smtp_deliver, strip_to_plaintext
+from held import (
+    describe_error,
+    html_for_view,
+    load_smtp_cfg,
+    parse_for_view,
+    smtp_deliver,
+    strip_to_plaintext,
+)
 
 _VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
@@ -1535,6 +1542,58 @@ async def held_page(request: Request, flash: str = "", db: AsyncSession = Depend
         request,
         "held.html",
         {"current_user": user, "held": held, "flash": _HELD_FLASH.get(flash)},
+    )
+
+
+@router.get("/held/{held_id}", response_class=HTMLResponse)
+async def held_view(held_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    held = await _get_held_for_user(db, held_id, user)
+    if not held:
+        return RedirectResponse("/held", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "held_view.html",
+        {"current_user": user, "h": held, "mail": parse_for_view(bytes(held.raw))},
+    )
+
+
+@router.get("/held/{held_id}/html")
+async def held_html(held_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """HTML-Ansicht für das iframe: ohne Skripte, ohne Nachladen externer Inhalte (kein Tracking)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    held = await _get_held_for_user(db, held_id, user)
+    if not held:
+        return Response(status_code=404)
+    return HTMLResponse(
+        html_for_view(bytes(held.raw)),
+        headers={
+            "Content-Security-Policy": (
+                "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+                "sandbox allow-popups allow-popups-to-escape-sandbox"
+            ),
+            "Referrer-Policy": "no-referrer",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.get("/held/{held_id}/eml")
+async def held_eml(held_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    held = await _get_held_for_user(db, held_id, user)
+    if not held:
+        return Response(status_code=404)
+    return Response(
+        bytes(held.raw),
+        media_type="message/rfc822",
+        headers={"Content-Disposition": f'attachment; filename="mail-{held.id}.eml"'},
     )
 
 

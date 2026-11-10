@@ -181,6 +181,24 @@ def _html_to_text(html: str) -> str:
     return _BLANK_LINES.sub("\n\n", "\n".join(lines)).strip()
 
 
+_URL = re.compile(r"(?i)\b(https?)://([^\s/<>\"')\]]+)([^\s<>\"')\]]*)")
+_BARE_WWW = re.compile(r"(?i)\b(www)\.([a-z0-9-]+(?:\.[a-z0-9-]+)+)")
+
+
+def defang_urls(text: str) -> str:
+    """Macht URLs für Spam-Filter unlesbar, aber für Menschen rekonstruierbar.
+
+    https://shop.example.de/a?b=1 → hxxps://shop[.]example[.]de/a?b=1
+    """
+
+    def _url(m: re.Match) -> str:
+        scheme = m.group(1).lower().replace("tt", "xx", 1)
+        return f"{scheme}://{m.group(2).replace('.', '[.]')}{m.group(3)}"
+
+    text = _URL.sub(_url, text)
+    return _BARE_WWW.sub(lambda m: f"{m.group(1)}[.]{m.group(2).replace('.', '[.]')}", text)
+
+
 _KEEP_HEADERS = ("From", "To", "Reply-To", "Sender", "Subject", "Date", "Message-ID")
 
 
@@ -240,3 +258,32 @@ async def purge_scheduler() -> None:
         except Exception as e:
             log.error(f"Held-Purge fehlgeschlagen: {e}")
         await asyncio.sleep(24 * 3600)
+
+
+def parse_for_view(raw: bytes) -> dict:
+    """Bereitet eine gespeicherte Mail für die Anzeige auf (Header, Text, HTML, Anhangsnamen)."""
+    msg = BytesParser(policy=policy.default).parsebytes(raw)
+    plain = msg.get_body(preferencelist=("plain",))
+    html = msg.get_body(preferencelist=("html",))
+    html_content = html.get_content() if html is not None else None
+    if plain is not None:
+        text = plain.get_content().strip()
+    elif html_content:
+        text = _html_to_text(html_content)
+    else:
+        text = ""
+    return {
+        "subject": str(msg.get("Subject") or ""),
+        "date": str(msg.get("Date") or ""),
+        "to": str(msg.get("To") or ""),
+        "text": text,
+        "has_html": bool(html_content),
+        "attachments": [p.get_filename() or p.get_content_type() for p in msg.iter_attachments()],
+    }
+
+
+def html_for_view(raw: bytes) -> str:
+    msg = BytesParser(policy=policy.default).parsebytes(raw)
+    html = msg.get_body(preferencelist=("html",))
+    body = html.get_content() if html is not None else ""
+    return f'<base target="_blank">{body}'

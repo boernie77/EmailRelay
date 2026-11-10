@@ -1,0 +1,84 @@
+{% extends "base.html" %} {% block title %} – Mail ansehen {% endblock %} {%
+block content %}
+<a href="/held" class="text-sm text-blue-600 hover:underline"
+  >← Zurück zu den zurückgehaltenen Mails</a
+>
+<h1 class="text-2xl font-bold mt-3 mb-4 break-all">
+  {{ mail.subject or '(kein Betreff)' }}
+</h1>
+
+<div class="bg-white rounded-xl shadow p-5 mb-4 text-sm text-gray-700 space-y-1">
+  <div class="break-all"><strong>Von:</strong> {{ h.sender }}</div>
+  <div class="break-all"><strong>An Alias:</strong> {{ h.alias_address }}</div>
+  {% if mail.date %}
+  <div><strong>Datum:</strong> {{ mail.date }}</div>
+  {% endif %} {% if mail.attachments %}
+  <div class="break-all">
+    <strong>Anhänge:</strong> {{ mail.attachments | join(', ') }}
+  </div>
+  {% endif %}
+  <div class="text-red-700 break-all">
+    <strong>Abgelehnt:</strong> {{ h.error }}
+  </div>
+</div>
+
+<div class="flex flex-wrap gap-2 mb-4">
+  <form method="post" action="/held/{{ h.id }}/deliver">
+    <input type="hidden" name="mode" value="normal">
+    <button
+      type="submit"
+      class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+    >
+      Erneut zustellen
+    </button>
+  </form>
+  <form method="post" action="/held/{{ h.id }}/deliver">
+    <input type="hidden" name="mode" value="plain">
+    <button
+      type="submit"
+      class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+    >
+      Ohne Links zustellen
+    </button>
+  </form>
+  <a
+    href="/held/{{ h.id }}/eml"
+    class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition"
+    >Als .eml herunterladen</a
+  >
+  <form
+    method="post"
+    action="/held/{{ h.id }}/discard"
+    onsubmit="return confirm('Mail endgültig verwerfen?')"
+  >
+    <button
+      type="submit"
+      class="bg-gray-200 hover:bg-red-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition"
+    >
+      Verwerfen
+    </button>
+  </form>
+</div>
+
+{% if mail.has_html %}
+<div class="bg-white rounded-xl shadow overflow-hidden mb-4">
+  <div class="px-5 py-2 text-xs text-gray-500 border-b">
+    HTML-Ansicht – Bilder werden nicht nachgeladen (kein Tracking), Links
+    öffnen in neuem Tab
+  </div>
+  <iframe
+    src="/held/{{ h.id }}/html"
+    sandbox="allow-popups allow-popups-to-escape-sandbox"
+    referrerpolicy="no-referrer"
+    class="w-full border-0"
+    style="height: 70vh"
+    title="HTML-Ansicht der Mail"
+  ></iframe>
+</div>
+{% endif %}
+
+<div class="bg-white rounded-xl shadow p-5">
+  <h2 class="text-sm font-semibold mb-2">Textversion</h2>
+  <pre class="whitespace-pre-wrap break-words text-sm text-gray-800">{{ mail.text or '(kein Text)' }}</pre>
+</div>
+{% endblock %}

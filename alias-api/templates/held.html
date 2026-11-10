@@ -34,6 +34,11 @@
       Abgelehnt: {{ h.error }}
     </div>
     <div class="flex flex-wrap gap-2 mt-4">
+      <a
+        href="/held/{{ h.id }}"
+        class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition"
+        >Ansehen</a
+      >
       <form method="post" action="/held/{{ h.id }}/deliver">
         <input type="hidden" name="mode" value="normal">
         <button
@@ -47,7 +52,7 @@
         <input type="hidden" name="mode" value="plain">
         <button
           type="submit"
-          title="Entfernt HTML und Anhänge; Links bleiben als Text sichtbar"
+          title="Nur Text; HTML und Anhänge entfallen, Links werden entschärft (hxxps://beispiel[.]de)"
           class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
         >
           Ohne Links zustellen
