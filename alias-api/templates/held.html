@@ -1,0 +1,76 @@
+{% extends "base.html" %} {% block title %} – Zurückgehaltene Mails {% endblock
+%} {% block content %}
+<h1 class="text-2xl font-bold mb-2">Zurückgehaltene Mails</h1>
+<p class="text-gray-500 mb-6 text-sm">
+  Mails, die dein Mailserver bei der Weiterleitung dauerhaft abgelehnt hat (z.B.
+  wegen Spam-Filter). Du entscheidest, ob sie verworfen oder erneut zugestellt
+  werden. Einträge werden nach 30 Tagen automatisch gelöscht.
+</p>
+
+{% if flash %}
+<div
+  class="mb-4 rounded-lg px-4 py-3 text-sm {% if flash[0] == 'ok' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
+>
+  {{ flash[1] }}
+</div>
+{% endif %} {% if held %}
+<div class="space-y-4">
+  {% for h in held %}
+  <div class="bg-white rounded-xl shadow p-5">
+    <div class="flex flex-wrap justify-between gap-2 mb-2">
+      <div class="font-semibold text-gray-800 break-all">
+        {{ h.subject or '(kein Betreff)' }}
+      </div>
+      <div class="text-xs text-gray-400">
+        {{ h.created_at.strftime('%d.%m.%Y %H:%M') if h.created_at }} · {{
+        (h.size / 1024) | round(0, 'ceil') | int }} KB
+      </div>
+    </div>
+    <div class="text-sm text-gray-600 break-all">Von: {{ h.sender }}</div>
+    <div class="text-sm text-gray-600 break-all">
+      An Alias: {{ h.alias_address }}
+    </div>
+    <div class="text-xs text-red-700 bg-red-50 rounded px-3 py-2 mt-3 break-all">
+      Abgelehnt: {{ h.error }}
+    </div>
+    <div class="flex flex-wrap gap-2 mt-4">
+      <form method="post" action="/held/{{ h.id }}/deliver">
+        <input type="hidden" name="mode" value="normal">
+        <button
+          type="submit"
+          class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+        >
+          Erneut zustellen
+        </button>
+      </form>
+      <form method="post" action="/held/{{ h.id }}/deliver">
+        <input type="hidden" name="mode" value="plain">
+        <button
+          type="submit"
+          title="Entfernt HTML und Anhänge; Links bleiben als Text sichtbar"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+        >
+          Ohne Links zustellen
+        </button>
+      </form>
+      <form
+        method="post"
+        action="/held/{{ h.id }}/discard"
+        onsubmit="return confirm('Mail endgültig verwerfen?')"
+      >
+        <button
+          type="submit"
+          class="bg-gray-200 hover:bg-red-100 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition"
+        >
+          Verwerfen
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow p-8 text-center text-gray-500 text-sm">
+  Keine zurückgehaltenen Mails. 🎉
+</div>
+{% endif %} {% endblock %}

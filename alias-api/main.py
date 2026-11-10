@@ -8,18 +8,21 @@ from starlette.middleware.sessions import SessionMiddleware
 from database import init_db
 from routers import api, oidc, ui
 from backup import backup_scheduler
+from held import purge_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    task = asyncio.create_task(backup_scheduler())
+    tasks = [asyncio.create_task(backup_scheduler()), asyncio.create_task(purge_scheduler())]
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    for task in tasks:
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="E-Mail Relay", lifespan=lifespan)

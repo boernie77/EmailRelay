@@ -24,7 +24,9 @@ from models import (
     AliasDomainAccess,
     VpsConfig,
     User,
+    HeldMessage,
 )
+from held import describe_error, load_smtp_cfg, smtp_deliver, strip_to_plaintext
 
 _VPS_SETUP_SCRIPT = r'''#!/bin/bash
 set -e
@@ -1502,6 +1504,81 @@ async def aliases_page(request: Request, db: AsyncSession = Depends(get_db)):
             "alias_domain_configs": alias_domain_configs,
         },
     )
+
+
+# ── Zurückgehaltene Mails ──────────────────────────────────────────────────────
+
+_HELD_FLASH = {
+    "delivered": ("ok", "Mail wurde zugestellt."),
+    "discarded": ("ok", "Mail wurde verworfen."),
+    "failed": ("err", "Zustellung erneut abgelehnt – die Mail liegt weiterhin hier."),
+}
+
+
+async def _get_held_for_user(db: AsyncSession, held_id: int, user: User) -> HeldMessage | None:
+    query = select(HeldMessage).where(HeldMessage.id == held_id)
+    if not user.is_admin:
+        query = query.where(HeldMessage.user_id == user.id)
+    return (await db.execute(query)).scalar_one_or_none()
+
+
+@router.get("/held", response_class=HTMLResponse)
+async def held_page(request: Request, flash: str = "", db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    query = select(HeldMessage).order_by(HeldMessage.created_at.desc())
+    if not user.is_admin:
+        query = query.where(HeldMessage.user_id == user.id)
+    held = (await db.execute(query)).scalars().all()
+    return templates.TemplateResponse(
+        request,
+        "held.html",
+        {"current_user": user, "held": held, "flash": _HELD_FLASH.get(flash)},
+    )
+
+
+@router.post("/held/{held_id}/discard")
+async def held_discard(held_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    held = await _get_held_for_user(db, held_id, user)
+    if held:
+        await db.delete(held)
+        await db.commit()
+    return RedirectResponse("/held?flash=discarded", status_code=303)
+
+
+@router.post("/held/{held_id}/deliver")
+async def held_deliver(
+    held_id: int,
+    request: Request,
+    mode: str = Form("normal"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stellt eine zurückgehaltene Mail erneut zu (mode=normal) oder ohne HTML/Anhänge (mode=plain)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return redirect_login()
+    held = await _get_held_for_user(db, held_id, user)
+    if not held:
+        return RedirectResponse("/held", status_code=303)
+    smtp_cfg = await load_smtp_cfg(db, held.real_address)
+    if not smtp_cfg:
+        held.error = "SMTP nicht konfiguriert"
+        await db.commit()
+        return RedirectResponse("/held?flash=failed", status_code=303)
+    raw = strip_to_plaintext(bytes(held.raw)) if mode == "plain" else bytes(held.raw)
+    try:
+        await smtp_deliver(smtp_cfg, held.real_address, raw)
+    except Exception as e:
+        held.error = describe_error(e)[:2000]
+        await db.commit()
+        return RedirectResponse("/held?flash=failed", status_code=303)
+    await db.delete(held)
+    await db.commit()
+    return RedirectResponse("/held?flash=delivered", status_code=303)
 
 
 @router.post("/aliases/create")

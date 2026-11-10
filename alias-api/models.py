@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    LargeBinary,
     Text,
     UniqueConstraint,
 )
@@ -152,4 +153,24 @@ class ReplyToken(Base):
     token = Column(String, unique=True, nullable=False, index=True)
     alias_address = Column(String, nullable=False)  # z.B. abc123@no.nosearch.de
     original_sender = Column(String, nullable=False)  # vollständiger From-Header des Absenders
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class HeldMessage(Base):
+    """Eingehende Mail, die der Ziel-SMTP-Server dauerhaft abgelehnt hat (5xx).
+
+    Wird zurückgehalten statt in der Postfix-Queue endlos wiederholt zu werden.
+    Der User entscheidet in der UI: verwerfen oder (ggf. ohne Links) erneut zustellen.
+    """
+
+    __tablename__ = "held_messages"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    alias_address = Column(String, nullable=False)
+    real_address = Column(String, nullable=False)
+    sender = Column(String, default="")
+    subject = Column(String, default="")
+    size = Column(Integer, default=0)
+    raw = Column(LargeBinary, nullable=False)  # bereits umgeschriebene Mail (From/To/Reply-To angepasst)
+    error = Column(Text, default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

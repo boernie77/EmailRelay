@@ -14,6 +14,15 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
 from database import get_db
+from held import (
+    describe_error,
+    hold_message,
+    is_permanent_rejection,
+    load_smtp_cfg,
+    public_url,
+    sender_display,
+    smtp_deliver,
+)
 from models import (
     Alias,
     AliasMessageLog,
@@ -23,6 +32,7 @@ from models import (
     Setting,
     User,
     ReplyToken,
+    HeldMessage,
 )
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -78,17 +88,34 @@ async def _record_vps_event(key: str):
         await session.commit()
 
 
-async def _send_ntfy(url: str, message: str, title: str = "E-Mail Relay"):
+async def _send_ntfy(url: str, message: str, title: str = "E-Mail Relay", click: str | None = None):
+    headers = {"Title": title, "Priority": "high"}
+    if click:
+        headers["Click"] = click
     async with httpx.AsyncClient() as client:
         try:
-            await client.post(
-                url,
-                content=message.encode(),
-                headers={"Title": title, "Priority": "high"},
-                timeout=5,
-            )
+            await client.post(url, content=message.encode(), headers=headers, timeout=5)
         except Exception:
             pass
+
+
+async def _notify_held(held: HeldMessage):
+    """ntfy-Meldung: Mail wurde vom Zielserver abgelehnt und liegt zur Entscheidung in der UI."""
+    from database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        ntfy_url = await _get_ntfy_url(session)
+    if not ntfy_url:
+        return
+    base = public_url()
+    hint = "" if base else "\nZu finden in E-Mail Relay unter „Zurückgehalten“."
+    await _send_ntfy(
+        ntfy_url,
+        f"Von {sender_display(held.sender)}: {held.subject or '(kein Betreff)'}\n"
+        f"An {held.alias_address}\nAbgelehnt: {held.error[:150]}{hint}",
+        title="E-Mail Relay: Mail zurückgehalten",
+        click=f"{base}/held" if base else None,
+    )
 
 
 async def verify_incoming_secret(
@@ -288,38 +315,8 @@ async def forward_email(
         real_address = cfg_catchall.catchall_target_address
 
     # SMTP-Config laden (Domain → AliasDomainConfig, Fallback auf globale Settings)
-    domain_str = real_address.split("@")[1] if "@" in real_address else ""
-    smtp_cfg = None
-    if domain_str:
-        domain_obj = (
-            (
-                await db.execute(
-                    select(Domain)
-                    .options(selectinload(Domain.alias_domain_config))
-                    .where(Domain.domain == domain_str, Domain.active == True)
-                )
-            )
-            .scalars()
-            .first()
-        )
-        if domain_obj and domain_obj.alias_domain_config and domain_obj.alias_domain_config.active:
-            c = domain_obj.alias_domain_config
-            smtp_cfg = {
-                "host": c.smtp_host,
-                "port": int(c.smtp_port or 587),
-                "user": c.smtp_user,
-                "password": c.smtp_password,
-                "use_tls": c.smtp_use_tls,
-            }
+    smtp_cfg = await load_smtp_cfg(db, real_address)
     if not smtp_cfg:
-        smtp_cfg = {
-            "host": await get_setting(db, "smtp_host") or "",
-            "port": int(await get_setting(db, "smtp_port") or 587),
-            "user": await get_setting(db, "smtp_user") or "",
-            "password": await get_setting(db, "smtp_password") or "",
-            "use_tls": (await get_setting(db, "smtp_use_tls") or "true") != "false",
-        }
-    if not smtp_cfg["host"]:
         return Response(status_code=500, content=b"SMTP nicht konfiguriert")
 
     # Mail-Header anpassen
@@ -385,23 +382,27 @@ async def forward_email(
     msg["To"] = alias_address
 
     # Senden via SMTP
+    final_raw = msg.as_bytes(policy=_ep.SMTP)
     try:
-        import aiosmtplib
-
-        smtp = aiosmtplib.SMTP(
-            hostname=smtp_cfg["host"],
-            port=smtp_cfg["port"],
-            start_tls=smtp_cfg["use_tls"],
-        )
-        await smtp.connect()
-        await smtp.login(smtp_cfg["user"], smtp_cfg["password"])
-        await smtp.sendmail(smtp_cfg["user"], [real_address], msg.as_bytes(policy=_ep.SMTP))
-        await smtp.quit()
+        await smtp_deliver(smtp_cfg, real_address, final_raw)
     except Exception as e:
         import logging
 
         logging.getLogger("api").error(f"SMTP-Fehler beim Forwarden an {real_address}: {e}")
-        return Response(status_code=500, content=str(e).encode())
+        if not is_permanent_rejection(e):
+            # Temporär (4xx, Login, Verbindung): Postfix soll es später erneut versuchen
+            return Response(status_code=500, content=str(e).encode())
+        # Dauerhaft abgelehnt (5xx): zurückhalten statt endlos wiederholen, User entscheidet in der UI
+        held = await hold_message(
+            db,
+            user_id=alias.user_id if alias else None,
+            alias_address=alias_address,
+            real_address=real_address,
+            raw=final_raw,
+            error=describe_error(e),
+        )
+        asyncio.create_task(_notify_held(held))
+        return Response(status_code=200)
 
     return Response(status_code=200)
 

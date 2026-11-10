@@ -26,6 +26,7 @@ services:
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      PUBLIC_URL: ${PUBLIC_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
