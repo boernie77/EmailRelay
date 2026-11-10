@@ -213,9 +213,11 @@ def strip_to_plaintext(raw: bytes) -> bytes:
     else:
         text = body_part.get_content().strip()
 
+    text = defang_urls(text)
     attachments = [p.get_filename() or p.get_content_type() for p in original.iter_attachments()]
     note = (
-        "[E-Mail Relay: Mail wurde ohne HTML und Anhänge zugestellt, da der Mailserver die Originalmail abgelehnt hat.]"
+        "[E-Mail Relay: Mail wurde ohne HTML und Anhänge zugestellt, da der Mailserver die Originalmail abgelehnt hat. "
+        "Links sind entschärft: hxxps = https, [.] = Punkt.]"
     )
     if attachments:
         note += f"\n[Entfernte Anhänge: {', '.join(attachments)}]"
