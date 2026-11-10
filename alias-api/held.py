@@ -116,13 +116,14 @@ async def hold_message(
     real_address: str,
     raw: bytes,
     error: str,
+    sender: str = "",
 ) -> HeldMessage:
     parsed = BytesParser(policy=policy.default).parsebytes(raw, headersonly=True)
     held = HeldMessage(
         user_id=user_id,
         alias_address=alias_address,
         real_address=real_address,
-        sender=str(parsed.get("Reply-To") or parsed.get("From") or "")[:500],
+        sender=(sender or str(parsed.get("From") or ""))[:500],
         subject=str(parsed.get("Subject") or "")[:500],
         size=len(raw),
         raw=raw,

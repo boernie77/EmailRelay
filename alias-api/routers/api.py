@@ -400,6 +400,7 @@ async def forward_email(
             real_address=real_address,
             raw=final_raw,
             error=describe_error(e),
+            sender=original_from,
         )
         asyncio.create_task(_notify_held(held))
         return Response(status_code=200)
